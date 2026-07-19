@@ -1,0 +1,26 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(self)
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://www.google-analytics.com https://js.sentry-cdn.com https://browser.sentry-cdn.com https://googleads.g.doubleclick.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob: https://*.basemaps.cartocdn.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io https://*.ingest.us.sentry.io https://brapi.dev https://openexchange.bcb.gov.br https://economia.awesomeapi.com.br https://servicodados.ibge.gov.br https://apisidra.ibge.gov.br https://countriesnow.space https://api.teleport.org https://googleads.g.doubleclick.net https://www.google.com https://ad.doubleclick.net; frame-src https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://www.google.com; base-uri 'self'; form-action 'self';
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/*.svg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/*.ico
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/admin.html
+  Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate
+  X-Robots-Tag: noindex, nofollow, noarchive, nosnippet
+  Pragma: no-cache
+  Expires: 0

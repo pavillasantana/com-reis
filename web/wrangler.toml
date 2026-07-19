@@ -1,0 +1,7 @@
+name = "comreis"
+pages_build_output_dir = "dist"
+
+[vars]
+EXPO_PUBLIC_SUPABASE_URL = "https://bwcquemvvqaivsxaclpl.supabase.co"
+EXPO_PUBLIC_SUPABASE_ANON_KEY = "sb_publishable_5QbtKEEs8J4D27sx9nQ5Nw_AHnHtFVu"
+VITE_ADSENSE_CLIENT_ID = ""
