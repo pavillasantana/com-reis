@@ -74,12 +74,12 @@ export function LanguageSelector({ className = '' }: LanguageSelectorProps) {
         </span>
       </button>
 
-      {isOpen && (
+{isOpen && (
         <div
           ref={dropdownRef}
           style={{
             position: 'absolute',
-            bottom: 'calc(100% + 8px)',
+            top: 'calc(100% + 8px)',
             right: 0,
             background: 'var(--card-bg)',
             border: '1px solid var(--card-border)',
@@ -88,10 +88,10 @@ export function LanguageSelector({ className = '' }: LanguageSelectorProps) {
             minWidth: '150px',
             zIndex: 100,
             overflow: 'hidden',
-            animation: 'slideUp 0.15s ease-out',
+            animation: 'slideDown 0.15s ease-out',
           }}
         >
-          {LOCALES.map((l) => (
+          {LOCALES.filter(l => l !== 'es-AR').map((l) => (
             <button
               key={l}
               onClick={() => {
