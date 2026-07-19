@@ -3,15 +3,7 @@ import { Check, Lock, Sparkles, X, Zap } from 'lucide-react';
 import { Card } from './Card';
 import { PrimaryButton } from './PrimaryButton';
 import { useAppConfig } from '../hooks/useAppConfig';
-
-const PREMIUM_FEATURES = [
-  'Metas de poupança ilimitadas com progresso visual',
-  'Importação de extratos bancários (PDF, CSV, OFX, XLSX)',
-  'Espaços PF + PJ separados no mesmo app',
-  'Explorador de Custo de Vida com mapa interativo do IBGE',
-  'Cotações de moedas em tempo real (USD, EUR, GBP...)',
-  'Experiência sem anúncios',
-];
+import { useI18n } from '../i18n';
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -21,11 +13,21 @@ interface PaywallModalProps {
 }
 
 export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, reason, onUpgrade }) => {
+  const { t } = useI18n();
   const { premium_preco, premium_preco_anual } = useAppConfig();
   const precoMensal = premium_preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
   const precoAnual = premium_preco_anual.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
   const economia = (premium_preco * 12) - premium_preco_anual;
   const economiaPercent = Math.round((economia / (premium_preco * 12)) * 100);
+
+  const PREMIUM_FEATURES = [
+    t('web_paywall_feature_1'),
+    t('web_paywall_feature_2'),
+    t('web_paywall_feature_3'),
+    t('web_paywall_feature_4'),
+    t('web_paywall_feature_5'),
+    t('web_paywall_feature_6'),
+  ];
 
   if (!isOpen) return null;
 
@@ -76,7 +78,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, rea
           <Lock size={20} color="#FFB800" style={{ marginBottom: '8px' }} />
 
           <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.3px' }}>
-            Desbloqueie o Com Réis Premium
+            {t('web_paywall_title')}
           </h3>
 
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '20px' }}>
@@ -94,7 +96,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, rea
             }}
           >
             <div style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              Com Premium você ganha:
+              {t('web_paywall_benefits_title')}
             </div>
             {PREMIUM_FEATURES.map((feat, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -118,9 +120,9 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, rea
               flex: 1, padding: '14px 8px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)',
               background: 'rgba(255,255,255,0.02)', textAlign: 'center',
             }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Mensal</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>{t('web_checkout_monthly')}</div>
               <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff' }}>R$ {precoMensal}</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>/mês</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t('web_checkout_per_month')}</div>
             </div>
             <div style={{
               flex: 1, padding: '14px 8px', borderRadius: '12px', border: '2px solid var(--accent-green)',
@@ -130,15 +132,15 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, rea
                 -{economiaPercent}%
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--accent-green)', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                Anual <Zap size={10} />
+                {t('web_checkout_annual')} <Zap size={10} />
               </div>
               <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff' }}>R$ {precoAnual}</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>/ano</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t('web_checkout_per_year')}</div>
             </div>
           </div>
 
           <PrimaryButton onClick={onUpgrade} style={{ width: '100%', marginBottom: '12px' }}>
-            Assinar Premium
+            {t('web_paywall_subscribe')}
           </PrimaryButton>
 
           <button
@@ -149,7 +151,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, rea
               fontSize: '0.85rem', fontWeight: 600, padding: '12px',
             }}
           >
-            Continuar no Plano Gratuito
+            {t('web_paywall_continue_free')}
           </button>
         </div>
       </Card>

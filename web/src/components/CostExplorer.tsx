@@ -16,6 +16,7 @@ import { getTeleportCityProfile, type TeleportCost } from '../hooks/useTeleportD
 import { useExchangeRates } from '../hooks/useExchangeRates';
 import { useGlobalCountries, useGlobalStates, useGlobalCitiesForCountry } from '../hooks/useGlobalLocationData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useI18n } from '../i18n';
 
 interface CostExplorerProps {
   planoUsuario: 'free' | 'premium';
@@ -37,6 +38,7 @@ export function CostExplorer({
   moedaBase,
   onUpgrade 
 }: CostExplorerProps) {
+  const { t } = useI18n();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Circle[]>([]);
@@ -176,7 +178,7 @@ export function CostExplorer({
       circle.bindPopup(`
         <div style="color: #fff; background: #0b0f19; padding: 14px; border-radius: 8px; font-family: sans-serif;">
           <strong style="display: block; font-size: 0.9rem;">${pt.name}</strong>
-          <span style="font-size: 0.8rem; color: #94a3b8;">Gasto Médio: ${formatCurrency(pt.value, 'BRL')}</span>
+          <span style="font-size: 0.8rem; color: #94a3b8;">${t('web_cost_avg_salary')}: ${formatCurrency(pt.value, 'BRL')}</span>
         </div>
       `, {
         closeButton: false,
@@ -280,7 +282,7 @@ export function CostExplorer({
             }}>
               <div style={{ opacity: 0.35, textAlign: 'center' }}>
                 <MapPin size={48} color="var(--accent-blue)" style={{ margin: '0 auto 12px' }} />
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Mapa Geográfico Termográfico Interativo</span>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t('web_cost_description')}</span>
               </div>
             </div>
           )}
@@ -299,7 +301,7 @@ export function CostExplorer({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '1.1rem', color: 'var(--text-primary)'}}>
                 <MapPin size={18} color="var(--accent-blue)" />
-                Comparador Global
+                {t('web_cost_title')}
               </h3>
               <button 
                 onClick={handleOpenExternal}
@@ -317,7 +319,7 @@ export function CostExplorer({
                   gap: '6px'
                 }}
               >
-                <ExternalLink size={12} /> Abrir Externo
+                <ExternalLink size={12} /> {t('web_cost_external')}
               </button>
             </div>
 
@@ -332,7 +334,7 @@ export function CostExplorer({
                 color: 'var(--color-danger)'
               }}>
                 <p style={{ margin: 0, marginBottom: '12px', lineHeight: '1.4' }}>
-                  Não foi possível obter dados oficiais. Verifique sua conexão com a internet.
+                  {t('web_cost_error_desc')}
                 </p>
                 <button
                   onClick={() => {
@@ -351,15 +353,15 @@ export function CostExplorer({
                     width: '100%'
                   }}
                 >
-                  Tentar Novamente
+                  {t('web_cost_retry')}
                 </button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px'}}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>País</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_cost_country')}</label>
                   {loadingCountries ? (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Carregando países...</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('web_cost_loading')}</div>
                   ) : (
                     <select 
                       className="select-input" 
@@ -383,9 +385,9 @@ export function CostExplorer({
                 {isBrazil ? (
                   <>
                     <div>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Estado (IBGE)</label>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_cost_state')} (IBGE)</label>
                       {loadingEstados ? (
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Carregando estados...</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('web_cost_loading')}</div>
                       ) : (
                         <select 
                           className="select-input" 
@@ -397,7 +399,7 @@ export function CostExplorer({
                             setCitySearchQuery('');
                           }}
                         >
-                          <option value="">Selecione um Estado</option>
+                          <option value="">{t('web_cost_state')}</option>
                           {estados?.map(e => (
                             <option key={e.id} value={e.sigla}>{e.nome} ({e.sigla})</option>
                           ))}
@@ -407,10 +409,10 @@ export function CostExplorer({
 
                     {selectedUf && (
                       <div>
-                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Filtrar Cidades</label>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_cost_search')}</label>
                         <input 
                           type="text"
-                          placeholder="Digite para buscar..."
+                          placeholder={t('web_cost_search')}
                           style={{ 
                             background: 'var(--card-bg)', 
                             borderRadius: '8px', 
@@ -429,9 +431,9 @@ export function CostExplorer({
 
                     {selectedUf && (
                       <div>
-                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Cidade (IBGE)</label>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_cost_city')} (IBGE)</label>
                         {loadingMunicipios ? (
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Carregando cidades...</div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('web_cost_loading')}</div>
                         ) : (
                           <select 
                             className="select-input" 
@@ -439,7 +441,7 @@ export function CostExplorer({
                             value={selectedCity}
                             onChange={(e) => setSelectedCity(e.target.value)}
                           >
-                            <option value="">Geral do Estado</option>
+                            <option value="">{t('web_cost_state')}</option>
                             {filteredMunicipios.map(m => (
                               <option key={m.id} value={m.id}>{m.nome}</option>
                             ))}
@@ -452,9 +454,9 @@ export function CostExplorer({
                   <>
                     {globalStates && globalStates.length > 0 && (
                       <div>
-                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Estado</label>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_cost_state')}</label>
                         {loadingGlobalStates ? (
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Carregando estados...</div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('web_cost_loading')}</div>
                         ) : (
                           <select 
                             className="select-input" 
@@ -462,7 +464,7 @@ export function CostExplorer({
                             value={selectedUf}
                             onChange={(e) => setSelectedUf(e.target.value)}
                           >
-                            <option value="">Selecione um Estado (Opcional)</option>
+                            <option value="">{t('web_cost_state')}</option>
                             {globalStates.map(s => (
                               <option key={s.state_code} value={s.name}>{s.name}</option>
                             ))}
@@ -472,10 +474,10 @@ export function CostExplorer({
                     )}
 
                     <div>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Filtrar Cidades</label>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_cost_search')}</label>
                       <input 
                         type="text"
-                        placeholder="Digite para buscar..."
+                        placeholder={t('web_cost_search')}
                         style={{ 
                           background: 'var(--card-bg)', 
                           borderRadius: '8px', 
@@ -492,9 +494,9 @@ export function CostExplorer({
                     </div>
 
                     <div>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Cidade</label>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_cost_city')}</label>
                       {loadingGlobalCities ? (
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Carregando cidades...</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('web_cost_loading')}</div>
                       ) : (
                         <select 
                           className="select-input" 
@@ -502,7 +504,7 @@ export function CostExplorer({
                           value={selectedCity}
                           onChange={(e) => setSelectedCity(e.target.value)}
                         >
-                          <option value="">Geral do País</option>
+                          <option value="">{t('web_cost_country')}</option>
                           {filteredGlobalCities.map(c => (
                             <option key={c} value={c}>{c}</option>
                           ))}
@@ -517,7 +519,7 @@ export function CostExplorer({
             <div style={{ marginTop: '24px', borderTop: '1px solid var(--card-border)', paddingTop: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  Indicadores Demográficos {isBrazil ? '(IBGE/SIDRA)' : '(Teleport/Numbeo)'}
+                  {t('web_cost_avg_salary')} {isBrazil ? '(IBGE/SIDRA)' : '(Teleport/Numbeo)'}
                 </span>
                 {profileLoading && (
                   <RefreshCw size={14} color="var(--text-muted)" style={{ animation: 'spin 1s linear infinite' }} />
@@ -526,13 +528,13 @@ export function CostExplorer({
 
               {profile.fonte && (
                 <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'block', marginBottom: '12px' }}>
-                  Fonte: {profile.fonte}
+                  {t('web_cost_source')} {profile.fonte}
                 </span>
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px'}}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Salário Médio Local:</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{t('web_cost_avg_salary')}:</span>
                   <span style={{ fontWeight: 700 }}>
                     {formatCurrency(profile.salarioMedio, profileCurrency)}
                     {moedaBase !== profileCurrency && profileSalarioConvertido > 0 && (
@@ -543,7 +545,7 @@ export function CostExplorer({
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>{isBrazil ? 'PIB per capita' : 'Custo de Vida Local'}:</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{isBrazil ? t('web_cost_gdp') : t('web_cost_living')}:</span>
                   <span style={{ fontWeight: 700 }}>
                     {formatCurrency(profile.pibPerCapita, profileCurrency)}
                     {moedaBase !== profileCurrency && (
@@ -562,11 +564,11 @@ export function CostExplorer({
 
           <div style={{ marginTop: '24px', background: 'var(--card-border)', padding: '21px', borderRadius: '12px', border: '1px solid var(--card-border)'}}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-              Comparativo de Gastos Pessoais
+              {t('web_cost_title')}
             </span>
             <div style={{ fontSize: '0.85rem', lineHeight: '1.4' }}>
               {userAverageExpense === 0 ? (
-                <span style={{ color: 'var(--text-muted)' }}>Adicione despesas no dashboard para calcular a comparação de custo de vida.</span>
+                <span style={{ color: 'var(--text-muted)' }}>{t('web_cost_description')}</span>
               ) : (
                 <>
                   Seus gastos mensais de{' '}
@@ -613,13 +615,13 @@ export function CostExplorer({
             <Shield size={24} color="var(--accent-blue)" />
           </div>
           <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.5px' }}>
-            Explorador de Custo de Vida
+            {t('web_cost_title')}
           </h3>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', maxWidth: '400px', marginBottom: '24px', lineHeight: '1.5' }}>
-            Compare seus gastos contra dados econômicos oficiais do IBGE/SIDRA e Teleport (salário médio, PIB, custo de vida global). Mapeie termograficamente suas despesas geolocalizadas.
+            {t('web_cost_description')}
           </p>
           <PrimaryButton onClick={onUpgrade}>
-            Desbloquear Inteligência Geográfica Premium
+            {t('unlock_premium')}
           </PrimaryButton>
         </div>
       )}

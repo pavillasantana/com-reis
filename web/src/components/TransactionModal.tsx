@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from './Card';
 import { TextInput } from './TextInput';
 import { PrimaryButton } from './PrimaryButton';
+import { useI18n } from '../i18n';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -50,6 +51,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   setTxCartaoId,
   onSubmit
 }) => {
+  const { t } = useI18n();
   if (!isOpen) return null;
 
   const selectedAccount = activeAccounts.find(a => a.id === txContaId);
@@ -62,11 +64,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px',
     }}>
       <Card style={{ maxWidth: '450px', width: '100%' }} className="fade-in">
-        <h3 style={{ marginBottom: '20px', fontSize: '1.2rem' }}>Registrar Nova Transação</h3>
+        <h3 style={{ marginBottom: '20px', fontSize: '1.2rem' }}>{t('web_tx_modal_title')}</h3>
         
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px'}}>
           <div>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Tipo</label>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_tx_type_label')}</label>
             <div style={{ display: 'flex', background: 'rgba(30, 39, 61, 0.5)', padding: '6px', borderRadius: '12px'}}>
               <button
                 type="button"
@@ -77,7 +79,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   color: txTipo === 'receita' ? '#000' : 'var(--text-secondary)'
                 }}
               >
-                Receita
+                {t('income_label')}
               </button>
               <button
                 type="button"
@@ -88,29 +90,29 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   color: txTipo === 'despesa' ? '#fff' : 'var(--text-secondary)'
                 }}
               >
-                Despesa
+                {t('expense_label')}
               </button>
             </div>
           </div>
 
           <div>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Descrição</label>
-            <TextInput value={txDesc} onChange={e => setTxDesc(e.target.value)} placeholder="Ex: Supermercado PegMais" required />
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('description_label')}</label>
+            <TextInput value={txDesc} onChange={e => setTxDesc(e.target.value)} placeholder={t('description_placeholder')} required />
           </div>
 
           <div className="rg-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px'}}>
             <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Valor</label>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('value_label')}</label>
               <TextInput type="number" step="0.01" value={txVal} onChange={e => setTxVal(e.target.value)} placeholder="0.00" required />
             </div>
             <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Data</label>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('date_label')}</label>
               <TextInput type="date" value={txDate} onChange={e => setTxDate(e.target.value)} required />
             </div>
           </div>
 
           <div>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Moeda da Transação</label>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_tx_currency_label')}</label>
             <div style={{ display: 'flex', gap: '8px' }}>
               {['BRL', 'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'CHF', 'AUD', 'CNY', 'MXN', 'ARS'].map(m => {
                 const isSelected = txMoeda === m;
@@ -141,13 +143,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
           {showConversionNotice && (
             <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', marginTop: '-8px', opacity: 0.9 }}>
-              * Será convertida de <strong>{txMoeda}</strong> para <strong>{selectedAccount.moeda_conta}</strong> na conta destino.
+              {t('web_tx_conversion_notice', { from: txMoeda, to: selectedAccount.moeda_conta })}
             </div>
           )}
 
           <div className="rg-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px'}}>
             <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Conta / Carteira</label>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_tx_account_label')}</label>
               <select className="select-input" value={txContaId} onChange={e => setTxContaId(e.target.value)}>
                 {activeAccounts.map(a => (
                   <option key={a.id} value={a.id}>{a.nome_instituicao}</option>
@@ -155,16 +157,16 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </select>
             </div>
             <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Categoria</label>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('category_label')}</label>
               <select className="select-input" value={txCat} onChange={e => setTxCat(e.target.value)}>
-                <option value="Alimentação">Alimentação</option>
-                <option value="Moradia">Moradia</option>
-                <option value="Transporte">Transporte</option>
-                <option value="Lazer">Lazer</option>
-                <option value="Salário">Salário</option>
+                <option value="Alimentação">{t('cat_alimentacao')}</option>
+                <option value="Moradia">{t('cat_moradia')}</option>
+                <option value="Transporte">{t('cat_transporte')}</option>
+                <option value="Lazer">{t('cat_lazer')}</option>
+                <option value="Salário">{t('income_label')}</option>
                 <option value="Freelance">Freelance</option>
-                <option value="Assinaturas">Assinaturas</option>
-                <option value="Outros">Outros</option>
+                <option value="Assinaturas">{t('cat_assinaturas')}</option>
+                <option value="Outros">{t('cat_outros')}</option>
               </select>
             </div>
           </div>
@@ -172,17 +174,17 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           {txTipo === 'despesa' && activeCartoes && activeCartoes.length > 0 && (
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                Forma de Pagamento (Cartão de Crédito)
+                {t('web_tx_payment_method_label')}
               </label>
               <select
                 className="select-input"
                 value={txCartaoId}
                 onChange={e => setTxCartaoId(e.target.value)}
               >
-                <option value="">Saldo da Conta (Dinheiro/Débito)</option>
+                <option value="">{t('web_tx_account_balance_option')}</option>
                 {activeCartoes.map(c => (
                   <option key={c.id} value={c.id}>
-                    Cartão: {c.nome} (Fatura: BRL {c.fatura_atual.toFixed(2)})
+                    {t('web_tx_card_option', { name: c.nome, value: c.fatura_atual.toFixed(2) })}
                   </option>
                 ))}
               </select>
@@ -194,10 +196,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               flex: 1, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)',
               padding: '12px', borderRadius: '12px', cursor: 'pointer', fontWeight: 600,
             }}>
-              Cancelar
+              {t('cancel')}
             </button>
             <PrimaryButton type="submit" style={{ flex: 1 }}>
-              Salvar
+              {t('save')}
             </PrimaryButton>
           </div>
         </form>

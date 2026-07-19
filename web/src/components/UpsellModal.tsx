@@ -2,6 +2,7 @@ import React from 'react';
 import { Lock } from 'lucide-react';
 import { Card } from './Card';
 import { PrimaryButton } from './PrimaryButton';
+import { useI18n } from '../i18n';
 
 interface UpsellModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
   upsellReason,
   onUpgrade
 }) => {
+  const { t } = useI18n();
   if (!isOpen) return null;
 
   return (
@@ -32,14 +34,14 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
           <Lock size={28} color="var(--accent-blue)" />
         </div>
         
-        <h3 style={{ fontSize: '1.3rem', marginBottom: '12px' }}>Recurso Exclusivo Premium</h3>
+        <h3 style={{ fontSize: '1.3rem', marginBottom: '12px' }}>{t('web_upsell_premium_feature')}</h3>
         <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>
           {upsellReason}
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px'}}>
           <PrimaryButton onClick={onUpgrade} style={{ width: '100%' }}>
-            Testar Plano Premium Grátis
+            {t('web_upsell_try_free_plan')}
           </PrimaryButton>
           
           <button 
@@ -49,7 +51,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({
               padding: '15px, cursor: pointer, fontWeight: 600, fontSize: 0.85rem',
             }}
           >
-            Voltar
+            {t('web_upsell_back')}
           </button>
         </div>
       </Card>

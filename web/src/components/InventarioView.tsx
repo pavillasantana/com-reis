@@ -7,6 +7,7 @@ import { formatCurrency } from '../utils/currency';
 import {
   fetchBensPatrimonio, createBemPatrimonio, deleteBemPatrimonio
 } from '../services/supabaseService';
+import { useI18n } from '../i18n';
 
 interface Bem {
   id: string;
@@ -26,6 +27,7 @@ interface Props {
 const CATEGORIAS = ['Eletrônicos', 'Móveis', 'Veículos', 'Imóveis', 'Equipamentos', 'Estoque', 'Ferramentas', 'Outros'];
 
 export const InventarioView: React.FC<Props> = ({ moedaBase, idEspaco }) => {
+  const { t } = useI18n();
 
   const [bens, setBens] = useState<Bem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,14 +93,14 @@ export const InventarioView: React.FC<Props> = ({ moedaBase, idEspaco }) => {
         <div>
           <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '0 0 8px 0', letterSpacing: '-0.5px'}}>
             <Package size={24} style={{ verticalAlign: 'middle', marginRight: '12px' }} />
-            Inventário de Bens
+            {t('web_inventory_title')}
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', margin: 0 }}>
-            Registre bens físicos, equipamentos e estoque para controle patrimonial.
+            {t('web_inventory_subtitle')}
           </p>
         </div>
         <button onClick={() => setModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', background: 'linear-gradient(135deg, #00E5FF, #0070FF)', border: 'none', borderRadius: '12px', color: '#000', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}>
-          <Plus size={16} /> Novo Bem
+          <Plus size={16} /> {t('web_inventory_new')}
         </button>
       </div>
 
@@ -106,7 +108,7 @@ export const InventarioView: React.FC<Props> = ({ moedaBase, idEspaco }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
             <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar bem..." style={{ ...inputSt, paddingLeft: '34px' }} />
+            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={t('web_inventory_search')} style={{ ...inputSt, paddingLeft: '34px' }} />
           </div>
           <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
             Total: <strong style={{ color: 'var(--accent-blue)' }}>{formatCurrency(totalPatrimonio, moedaBase)}</strong>
@@ -114,11 +116,11 @@ export const InventarioView: React.FC<Props> = ({ moedaBase, idEspaco }) => {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Carregando...</div>
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>{t('loading')}</div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
             <Package size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
-            <p>Nenhum bem registrado ainda.<br />Clique em "Novo Bem" para começar.</p>
+            <p>{t('web_inventory_no_items')}<br />{t('web_inventory_add_first')}</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
@@ -156,36 +158,36 @@ export const InventarioView: React.FC<Props> = ({ moedaBase, idEspaco }) => {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(7,10,18,0.88)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '16px' }}>
           <div style={{ background: 'linear-gradient(160deg, #161D2E 0%, #0F1625 100%)', border: '1px solid rgba(0,229,255,0.15)', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '460px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Cadastrar Novo Bem</h3>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>{t('web_inventory_register')}</h3>
               <button onClick={() => setModalOpen(false)} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={16} /></button>
             </div>
 
-            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Nome do Bem</label>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_inventory_item_name')}</label>
             <input value={fNome} onChange={e => setFNome(e.target.value)} placeholder="Ex: Notebook Dell XPS" style={{ ...inputSt, marginBottom: '16px' }} />
 
             <div className="rg-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Valor de Compra</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_inventory_value')}</label>
                 <input type="number" min="0" step="0.01" value={fValor} onChange={e => setFValor(e.target.value)} placeholder="0,00" style={inputSt} />
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Data de Aquisição</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_inventory_date')}</label>
                 <input type="date" value={fData} onChange={e => setFData(e.target.value)} style={inputSt} />
               </div>
             </div>
 
-            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Categoria</label>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_inventory_category_item')}</label>
             <select value={fCategoria} onChange={e => setFCategoria(e.target.value)} style={{ ...inputSt, marginBottom: '16px', cursor: 'pointer' }}>
               {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
 
-            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Descrição (opcional)</label>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_inventory_description')}</label>
             <input value={fDesc} onChange={e => setFDesc(e.target.value)} placeholder="Ex: Número de série, estado de conservação..." style={{ ...inputSt, marginBottom: '24px' }} />
 
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setModalOpen(false)} style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600 }}>Cancelar</button>
+              <button onClick={() => setModalOpen(false)} style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600 }}>{t('cancel')}</button>
               <button onClick={handleAdd} disabled={!fNome || !fValor} style={{ flex: 1.5, padding: '12px', background: 'linear-gradient(135deg, #00E5FF, #0070FF)', border: 'none', borderRadius: '12px', cursor: 'pointer', color: '#000', fontWeight: 700, opacity: (!fNome || !fValor) ? 0.5 : 1 }}>
-                Cadastrar
+                {t('web_inventory_register')}
               </button>
             </div>
           </div>

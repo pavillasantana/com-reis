@@ -3,6 +3,7 @@ import {
   TrendingUp, TrendingDown, Trash2, Pencil,
   X, Check, PiggyBank, AlertTriangle,
 } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 export interface MovimentoCaixinha {
   id: string;
@@ -45,6 +46,7 @@ export const CaixinhaHistoricoModal: React.FC<Props> = ({
   moedaBase, onClose, onSaldoChange,
   onAddMovimento, onEditMovimento, onDeleteMovimento,
 }) => {
+  const { t } = useI18n();
   const [hist, setHist] = useState<MovimentoCaixinha[]>(() => loadHistorico(caixinhaId));
   const [modo, setModo] = useState<'extrato' | 'aporte' | 'resgate'>('extrato');
 
@@ -88,7 +90,7 @@ export const CaixinhaHistoricoModal: React.FC<Props> = ({
           caixinha_id: caixinhaId,
           tipo: modo as 'aporte' | 'resgate',
           valor: val,
-          descricao: fDesc.trim() || (modo === 'aporte' ? 'Aporte' : 'Resgate'),
+          descricao: fDesc.trim() || (modo === 'aporte' ? t('web_jar_history_deposit') : t('web_jar_history_withdrawal')),
           data: fData,
         }) || `mov_${Date.now()}`
       : `mov_${Date.now()}`;
@@ -96,7 +98,7 @@ export const CaixinhaHistoricoModal: React.FC<Props> = ({
       id: novoId,
       tipo: modo as 'aporte' | 'resgate',
       valor: val,
-      descricao: fDesc.trim() || (modo === 'aporte' ? 'Aporte' : 'Resgate'),
+      descricao: fDesc.trim() || (modo === 'aporte' ? t('web_jar_history_deposit') : t('web_jar_history_withdrawal')),
       data: fData,
     };
     persistAndNotify([novo, ...hist]);
@@ -138,8 +140,8 @@ export const CaixinhaHistoricoModal: React.FC<Props> = ({
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>{caixinhaNome}</h3>
               </div>
               <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Saldo: <strong style={{ color: 'var(--accent-cyan)' }}>{fmt(saldoComputado)}</strong>
-                &nbsp;·&nbsp;Meta: <strong>{fmt(valorAlvo)}</strong>
+                {t('web_jar_history_balance_label')} <strong style={{ color: 'var(--accent-cyan)' }}>{fmt(saldoComputado)}</strong>
+                &nbsp;·&nbsp;{t('web_jar_history_goal')} <strong>{fmt(valorAlvo)}</strong>
               </p>
             </div>
             <button onClick={onClose} style={{ background: 'var(--bg-color)', border: '1px solid var(--card-border)', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={15} /></button>
@@ -149,7 +151,7 @@ export const CaixinhaHistoricoModal: React.FC<Props> = ({
           <div style={{ marginTop: '14px', height: '6px', background: 'var(--bg-color)', borderRadius: '10px', overflow: 'hidden' }}>
             <div style={{ width: `${pct}%`, height: '100%', background: pct >= 100 ? '#00E676' : 'linear-gradient(90deg,#00E5FF,#0070FF)', borderRadius: '10px', transition: 'width 0.4s ease' }} />
           </div>
-          <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{pct}% da meta atingida</p>
+          <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('web_jar_history_goal_pct', { pct: String(pct) })}</p>
 
           {/* Action buttons */}
           <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
@@ -164,7 +166,7 @@ background: modo === m
                   : 'var(--text-muted)',
                 transition: 'all 0.15s',
               }}>
-                {m === 'extrato' ? '📋 Extrato' : m === 'aporte' ? '📥 Guardar (+)' : '📤 Resgatar (-)'}
+                {m === 'extrato' ? t('web_jar_history_tab_statement') : m === 'aporte' ? t('web_jar_history_tab_deposit') : t('web_jar_history_tab_withdraw')}
               </button>
             ))}
           </div>
@@ -175,29 +177,29 @@ background: modo === m
           <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--card-border)' }}>
             {modo === 'resgate' && saldoComputado <= 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FFB400', fontSize: '0.82rem', marginBottom: '14px' }}>
-                <AlertTriangle size={14} /> Saldo insuficiente para resgatar.
+                <AlertTriangle size={14} /> {t('web_jar_history_insufficient_balance')}
               </div>
             )}
             <div className="rg-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div>
-                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '5px' }}>Valor (R$)</label>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '5px' }}>{t('web_jar_history_amount')}</label>
                 <input type="number" min="0.01" step="0.01" value={fValor} onChange={e => setFValor(e.target.value)} placeholder="0,00" style={inputSt} />
               </div>
               <div>
-                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '5px' }}>Data</label>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '5px' }}>{t('web_jar_history_date')}</label>
                 <input type="date" value={fData} onChange={e => setFData(e.target.value)} style={inputSt} />
               </div>
             </div>
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '5px' }}>Descrição (opcional)</label>
-              <input type="text" value={fDesc} onChange={e => setFDesc(e.target.value)} placeholder={modo === 'aporte' ? 'Ex: salário extra' : 'Ex: emergência'} style={inputSt} />
+              <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '5px' }}>{t('web_jar_history_desc_optional')}</label>
+              <input type="text" value={fDesc} onChange={e => setFDesc(e.target.value)} placeholder={modo === 'aporte' ? t('web_jar_history_desc_deposit_placeholder') : t('web_jar_history_desc_withdraw_placeholder')} style={inputSt} />
             </div>
             <button
               onClick={handleRegistrar}
               disabled={!fValor || (modo === 'resgate' && parseFloat(fValor) > saldoComputado)}
               style={{ width: '100%', padding: '12px', background: modo === 'aporte' ? 'linear-gradient(135deg,#00E676,#00BFA5)' : 'linear-gradient(135deg,#FF5252,#FF1744)', border: 'none', borderRadius: '12px', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem', opacity: (!fValor || (modo === 'resgate' && parseFloat(fValor) > saldoComputado)) ? 0.5 : 1 }}
             >
-              {modo === 'aporte' ? `Guardar ${fValor ? fmt(parseFloat(fValor.replace(',', '.'))) : ''}` : `Resgatar ${fValor ? fmt(parseFloat(fValor.replace(',', '.'))) : ''}`}
+              {modo === 'aporte' ? `${t('web_jar_history_save_button')} ${fValor ? fmt(parseFloat(fValor.replace(',', '.'))) : ''}` : `${t('web_jar_history_withdraw_button')} ${fValor ? fmt(parseFloat(fValor.replace(',', '.'))) : ''}`}
             </button>
           </div>
         )}
@@ -207,7 +209,7 @@ background: modo === m
           {hist.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
               <PiggyBank size={36} style={{ opacity: 0.3, marginBottom: '12px' }} />
-              <p style={{ margin: 0, fontSize: '0.85rem' }}>Nenhum movimento ainda.<br />Clique em "Guardar (+)" para começar.</p>
+              <p style={{ margin: 0, fontSize: '0.85rem' }}>{t('web_jar_history_no_movements_hint')}</p>
             </div>
           ) : (
             hist.map(m => {

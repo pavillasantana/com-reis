@@ -5,6 +5,7 @@ import { TextInput } from './TextInput';
 import { PrimaryButton } from './PrimaryButton';
 import { useStore } from '../store/useStore';
 import { useAppConfig } from '../hooks/useAppConfig';
+import { useI18n } from '../i18n';
 
 function crc16Ccitt(data: string): string {
   let crc = 0xFFFF;
@@ -68,6 +69,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onSubmit,
   onConfirmPix
 }) => {
+  const { t } = useI18n();
   const storeVisible = useStore((s) => s.isCheckoutModalVisible);
   const toggleCheckoutModal = useStore((s) => s.toggleCheckoutModal);
   const isOpen = visible !== undefined ? visible : storeVisible;
@@ -111,9 +113,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <Check size={36} color="var(--accent-green)" />
             </div>
             
-            <h3 style={{ fontSize: '1.5rem', marginBottom: '12px', color: '#fff' }}>Pagamento Confirmado!</h3>
+            <h3 style={{ fontSize: '1.5rem', marginBottom: '12px', color: '#fff' }}>{t('web_checkout_payment_confirmed')}</h3>
             <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>
-              Parabéns! Seu plano <strong>Com Réis Premium {billingType === 'annual' ? 'Anual' : 'Mensal'}</strong> está ativo. Aproveite todos os recursos ilimitados!
+              {t('web_checkout_congratulations')} <strong>{t('web_checkout_com_reis_premium')} {billingType === 'annual' ? t('web_checkout_annual') : t('web_checkout_monthly')}</strong>
             </p>
 
             <div style={{
@@ -125,21 +127,21 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               textAlign: 'left'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Produto:</span>
-                <span style={{ color: '#fff', fontWeight: 600 }}>Com Réis Premium — {billingType === 'annual' ? 'Anual' : 'Mensal'}</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{t('web_checkout_product')}</span>
+                <span style={{ color: '#fff', fontWeight: 600 }}>{t('web_checkout_com_reis_premium')} — {billingType === 'annual' ? t('web_checkout_annual') : t('web_checkout_monthly')}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Status:</span>
-                <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>Aprovada</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{t('status')}</span>
+                <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>{t('web_checkout_status_approved')}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Valor:</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{t('value_label')}</span>
                 <span style={{ color: '#fff', fontWeight: 600 }}>R$ {activePriceFormatted}</span>
               </div>
             </div>
 
             <PrimaryButton onClick={onClose} style={{ width: '100%' }}>
-              Começar a Usar Premium
+              {t('web_checkout_start_premium')}
             </PrimaryButton>
           </div>
         ) : checkoutProcessing ? (
@@ -147,14 +149,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <div style={{ marginBottom: '24px' }}>
               <RefreshCw size={48} className="spin" color="var(--accent-blue)" style={{ filter: 'drop-shadow(0 0 8px rgba(0, 210, 255, 0.4))' }} />
             </div>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '8px', color: '#fff' }}>Processando Transação...</h3>
+            <h3 style={{ fontSize: '1.25rem', marginBottom: '8px', color: '#fff' }}>{t('web_checkout_processing')}</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Aguardando resposta do gateway de pagamento. Não feche esta janela.
+              {t('web_checkout_waiting_gateway')}
             </p>
           </div>
         ) : (
           <div>
-            <h3 style={{ fontSize: '1.2rem', marginBottom: '12px', fontWeight: 700 }}>Com Réis Premium</h3>
+            <h3 style={{ fontSize: '1.2rem', marginBottom: '12px', fontWeight: 700 }}>{t('web_checkout_com_reis_premium')}</h3>
 
             {/* Plan selector: Monthly / Annual */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
@@ -170,11 +172,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s',
                 }}
               >
-                <div>Mensal</div>
+                <div>{t('web_checkout_monthly')}</div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 800, marginTop: '4px', color: '#fff' }}>
                   R$ {precoMensal.toFixed(2).replace('.', ',')}
                 </div>
-                <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>/mês</div>
+                <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>{t('web_checkout_per_month')}</div>
               </button>
               <button
                 type="button"
@@ -189,12 +191,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                  Anual <Zap size={12} color="var(--accent-green)" />
+                  {t('web_checkout_annual')} <Zap size={12} color="var(--accent-green)" />
                 </div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 800, marginTop: '4px', color: '#fff' }}>
                   R$ {precoAnual.toFixed(2).replace('.', ',')}
                 </div>
-                <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>/ano</div>
+                <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>{t('web_checkout_per_year')}</div>
                 {economiaAnual > 0 && (
                   <div style={{
                     position: 'absolute', top: '-8px', right: '-8px',
@@ -219,7 +221,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 R$ {activePriceFormatted}
               </span>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                {billingType === 'annual' ? '/ano' : '/mês'}
+                {billingType === 'annual' ? t('web_checkout_per_year') : t('web_checkout_per_month')}
               </span>
             </div>
 
@@ -234,7 +236,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 fontWeight: 600,
                 textAlign: 'center',
               }}>
-                Economize R$ {economiaAnual.toFixed(2).replace('.', ',')} por ano ({economiaPercent}% OFF) — equivalente a R$ {perMonthFormatted}/mês
+                {t('web_checkout_save_annual')} R$ {economiaAnual.toFixed(2).replace('.', ',')} {t('web_checkout_per_year')} ({economiaPercent}% OFF) — {t('web_checkout_by_year')} R$ {perMonthFormatted}{t('web_checkout_per_month')}
               </div>
             )}
 
@@ -249,17 +251,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 fontWeight: 600,
                 textAlign: 'center',
               }}>
-                Cancele quando quiser — sem fidelidade
+                {t('web_checkout_cancel_anytime')}
               </div>
             )}
 
             {/* Feature benefits */}
             <div style={{ marginBottom: '20px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>✓ Separe finanças pessoais das do negócio automaticamente</div>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>✓ Metas de poupança com progresso visual ilimitadas</div>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>✓ Importe extratos bancários (PDF, CSV, OFX, XLSX)</div>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>✓ Cotações de moedas em tempo real</div>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>✓ Explorador de Custo de Vida com mapa interativo</div>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>✓ {t('web_checkout_feature_pf_pj')}</div>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>✓ {t('web_checkout_feature_goals')}</div>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>✓ {t('web_checkout_feature_import')}</div>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>✓ {t('web_checkout_feature_quotes')}</div>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>✓ {t('web_checkout_feature_explorer')}</div>
             </div>
             
             {/* Payment method tabs */}
@@ -268,7 +270,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 className={`checkout-tab ${checkoutMethod === 'card' ? 'active' : ''}`}
                 onClick={() => setCheckoutMethod('card')}
               >
-                Cartão de Crédito
+                {t('web_checkout_credit_card')}
               </div>
               <div 
                 className={`checkout-tab ${checkoutMethod === 'pix' ? 'active' : ''}`}
@@ -298,7 +300,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
                   <div className="card-footer">
                     <div className="card-holder">
-                      {cardHolder || 'NOME DO TITULAR'}
+                      {cardHolder || t('web_checkout_card_holder_placeholder')}
                     </div>
                     <div className="card-expiry">
                       <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)' }}>VALID THRU</div>
@@ -309,7 +311,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '18px'}}>
                   <div>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Número do Cartão</label>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>{t('web_checkout_card_number')}</label>
                     <TextInput 
                       value={cardNumber} 
                       onChange={e => setCardNumber(e.target.value.replace(/\D/g, '').substring(0, 16))} 
@@ -319,18 +321,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Nome no Cartão</label>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>{t('web_checkout_card_holder')}</label>
                     <TextInput 
                       value={cardHolder} 
                       onChange={e => setCardHolder(e.target.value.toUpperCase())} 
-                      placeholder="JOÃO A SILVA" 
+                      placeholder={t('web_checkout_card_holder_placeholder')} 
                       required 
                     />
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px'}}>
                     <div>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Validade</label>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>{t('web_checkout_expiry')}</label>
                       <TextInput 
                         value={cardExpiry} 
                         onChange={e => {
@@ -357,7 +359,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   {/* Installments selector (only for annual plan) */}
                   {billingType === 'annual' && maxInstallments > 1 && (
                     <div>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Parcelas</label>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>{t('web_checkout_installments')}</label>
                       <select
                         value={installments}
                         onChange={e => setInstallments(Number(e.target.value))}
@@ -382,12 +384,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       flex: 1, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)',
                       padding: '18px', borderRadius: '16px', cursor: 'pointer', fontWeight: 600,
                     }}>
-                      Cancelar
+                      {t('web_checkout_cancel')}
                     </button>
                     <PrimaryButton type="submit" style={{ flex: 1 }}>
                       {installments > 1
-                        ? `Assinar ${installments}x R$ ${installmentValue.toFixed(2).replace('.', ',')}`
-                        : `Assinar por R$ ${activePriceFormatted}`
+                        ? `${t('web_checkout_subscribe')} ${installments}x R$ ${installmentValue.toFixed(2).replace('.', ',')}`
+                        : `${t('web_checkout_subscribe')} R$ ${activePriceFormatted}`
                       }
                     </PrimaryButton>
                   </div>
@@ -396,7 +398,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             ) : (
               <div style={{ textAlign: 'center' }}>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                  Escaneie o código QR abaixo utilizando o aplicativo do seu banco:
+                  {t('web_checkout_scan_qr')}
                 </p>
 
                 <div className="qr-container">
@@ -452,13 +454,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     }}
                   >
                     {copiedPix ? <Check size={14} /> : <Copy size={14} />}
-                    {copiedPix ? 'Copiado!' : 'Copiar'}
+                    {copiedPix ? t('web_checkout_copied') : t('web_checkout_copy')}
                   </button>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px'}}>
                   <PrimaryButton onClick={onConfirmPix} style={{ width: '100%' }}>
-                    Confirmar Pagamento — R$ {activePriceFormatted}
+                    {t('web_checkout_confirm_payment')} — R$ {activePriceFormatted}
                   </PrimaryButton>
                   
                   <button 
@@ -468,7 +470,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       padding: '15px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
                     }}
                   >
-                    Voltar
+                    {t('web_checkout_back')}
                   </button>
                 </div>
               </div>

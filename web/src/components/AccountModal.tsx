@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from './Card';
 import { TextInput } from './TextInput';
 import { PrimaryButton } from './PrimaryButton';
+import { useI18n } from '../i18n';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   setAcBalance,
   onSubmit
 }) => {
+  const { t } = useI18n();
   if (!isOpen) return null;
 
   return (
@@ -35,33 +37,33 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       display: 'flex, alignItems: center, justifyContent: center, zIndex: 1000, padding: 24px',
     }}>
       <Card style={{ maxWidth: '400px', width: '100%' }} className="fade-in">
-        <h3 style={{ marginBottom: '20px', fontSize: '1.2rem' }}>Criar Nova Conta Bancária</h3>
+        <h3 style={{ marginBottom: '20px', fontSize: '1.2rem' }}>{t('web_account_title')}</h3>
         
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px'}}>
           <div>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Nome da Instituição</label>
-            <TextInput value={acName} onChange={e => setAcName(e.target.value)} placeholder="Ex: Banco Itaú, Wise USD" required />
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_account_name_label')}</label>
+            <TextInput value={acName} onChange={e => setAcName(e.target.value)} placeholder={t('web_account_name_placeholder')} required />
           </div>
 
           <div>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Moeda da Conta</label>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_account_currency_label')}</label>
             <select className="select-input" value={acCurrency} onChange={e => setAcCurrency(e.target.value)}>
-              <option value="BRL">Real Brasileiro (BRL)</option>
-              <option value="USD">Dólar Americano (USD)</option>
-              <option value="EUR">Euro (EUR)</option>
-              <option value="GBP">Libra Esterlina (GBP)</option>
-              <option value="JPY">Iene Japonês (JPY)</option>
-              <option value="CAD">Dólar Canadense (CAD)</option>
-              <option value="CHF">Franco Suíço (CHF)</option>
-              <option value="AUD">Dólar Australiano (AUD)</option>
-              <option value="CNY">Yuan Chinês (CNY)</option>
-              <option value="MXN">Peso Mexicano (MXN)</option>
-              <option value="ARS">Peso Argentino (ARS)</option>
+              <option value="BRL">{t('brazilian_real')} (BRL)</option>
+              <option value="USD">{t('us_dollar')} (USD)</option>
+              <option value="EUR">{t('euro')} (EUR)</option>
+              <option value="GBP">{t('british_pound')} (GBP)</option>
+              <option value="JPY">{t('japanese_yen')} (JPY)</option>
+              <option value="CAD">{t('canadian_dollar')} (CAD)</option>
+              <option value="CHF">{t('swiss_franc')} (CHF)</option>
+              <option value="AUD">{t('australian_dollar')} (AUD)</option>
+              <option value="CNY">{t('chinese_yuan')} (CNY)</option>
+              <option value="MXN">{t('mexican_peso')} (MXN)</option>
+              <option value="ARS">{t('argentine_peso')} (ARS)</option>
             </select>
           </div>
 
           <div>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Saldo Inicial</label>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_account_balance_label')}</label>
             <TextInput type="number" step="0.01" value={acBalance} onChange={e => setAcBalance(e.target.value)} placeholder="0.00" />
           </div>
 
@@ -70,10 +72,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({
               flex: 1, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)',
               padding: '18px, borderRadius: 16px, cursor: pointer, fontWeight: 600',
             }}>
-              Cancelar
+              {t('cancel')}
             </button>
             <PrimaryButton type="submit" style={{ flex: 1 }}>
-              Criar Conta
+              {t('web_account_create_button')}
             </PrimaryButton>
           </div>
         </form>

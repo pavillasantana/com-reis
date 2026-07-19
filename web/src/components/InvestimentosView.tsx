@@ -16,6 +16,7 @@ import {
   getNomeSubcategoria,
   getCategoriaInfo, searchTickers, getTickerName,
 } from '../utils/investmentCategories';
+import { useI18n } from '../i18n';
 
 interface InvestimentosViewProps {
   moedaBase: string;
@@ -35,6 +36,7 @@ const ACCENT_RED = '#EF4444';
 const ACCENT_CYAN = '#0EA5E9';
 
 export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase, id_usuario }) => {
+  const { t } = useI18n();
 
   const [txs, setTxs] = useState<TransacaoAtivo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,7 +173,6 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
     return Object.values(map).filter(p => p.qtd > 0);
   }, [txs]);
 
-  // ─── Agrupamento por Categoria → Subcategoria ───────────────────
   const posicoesPorCategoria = useMemo(() => {
     const grupos: Record<string, Record<string, typeof posicoes>> = {};
 
@@ -215,7 +216,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   if (loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', background: CLEAN_BG, minHeight: '100vh' }}>
-        <p style={{ color: CLEAN_TEXT_SECONDARY }}>Carregando investimentos...</p>
+        <p style={{ color: CLEAN_TEXT_SECONDARY }}>{t('loading')}</p>
       </div>
     );
   }
@@ -231,9 +232,9 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
 
         <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, letterSpacing: '-0.5px', color: CLEAN_TEXT }}>Investimentos</h2>
+            <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, letterSpacing: '-0.5px', color: CLEAN_TEXT }}>{t('web_invest_title')}</h2>
             <p style={{ margin: '4px 0 0', color: CLEAN_TEXT_SECONDARY, fontSize: '0.95rem' }}>
-              Registro de operações e acompanhamento de carteira
+              {t('web_invest_subtitle')}
             </p>
           </div>
           <button onClick={openAdd} style={{
@@ -241,17 +242,16 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
             background: ACCENT_BLUE, border: 'none',
             borderRadius: '12px', color: '#fff', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
           }}>
-            <Plus size={16} /> Nova Operação
+            <Plus size={16} /> {t('web_invest_register_op')}
           </button>
         </div>
 
-        {/* ── Métricas Resumo ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '28px' }}>
           {[
-            { label: 'Patrimônio Investido', value: formatCurrency(patrimonioTotal, moedaBase), icon: <BarChart3 size={18} />, color: ACCENT_BLUE },
-            { label: 'Total de Operações', value: String(txs.length), icon: <DollarSign size={18} />, color: ACCENT_GREEN },
-            { label: 'Posições Abertas', value: String(posicoes.length), icon: <TrendingUp size={18} />, color: ACCENT_CYAN },
-            { label: 'Preço Médio (geral)', value: posicoes.length > 0 ? formatCurrency(patrimonioTotal / posicoes.reduce((s, p) => s + p.qtd, 0), moedaBase) : 'R$ 0,00', icon: <Filter size={18} />, color: '#F59E0B' },
+            { label: t('web_invest_patrimony'), value: formatCurrency(patrimonioTotal, moedaBase), icon: <BarChart3 size={18} />, color: ACCENT_BLUE },
+            { label: t('web_invest_total_ops'), value: String(txs.length), icon: <DollarSign size={18} />, color: ACCENT_GREEN },
+            { label: t('web_invest_positions'), value: String(posicoes.length), icon: <TrendingUp size={18} />, color: ACCENT_CYAN },
+            { label: t('average_price'), value: posicoes.length > 0 ? formatCurrency(patrimonioTotal / posicoes.reduce((s, p) => s + p.qtd, 0), moedaBase) : 'R$ 0,00', icon: <Filter size={18} />, color: '#F59E0B' },
           ].map((c, i) => (
             <div key={i} style={{
               background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
@@ -267,7 +267,6 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
           ))}
         </div>
 
-        {/* ── Toggle Visualização ── */}
         {posicoes.length > 0 && (
           <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
             <button onClick={() => setVizualizacao('categorias')} style={{
@@ -275,21 +274,20 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
               cursor: 'pointer', border: vizualizacao === 'categorias' ? 'none' : `1px solid ${CLEAN_BORDER}`,
               background: vizualizacao === 'categorias' ? ACCENT_BLUE : CLEAN_CARD,
               color: vizualizacao === 'categorias' ? '#fff' : CLEAN_TEXT_SECONDARY,
-            }}>Por Categoria</button>
+            }}>{t('web_invest_category')}</button>
             <button onClick={() => setVizualizacao('lista')} style={{
               padding: '8px 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700,
               cursor: 'pointer', border: vizualizacao === 'lista' ? 'none' : `1px solid ${CLEAN_BORDER}`,
               background: vizualizacao === 'lista' ? ACCENT_BLUE : CLEAN_CARD,
               color: vizualizacao === 'lista' ? '#fff' : CLEAN_TEXT_SECONDARY,
-            }}>Lista</button>
+            }}>{vizualizacao === 'lista' ? t('web_invest_positions') : t('web_invest_category')}</button>
           </div>
         )}
 
-        {/* ── Posições Agrupadas por Categoria ── */}
         {posicoes.length > 0 && vizualizacao === 'categorias' && (
           <div style={{ marginBottom: '28px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: CLEAN_TEXT_SECONDARY, textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Carteira por Categoria</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: CLEAN_TEXT_SECONDARY, textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>{t('web_invest_category')}</h3>
               <button onClick={expandirTodos} style={{
                 background: 'transparent', border: 'none', cursor: 'pointer',
                 color: ACCENT_BLUE, fontSize: '0.78rem', fontWeight: 700,
@@ -310,7 +308,6 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                   borderRadius: '14px', marginBottom: '10px', overflow: 'hidden',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                 }}>
-                  {/* Header da Categoria */}
                   <button
                     onClick={() => toggleGrupo(catId)}
                     style={{
@@ -337,7 +334,6 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                     </span>
                   </button>
 
-                  {/* Subcategorias */}
                   {catExpanded && (
                     <div style={{ borderTop: `1px solid ${CLEAN_BORDER}` }}>
                       {Object.entries(subs).map(([subId, subPosicoes]) => {
@@ -346,7 +342,6 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
 
                         return (
                           <div key={subId}>
-                            {/* Header da Subcategoria */}
                             <button
                               onClick={() => toggleGrupo(`${catId}/${subId}`)}
                               style={{
@@ -369,7 +364,6 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                               </span>
                             </button>
 
-                            {/* Tickers da Subcategoria */}
                             {subExpanded && subPosicoes.map(p => (
                               <div key={p.ticker} style={{
                                 display: 'flex', alignItems: 'center', gap: '12px',
@@ -381,7 +375,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
                                   <div style={{ fontSize: '0.82rem', fontWeight: 700, color: CLEAN_TEXT }}>{p.qtd.toFixed(2)} cotas</div>
-                                  <div style={{ fontSize: '0.72rem', color: ACCENT_GREEN }}>PM: {formatCurrency(p.custoTotal / p.qtd, moedaBase)}</div>
+                                  <div style={{ fontSize: '0.72rem', color: ACCENT_GREEN }}>{t('pm_label')} {formatCurrency(p.custoTotal / p.qtd, moedaBase)}</div>
                                 </div>
                                 <div style={{ fontWeight: 700, color: ACCENT_BLUE, fontSize: '0.85rem', minWidth: '100px', textAlign: 'right' }}>
                                   {formatCurrency(p.custoTotal, moedaBase)}
@@ -399,10 +393,9 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
           </div>
         )}
 
-        {/* ── Posições Abertas (Lista simples) ── */}
         {posicoes.length > 0 && vizualizacao === 'lista' && (
           <div style={{ marginBottom: '28px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px', color: CLEAN_TEXT_SECONDARY, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Posições Abertas</h3>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px', color: CLEAN_TEXT_SECONDARY, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('web_invest_positions')}</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
               {posicoes.map(p => (
                 <div key={p.ticker} style={{
@@ -422,23 +415,22 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                     </div>
                   )}
                   <div style={{ marginTop: '10px', fontSize: '0.88rem', fontWeight: 700, color: CLEAN_TEXT }}>{p.qtd.toFixed(2)} cotas</div>
-                  <div style={{ fontSize: '0.8rem', color: ACCENT_GREEN, marginTop: '2px' }}>PM: {formatCurrency(p.custoTotal / p.qtd, moedaBase)}</div>
+                  <div style={{ fontSize: '0.8rem', color: ACCENT_GREEN, marginTop: '2px' }}>{t('pm_label')} {formatCurrency(p.custoTotal / p.qtd, moedaBase)}</div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* ── Filtros de Categoria (chips) ── */}
         <div style={{ marginBottom: '16px', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', color: CLEAN_TEXT_MUTED, fontWeight: 600, marginRight: '4px' }}>Categoria:</span>
+          <span style={{ fontSize: '0.75rem', color: CLEAN_TEXT_MUTED, fontWeight: 600, marginRight: '4px' }}>{t('web_invest_category')}:</span>
           <button onClick={() => setFiltroCategoria('todas')} style={{
             padding: '5px 12px', borderRadius: '16px', fontSize: '0.72rem', fontWeight: 700,
             cursor: 'pointer',
             background: filtroCategoria === 'todas' ? ACCENT_BLUE : 'transparent',
             color: filtroCategoria === 'todas' ? '#fff' : CLEAN_TEXT_SECONDARY,
             border: filtroCategoria === 'todas' ? 'none' : `1px solid ${CLEAN_BORDER}`,
-          }}>Todas</button>
+          }}>{t('web_invest_all')}</button>
           {CATEGORIAS_INVESTIMENTO.map(cat => (
             <button key={cat.id} onClick={() => setFiltroCategoria(filtroCategoria === cat.id ? 'todas' : cat.id)} style={{
               padding: '5px 12px', borderRadius: '16px', fontSize: '0.72rem', fontWeight: 700,
@@ -450,7 +442,6 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
           ))}
         </div>
 
-        {/* ── Tabela de Operações ── */}
         <div style={{
           background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
           borderRadius: '20px', overflow: 'hidden',
@@ -462,13 +453,13 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
           }}>
             <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
               <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: CLEAN_TEXT_MUTED }} />
-              <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar ticker..." style={{ ...inputStyle, paddingLeft: '34px' }} />
+              <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={t('web_invest_search')} style={{ ...inputStyle, paddingLeft: '34px' }} />
             </div>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {[
-                { label: 'Todas', key: 'todos' as const, color: ACCENT_BLUE },
-                { label: 'Compras', key: 'compra' as const, color: ACCENT_RED },
-                { label: 'Vendas', key: 'venda' as const, color: ACCENT_GREEN },
+                { label: t('web_invest_all'), key: 'todos' as const, color: ACCENT_BLUE },
+                { label: t('web_invest_buys'), key: 'compra' as const, color: ACCENT_RED },
+                { label: t('web_invest_sells'), key: 'venda' as const, color: ACCENT_GREEN },
               ].map(chip => (
                 <button key={chip.key} onClick={() => setFiltroTipo(chip.key)} style={{
                   padding: '7px 14px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700,
@@ -485,23 +476,23 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
               padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center',
               gap: '6px', color: CLEAN_TEXT_SECONDARY, fontSize: '0.78rem',
             }}>
-              <Filter size={13} /> {sortDir === 'desc' ? 'Mais Recentes' : 'Mais Antigas'}
+              <Filter size={13} /> {sortDir === 'desc' ? t('web_invest_newest') : t('web_invest_oldest')}
             </button>
           </div>
 
           {filtered.length === 0 ? (
             <div style={{ padding: '64px 24px', textAlign: 'center', color: CLEAN_TEXT_MUTED }}>
               <BarChart3 size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
-              <p style={{ margin: 0 }}>Nenhuma operação encontrada.<br />Clique em "Nova Operação" para começar.</p>
+              <p style={{ margin: 0 }}>{t('web_invest_no_ops')}<br />Clique em "Nova Operação" para começar.</p>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ background: '#F8FAFC' }}>
-                    {['Tipo', 'Ticker', 'Categoria', 'Quantidade', 'Preço Unit.', 'Total', 'Data', ''].map(h => (
+                    {['Tipo', t('web_invest_ticker'), t('web_invest_category'), t('quantity_label'), t('unit_price_label'), 'Total', 'Data', ''].map(h => (
                       <th key={h} style={{
-                        padding: '12px 16px', textAlign: h === 'Total' || h === 'Preço Unit.' ? 'right' : 'left',
+                        padding: '12px 16px', textAlign: h === 'Total' || h === t('unit_price_label') ? 'right' : 'left',
                         color: CLEAN_TEXT_SECONDARY, fontWeight: 700, fontSize: '0.72rem',
                         textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap',
                       }}>{h}</th>
@@ -526,7 +517,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                             color: isCompra ? ACCENT_RED : ACCENT_GREEN,
                           }}>
                             {isCompra ? <TrendingDown size={11} /> : <TrendingUp size={11} />}
-                            {isCompra ? 'Compra' : 'Venda'}
+                            {isCompra ? t('web_invest_buy') : t('web_invest_sell')}
                           </span>
                         </td>
                         <td style={{ padding: '14px 16px', fontWeight: 800, color: ACCENT_BLUE }}>
@@ -585,7 +576,6 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
           )}
         </div>
 
-        {/* ── Modal Nova Operação ── */}
         {modalOpen && (
           <div style={{
             position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(8px)',
@@ -599,7 +589,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: CLEAN_TEXT }}>
-                  {editId ? 'Editar Operação' : 'Registrar Operação'}
+                  {editId ? t('edit_operation') : t('web_invest_register_op')}
                 </h3>
                 <button onClick={closeModal} style={{
                   background: 'transparent', border: `1px solid ${CLEAN_BORDER}`,
@@ -607,7 +597,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                 }}><X size={16} /></button>
               </div>
 
-              <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Ticker do Ativo</label>
+              <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('asset_ticker_label')}</label>
               <div style={{ position: 'relative', marginBottom: '16px' }}>
                 <input value={fTicker} onChange={e => handleTickerChange(e.target.value)} placeholder="PETR4, BTC, MXRF11..." style={inputStyle} />
                 {sugestoes.length > 0 && (
@@ -634,23 +624,22 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                 )}
               </div>
 
-              <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Tipo</label>
+              <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>{t('operation_type_label')}</label>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                {(['compra', 'venda'] as const).map(t => (
-                  <button key={t} onClick={() => setFTipo(t)} style={{
+                {(['compra', 'venda'] as const).map(tipo => (
+                  <button key={tipo} onClick={() => setFTipo(tipo)} style={{
                     flex: 1, padding: '10px', borderRadius: '10px', border: `1px solid ${CLEAN_BORDER}`,
                     cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem',
-                    background: fTipo === t ? (t === 'compra' ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)') : CLEAN_CARD,
-                    color: fTipo === t ? (t === 'compra' ? ACCENT_RED : ACCENT_GREEN) : CLEAN_TEXT_SECONDARY,
+                    background: fTipo === tipo ? (tipo === 'compra' ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)') : CLEAN_CARD,
+                    color: fTipo === tipo ? (tipo === 'compra' ? ACCENT_RED : ACCENT_GREEN) : CLEAN_TEXT_SECONDARY,
                     transition: 'all 0.15s',
                   }}>
-                    {t === 'compra' ? '📉 Compra' : '📈 Venda'}
+                    {tipo === 'compra' ? `📉 ${t('web_invest_buy')}` : `📈 ${t('web_invest_sell')}`}
                   </button>
                 ))}
               </div>
 
-              {/* ── Categoria ── */}
-              <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Categoria</label>
+              <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_invest_category')}</label>
               <select
                 value={fCategoria}
                 onChange={e => { setFCategoria(e.target.value); setFSubcategoria(''); }}
@@ -664,7 +653,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
 
               {fCategoria && (
                 <>
-                  <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Subcategoria</label>
+                  <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_invest_subcategory')}</label>
                   <select
                     value={fSubcategoria}
                     onChange={e => setFSubcategoria(e.target.value)}
@@ -680,16 +669,16 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
 
               <div className="rg-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Quantidade</label>
+                  <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('quantity_label')}</label>
                   <input type="number" min="0" step="0.01" value={fQtd} onChange={e => setFQtd(e.target.value)} placeholder="100" style={inputStyle} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Preço Unit.</label>
+                  <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('unit_price_label')}</label>
                   <input type="number" min="0" step="0.01" value={fPreco} onChange={e => setFPreco(e.target.value)} placeholder="34.50" style={inputStyle} />
                 </div>
               </div>
 
-              <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Data da Operação</label>
+              <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('data_operacao_label')}</label>
               <input type="date" value={fData} onChange={e => setFData(e.target.value)} style={{ ...inputStyle, marginBottom: '24px' }} />
 
               {fQtd && fPreco && (
@@ -698,7 +687,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                   background: 'rgba(16,69,161,0.06)', borderRadius: '10px',
                   fontSize: '0.82rem', color: CLEAN_TEXT_SECONDARY,
                 }}>
-                  Total: <strong style={{ color: ACCENT_BLUE }}>{formatCurrency(parseFloat(fQtd || '0') * parseFloat(fPreco || '0'), moedaBase)}</strong>
+                  {t('total_prefix')} <strong style={{ color: ACCENT_BLUE }}>{formatCurrency(parseFloat(fQtd || '0') * parseFloat(fPreco || '0'), moedaBase)}</strong>
                 </div>
               )}
 
@@ -707,7 +696,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                   flex: 1, padding: '12px', background: 'transparent',
                   border: `1px solid ${CLEAN_BORDER}`, borderRadius: '12px',
                   cursor: 'pointer', color: CLEAN_TEXT_SECONDARY, fontWeight: 600,
-                }}>Cancelar</button>
+                }}>{t('cancel')}</button>
                 <button onClick={handleSave} disabled={saving || !fTicker || !fQtd || !fPreco} style={{
                   flex: 1.5, padding: '12px', background: ACCENT_BLUE, border: 'none',
                   borderRadius: '12px', cursor: 'pointer', color: '#fff', fontWeight: 700,
@@ -715,7 +704,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                 }}>
                   {saving ? <RefreshCw size={14} className="spin" /> : null}
-                  {saving ? 'Salvando...' : (editId ? 'Atualizar' : 'Registrar')}
+                  {saving ? t('saving') : (editId ? t('save_changes') : t('web_invest_register_op'))}
                 </button>
               </div>
             </div>

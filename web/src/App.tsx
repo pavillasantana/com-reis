@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import './GlobalStyles.css';
 import { useStore } from './store/useStore';
+import { useI18n } from './i18n';
 
 import type { Espaco, Conta, Transacao, Caixinha, Cartao } from './store/useStore';
 import { useAuth } from './hooks/useAuth';
@@ -80,6 +81,7 @@ import { UpsellModal } from './components/UpsellModal';
 import { CostExplorer } from './components/CostExplorer';
 import { AdBanner } from './components/AdBanner';
 import { AdSenseBanner } from './components/AdSenseBanner';
+import { LanguageSelector } from './components/LanguageSelector';
 import { 
   PieChart, 
   Pie, 
@@ -91,6 +93,7 @@ import {
 
 
 export default function App() {
+  const { t } = useI18n();
   const toast = useToast();
   const {
     id_usuario,
@@ -224,7 +227,7 @@ export default function App() {
 
   const handleBulkDelete = async () => {
     if (selectedTxIds.size === 0) return;
-    if (!window.confirm(`Tem certeza que deseja excluir ${selectedTxIds.size} transação(ões)?`)) return;
+    if (!window.confirm(t('bulk_delete_confirm', { count: selectedTxIds.size }))) return;
     for (const txId of selectedTxIds) {
       await handleDeleteTransacao(txId);
     }
@@ -332,26 +335,26 @@ export default function App() {
   React.useEffect(() => {
     if (!showLandingPage && id_usuario) {
       if (activeView === 'dashboard') {
-        document.title = 'Com Réis — Painel de Controle';
+        document.title = `Com Réis — ${t('web_dashboard_panel')}`;
       } else if (activeView === 'costExplorer') {
-        document.title = 'Com Réis — Custo de Vida';
+        document.title = `Com Réis — ${t('web_cost_living')}`;
       } else if (activeView === 'blog') {
-        document.title = 'Com Réis — Blog & Educação';
+        document.title = `Com Réis — ${t('web_blog_title')}`;
       }
     } else {
       if (landingView === 'home') {
-        document.title = 'Com Réis — Gestão Financeira Inteligente';
+        document.title = `Com Réis — ${t('web_landing_hero_subtitle')}`;
       } else if (landingView === 'costExplorer') {
-        document.title = 'Com Réis — Explorador de Custo de Vida';
+        document.title = `Com Réis — ${t('web_cost_title')}`;
       } else if (landingView === 'blog') {
-        document.title = 'Com Réis — Dicas e Educação Financeira';
+        document.title = `Com Réis — ${t('web_blog_title')}`;
       }
     }
   }, [showLandingPage, id_usuario, activeView, landingView]);
 
   // Clean tips when logging out
   const handleLogout = () => {
-    const confirm = window.confirm('Deseja realmente sair da sua conta? Todos os dados salvos em nuvem serão preservados.');
+    const confirm = window.confirm(`${t('web_logout_title')} ${t('web_logout_desc')}`);
     if (!confirm) return;
     signOut();
     setAccumulatedTips([]);
@@ -370,7 +373,7 @@ export default function App() {
         signOut();
         setAccumulatedTips([]);
         setTipsPage(1);
-        toast.warning('Sessão Expirada', 'Você foi desconectado por inatividade de 5 minutos.');
+        toast.warning(t('web_session_expired'), t('web_session_expired_desc'));
       }, 300000); // 5 minutos
     };
 
@@ -460,14 +463,14 @@ export default function App() {
   const handleRecoverySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!authEmail) {
-      toast.warning('E-mail necessário', 'Informe o seu e-mail para recuperar a senha.');
+      toast.warning(t('web_auth_email_required'), t('web_auth_enter_email_recovery'));
       return;
     }
     const err = await resetPassword(authEmail);
     if (err) {
       toast.error('Erro', err.message);
     } else {
-      toast.success('E-mail Enviado', 'Verifique sua caixa de entrada para o link de recuperação.');
+      toast.success(t('web_auth_recovery_email_sent'), t('web_auth_check_inbox'));
       setIsRecoveryMode(false);
     }
   };
@@ -475,14 +478,14 @@ export default function App() {
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPassword || newPassword.length < 6) {
-      toast.warning('Senha Fraca', 'A nova senha deve ter no mínimo 6 caracteres.');
+      toast.warning(t('web_auth_weak_password'), t('web_auth_min_6_chars'));
       return;
     }
     const err = await updatePassword(newPassword);
     if (err) {
       toast.error('Erro', err.message);
     } else {
-      toast.success('Senha Atualizada', 'Sua senha foi alterada com sucesso. Faça login novamente.');
+      toast.success(t('web_auth_password_updated'), t('web_auth_login_again'));
       setIsSettingNewPassword(false);
       window.history.replaceState(null, '', window.location.pathname);
     }
@@ -533,7 +536,7 @@ export default function App() {
 
   const openAddTransactionModal = () => {
     if (activeAccounts.length === 0) {
-      toast.error('Conta necessária', 'Crie uma conta bancária antes de registrar transações.');
+      toast.error(t('web_tx_account_required'), t('web_tx_account_required_desc'));
       return;
     }
     const defaultAccount = activeAccounts[0];
@@ -552,7 +555,7 @@ export default function App() {
   const handleSaveEditTx = (txId: string) => {
     const newVal = parseFloat(editTxValor);
     if (!editTxDescricao.trim() || isNaN(newVal) || newVal <= 0) {
-      toast.error('Dados inválidos', 'Descrição e valor são obrigatórios.');
+      toast.error(t('web_tx_invalid_data'), t('web_tx_invalid_data_desc'));
       return;
     }
     // Update via store (optimistic) — delegates persistence to useSupabaseSync via zustand
@@ -624,7 +627,7 @@ export default function App() {
           });
 
           trackOnboardingCompleted(moeda_base);
-          toast.success('Perfil configurado!', `Carteira inicial criada com saldo de ${formatCurrency(incomeVal, moeda_base)}.`);
+          toast.success(t('web_onboarding_welcome'), `${t('web_onboarding_wallet_created')} ${formatCurrency(incomeVal, moeda_base)}.`);
         };
 
         createInitialData();
@@ -639,13 +642,13 @@ export default function App() {
 
     const incomeVal = parseFloat(onboardIncome);
     if (isNaN(incomeVal) || incomeVal <= 0) {
-      toast.error('Renda inválida', 'Digite um valor maior que zero.');
+      toast.error(t('web_tx_invalid_income'), t('web_tx_invalid_income_desc'));
       return;
     }
 
     if (isSupabaseConfigured) {
       if (!authEmail || !authPassword) {
-        toast.warning('Campos incompletos', 'E-mail e senha são necessários.');
+        toast.warning(t('web_tx_required'), t('web_tx_required_desc'));
         return;
       }
       setIsAuthLoading(true);
@@ -654,7 +657,7 @@ export default function App() {
       if (err) {
         toast.error('Erro ao criar conta', err.message);
       } else {
-        toast.success('Conta criada com sucesso! 🎉', 'Sincronizando dados...');
+        toast.success(t('web_auth_account_created'), t('web_auth_syncing'));
       }
     } else {
       // Flow offline clássico:
@@ -692,7 +695,7 @@ export default function App() {
       addCaixinha(emergencyGoal);
 
       trackOnboardingCompleted(onboardCurrency);
-      toast.success('Bem-vindo ao Com Réis! 🎉', `Sua reserva de emergência de ${formatCurrency(reserveTarget, onboardCurrency)} foi criada.`);
+      toast.success(t('web_onboarding_welcome'), `${t('web_onboarding_emergency_created')} ${formatCurrency(reserveTarget, onboardCurrency)} ${t('web_onboarding_was_created')}`);
     }
   };
 
@@ -706,9 +709,9 @@ export default function App() {
     setIsAuthLoading(false);
 
     if (err) {
-      toast.error('Erro de login', err.message);
+      toast.error(t('error'), err.message);
     } else {
-      toast.success('Acesso liberado! 👋', 'Carregando suas finanças...');
+      toast.success(t('web_auth_access_granted'), t('web_auth_loading_finance'));
     }
   };
 
@@ -722,19 +725,19 @@ export default function App() {
     e.preventDefault();
     const descCleaned = txDesc.trim();
     if (!descCleaned) {
-      toast.error('Descrição necessária', 'Informe uma descrição para a transação.');
+      toast.error(t('web_tx_desc_required'), t('web_tx_desc_required_desc'));
       return;
     }
     if (descCleaned.length > 100) {
-      toast.error('Descrição muito longa', 'A descrição deve ter no máximo 100 caracteres.');
+      toast.error(t('web_tx_desc_long'), t('web_tx_desc_long_desc'));
       return;
     }
     if (!txVal) {
-      toast.error('Valor necessário', 'Informe o valor da transação.');
+      toast.error(t('web_tx_value_required'), t('web_tx_value_required_desc'));
       return;
     }
     if (!txMoeda) {
-      toast.error('Moeda obrigatória', 'Selecione a moeda da transação.');
+      toast.error(t('web_tx_currency_required'), t('web_tx_currency_required_desc'));
       return;
     }
     let finalContaId = txContaId;
@@ -756,28 +759,28 @@ export default function App() {
 
     const valNum = parseFloat(txVal);
     if (isNaN(valNum) || valNum <= 0) {
-      toast.error('Valor inválido', 'Digite um valor maior que zero.');
+      toast.error(t('web_tx_invalid_value'), t('web_tx_invalid_value_desc'));
       return;
     }
     if (valNum > 99999999.99) {
-      toast.error('Valor limite excedido', 'O valor máximo permitido para uma transação é de R$ 99.999.999,99.');
+      toast.error(t('web_tx_value_limit'), t('web_tx_value_limit_desc'));
       return;
     }
 
 
     if (!txDate) {
-      toast.error('Data necessária', 'Selecione uma data para a transação.');
+      toast.error(t('web_tx_date_required'), t('web_tx_date_required_desc'));
       return;
     }
     const txYear = new Date(txDate).getFullYear();
     if (isNaN(txYear) || txYear < 1970 || txYear > 2100) {
-      toast.error('Data inválida', 'A data deve estar entre os anos de 1970 e 2100.');
+      toast.error(t('web_tx_date_invalid'), t('web_tx_date_invalid_desc'));
       return;
     }
 
     const contaToUse = contas.find(c => c.id === finalContaId);
     if (!contaToUse) {
-      toast.error('Conta não encontrada', 'Selecione uma conta válida.');
+      toast.error(t('web_tx_account_not_found'), t('web_tx_account_not_found_desc'));
       return;
     }
 
@@ -818,7 +821,7 @@ export default function App() {
       });
 
       if (accountBalance < valorFinalTransacao) {
-        toast.info('Atenção: Saldo Negativo', `Esta despesa deixará sua conta com saldo negativo.`);
+        toast.info(t('web_tx_negative_balance'), t('web_tx_negative_balance_desc'));
       }
     }
 
@@ -855,7 +858,7 @@ export default function App() {
     // Analytics
     trackTransactionCreated({ type: txTipo, category: txCat, currency: contaToUse.moeda_conta || moeda_base });
     toast.success(
-      txTipo === 'receita' ? 'Receita registrada ✓' : 'Despesa registrada ✓',
+      txTipo === 'receita' ? t('web_tx_recorded_income') : t('web_tx_recorded_expense'),
       `${descricaoFinal} — ${formatCurrency(valorFinalTransacao, contaToUse.moeda_conta || moeda_base)}`
     );
   };
@@ -865,22 +868,22 @@ export default function App() {
     e.preventDefault();
     const nameCleaned = acName.trim();
     if (!nameCleaned) {
-      toast.error('Nome necessário', 'Informe o nome ou instituição da conta.');
+      toast.error(t('web_account_name_required'), t('web_account_name_required_desc'));
       return;
     }
     if (nameCleaned.length > 50) {
-      toast.error('Nome muito longo', 'O nome da conta deve ter no máximo 50 caracteres.');
+      toast.error(t('web_account_name_long'), t('web_account_name_long_desc'));
       return;
     }
     if (!id_espaco_ativo) return;
 
     const balNum = acBalance ? parseFloat(acBalance) : 0;
     if (isNaN(balNum)) {
-      toast.error('Saldo inicial inválido', 'Digite um valor numérico para o saldo inicial.');
+      toast.error(t('web_account_invalid_balance'), t('web_account_invalid_balance_desc'));
       return;
     }
     if (Math.abs(balNum) > 99999999.99) {
-      toast.error('Saldo limite excedido', 'O saldo inicial deve estar entre R$ -99.999.999,99 e R$ 99.999.999,99.');
+      toast.error(t('web_account_balance_limit'), 'O saldo inicial deve estar entre R$ -99.999.999,99 e R$ 99.999.999,99.');
       return;
     }
 
@@ -896,7 +899,7 @@ export default function App() {
     setShowAddAccountModal(false);
     setAcName('');
     setAcBalance('');
-    toast.success('Conta criada!', `${nameCleaned} foi adicionada ao seu espaço.`);
+    toast.success(t('web_account_created'), `${nameCleaned} ${t('web_account_created_desc')}`);
   };
 
   const handleDeleteTransacao = async (txId: string) => {
@@ -931,8 +934,8 @@ export default function App() {
     const contaAntiga = contas.find(c => c.id === tx.id_conta);
     await moveTransacaoToConta(txId, novaContaId);
     toast.success(
-      'Transação Reconciliada',
-      `"${tx.descricao || 'Sem descrição'}" movida de ${contaAntiga?.nome_instituicao || '?'} para ${novaConta.nome_instituicao}.`
+      t('web_tx_reconciled'),
+      `"${tx.descricao || t('no_description')}" movida de ${contaAntiga?.nome_instituicao || '?'} para ${novaConta.nome_instituicao}.`
     );
   };
 
@@ -941,7 +944,7 @@ export default function App() {
 
     if (cardToEdit) {
       await updateCartao(cardToEdit.id, nome, limite, fatura_atual);
-      toast.success('Cartão Atualizado', `O cartão ${nome} foi atualizado com sucesso.`);
+      toast.success(t('web_card_updated'), t('web_card_updated_desc'));
     } else {
       const newCard = {
         id_espaco: id_espaco_ativo,
@@ -950,7 +953,7 @@ export default function App() {
         fatura_atual
       };
       await addCartao(newCard);
-      toast.success('Cartão Criado', `O cartão ${nome} foi criado com sucesso.`);
+      toast.success(t('web_card_created'), t('web_card_created_desc'));
     }
     setShowAddCardModal(false);
     setCardToEdit(null);
@@ -958,7 +961,7 @@ export default function App() {
 
   const handleCardDelete = async (id: string) => {
     await removeCartao(id);
-    toast.success('Cartão Excluído', 'O cartão foi excluído com sucesso.');
+    toast.success(t('web_card_deleted'), t('web_card_deleted_desc'));
     setShowAddCardModal(false);
     setCardToEdit(null);
   };
@@ -982,40 +985,40 @@ export default function App() {
     e.preventDefault();
     const nameCleaned = goalName.trim();
     if (!nameCleaned) {
-      toast.error('Nome necessário', 'Informe o nome da caixinha.');
+      toast.error(t('web_jar_name_required'), t('web_jar_name_required_desc'));
       return;
     }
     if (nameCleaned.length > 50) {
-      toast.error('Nome muito longo', 'O nome da caixinha deve ter no máximo 50 caracteres.');
+      toast.error(t('web_jar_name_long'), t('web_jar_name_long_desc'));
       return;
     }
     if (!goalTarget) {
-      toast.error('Meta necessária', 'Informe o valor alvo para a meta.');
+      toast.error(t('web_jar_target_required'), t('web_jar_target_required_desc'));
       return;
     }
     if (!id_espaco_ativo) return;
 
     const targetNum = parseFloat(goalTarget);
     if (isNaN(targetNum) || targetNum <= 0) {
-      toast.error('Valor inválido', 'O valor alvo deve ser maior que zero.');
+      toast.error(t('web_jar_target_invalid'), t('web_jar_target_invalid_desc'));
       return;
     }
     if (targetNum > 99999999.99) {
-      toast.error('Valor limite excedido', 'O valor alvo deve ser menor que R$ 100 milhões.');
+      toast.error(t('web_jar_target_limit'), t('web_jar_target_limit_desc'));
       return;
     }
 
     if (editingCaixinhaId) {
       updateCaixinha(editingCaixinhaId, nameCleaned, targetNum);
       handleCaixinhaModalClose();
-      toast.success('Caixinha atualizada! 🐷', `Meta para ${nameCleaned} foi atualizada para ${formatCurrency(targetNum, moeda_base)}.`);
+      toast.success(t('web_jar_updated'), `${t('web_jar_meta_for')} ${nameCleaned} ${formatCurrency(targetNum, moeda_base)}.`);
       return;
     }
 
     // FREEMIUM CHECK: plano free → máximo 3 caixinhas
     if (plano_usuario === 'free' && activeCaixinhas.length >= 3) {
       trackPaywallHit('caixinhas');
-      setUpsellReason('O plano gratuito permite criar no máximo 3 metas financeiras (caixinhas). Faça o upgrade para criar metas ilimitadas!');
+      setUpsellReason(t('web_jar_free_limit'));
       setShowUpsellModal(true);
       return;
     }
@@ -1032,7 +1035,7 @@ export default function App() {
     setShowAddCaixinhaModal(false);
     setGoalName('');
     setGoalTarget('');
-    toast.success('Caixinha criada! 🐷', `Meta de ${formatCurrency(targetNum, moeda_base)} definida para ${nameCleaned}.`);
+    toast.success(t('web_jar_created'), `Meta de ${formatCurrency(targetNum, moeda_base)} definida para ${nameCleaned}.`);
   };
 
   // Add Space (Workspace)
@@ -1040,11 +1043,11 @@ export default function App() {
     e.preventDefault();
     const nameCleaned = spaceName.trim();
     if (!nameCleaned) {
-      toast.error('Nome necessário', 'Informe o nome do espaço de trabalho.');
+      toast.error(t('web_space_name_required'), t('web_space_name_required_desc'));
       return;
     }
     if (nameCleaned.length > 50) {
-      toast.error('Nome muito longo', 'O nome do espaço deve ter no máximo 50 caracteres.');
+      toast.error(t('web_space_name_long'), t('web_space_name_long_desc'));
       return;
     }
     if (!id_usuario) return;
@@ -1052,7 +1055,7 @@ export default function App() {
     // FREEMIUM CHECK: multi-espaços é Premium
     if (plano_usuario === 'free') {
       trackPaywallHit('multi_space');
-      setUpsellReason('A criação de múltiplos espaços de trabalho (PF/PJ) é exclusiva para assinantes Premium. Controle sua empresa e finanças pessoais no mesmo app!');
+      setUpsellReason(t('web_space_premium_only'));
       setShowUpsellModal(true);
       return;
     }
@@ -1068,7 +1071,7 @@ export default function App() {
     setIdEspacoAtivo(newSpace.id);
     setShowAddSpaceModal(false);
     setSpaceName('');
-    toast.success('Espaço criado!', `${nameCleaned} está pronto para uso.`);
+    toast.success(t('web_space_created'), `${nameCleaned} ${t('web_space_created_desc')}`);
   };
 
   // Add Money to Caixinha — abre o DepositModal (substituição de window.prompt)
@@ -1082,9 +1085,9 @@ export default function App() {
     updateCaixinhaSaldo(depositGoal.id, newSaved);
     setDepositGoal(null);
     if (newSaved >= depositGoal.target) {
-      toast.success('Meta atingida! 🎉', `Parabéns! Você completou a caixinha "${depositGoal.nome}".`);
+      toast.success(t('web_jar_goal_achieved'), `${t('web_jar_goal_achieved_desc')} "${depositGoal.nome}".`);
     } else {
-      toast.success('Depósito realizado!', `${formatCurrency(amount, moeda_base)} guardados em "${depositGoal.nome}".`);
+      toast.success(t('web_jar_deposit_done'), `${formatCurrency(amount, moeda_base)} ${t('web_jar_deposit_done_desc')} "${depositGoal.nome}".`);
     }
   };
 
@@ -1098,7 +1101,7 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file || !importAccountSelect) {
       console.log('[Import] Early return: file=', !!file, 'account=', !!importAccountSelect);
-      toast.warning('Selecione uma conta', 'Escolha a conta de destino antes de importar o extrato.');
+      toast.warning(t('web_import_select_account'), t('web_import_select_account_desc'));
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
@@ -1115,7 +1118,7 @@ export default function App() {
       : null;
 
     if (!format) {
-      toast.error('Formato não suportado', 'Por favor, envie um arquivo .csv, .ofx, .xlsx ou .pdf.');
+      toast.error(t('web_import_format_not_supported'), t('web_import_format_not_supported_desc'));
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
@@ -1148,7 +1151,7 @@ export default function App() {
       console.log('[Import] Transações extraídas:', parsedTxs.length);
 
       if (parsedTxs.length === 0) {
-        toast.warning('Nenhuma transação encontrada', 'Verifique se o arquivo está no formato correto.');
+        toast.warning(t('web_import_no_transactions'), t('web_import_no_transactions_desc'));
         return;
       }
 
@@ -1161,7 +1164,7 @@ export default function App() {
       setImportReviewOpen(true);
     } catch (err: any) {
       console.error('[Import] Erro ao importar arquivo:', err);
-      toast.error('Erro de Importação', err.message || 'Falha ao processar o arquivo.');
+      toast.error(t('web_import_error'), err.message || 'Falha ao processar o arquivo.');
     } finally {
       setImportLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -1183,11 +1186,11 @@ export default function App() {
       })));
       trackImportCompleted(selected.length, importFormat);
       toast.success(
-        `${selected.length} transações importadas!`,
-        `Extrato ${importFormat.toUpperCase()} salvo com sucesso.`
+        `${selected.length} ${t('web_import_transactions_imported')}`,
+        `${t('web_import_statement_saved')}`
       );
     } catch (err: any) {
-      toast.error('Erro ao salvar', err.message || 'Falha ao persistir as transações.');
+      toast.error(t('error_saving'), err.message || 'Falha ao persistir as transações.');
     } finally {
       setImportReviewOpen(false);
       setImportPending([]);
@@ -1203,7 +1206,7 @@ export default function App() {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profileNameInput.trim()) {
-      toast.error('Nome inválido', 'O nome do usuário não pode ficar em branco.');
+      toast.error(t('web_profile_name_empty'), t('web_profile_name_empty_desc'));
       return;
     }
     
@@ -1228,7 +1231,7 @@ export default function App() {
         finalAvatarUrl = data.publicUrl;
         setProfileAvatarInput(finalAvatarUrl);
       } catch (error) {
-        toast.error('Erro no Upload', 'Não foi possível fazer o upload da imagem.');
+        toast.error(t('web_profile_upload_error'), t('web_profile_upload_error_desc'));
         console.error(error);
         setIsUploadingAvatar(false);
         return;
@@ -1255,7 +1258,7 @@ export default function App() {
       });
     }
 
-    toast.success('Perfil atualizado!', 'Suas alterações foram salvas com sucesso.');
+    toast.success(t('web_profile_updated'), t('web_profile_changes_saved'));
     setShowProfileModal(false);
     setProfileAvatarFile(null);
   };
@@ -1622,7 +1625,7 @@ export default function App() {
                   onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
                   onMouseOut={(e) => e.currentTarget.style.color = landingView === 'home' ? 'var(--accent-blue)' : 'var(--text-secondary)'}
                 >
-                  Início
+                  {t('web_landing_nav_home')}
                 </span>
                 <span 
                   onClick={() => { setLandingView('costExplorer'); setActiveArticle(null); }}
@@ -1638,7 +1641,7 @@ export default function App() {
                   onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
                   onMouseOut={(e) => e.currentTarget.style.color = landingView === 'costExplorer' ? 'var(--accent-blue)' : 'var(--text-secondary)'}
                 >
-                  Custo de Vida
+                  {t('web_cost_living')}
                 </span>
                 <span 
                   onClick={() => { setLandingView('blog'); setActiveArticle(null); }}
@@ -1654,7 +1657,7 @@ export default function App() {
                   onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
                   onMouseOut={(e) => e.currentTarget.style.color = landingView === 'blog' ? 'var(--accent-blue)' : 'var(--text-secondary)'}
                 >
-                  Educação Financeira
+                  {t('web_landing_nav_blog')}
                 </span>
               </div>
 
@@ -1662,7 +1665,7 @@ export default function App() {
                 onClick={() => setShowLandingPage(false)}
                 style={{ padding: '10px 20px', fontSize: '0.9rem', borderRadius: '8px' }}
               >
-                Acessar Plataforma
+                {t('web_landing_access_platform')}
               </PrimaryButton>
             </nav>
 
@@ -1690,7 +1693,7 @@ export default function App() {
                   WebkitTextFillColor: 'transparent',
                   maxWidth: '850px'
                 }}>
-                  PF, PJ e Multimoedas no Mesmo Dashboard
+                  {t('web_landing_hero_title')}
                 </h1>
                 
                 <p style={{
@@ -1700,7 +1703,7 @@ export default function App() {
                   lineHeight: 1.6,
                   margin: '0 0 40px 0'
                 }}>
-                  Pare de alternar entre apps. Gerencie suas contas pessoais e do negócio em R$, USD, EUR ou qualquer moeda — com metas de poupança, importação de extratos e dados oficiais do IBGE.
+                  {t('web_landing_hero_subtitle')}
                 </p>
 
                 <div style={{ display: 'flex', gap: '24px', marginBottom: '60px'}}>
@@ -1708,7 +1711,7 @@ export default function App() {
                     onClick={() => setShowLandingPage(false)}
                     style={{ padding: '12px 24px', fontSize: '0.9rem', borderRadius: '8px'}}
                   >
-                    Criar Minha Conta Grátis
+                    {t('web_landing_create_free')}
                   </PrimaryButton>
                   <button
                     onClick={() => { loadDemoData(); trackDemoLoaded(); }}
@@ -1726,7 +1729,7 @@ export default function App() {
                     onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-border)'}
                     onMouseOut={(e) => e.currentTarget.style.background = 'var(--card-border)'}
                   >
-                    Testar com Dados Demo
+                    {t('web_landing_test_demo')}
                   </button>
                 </div>
 
@@ -1790,23 +1793,23 @@ export default function App() {
                 }}>
                   <div className="landing-card" style={styles.landingCard}>
                     <div style={styles.landingCardIcon}>💼</div>
-                    <h3 style={styles.landingCardTitle}>Separe PF de PJ</h3>
-                    <p style={styles.landingCardText}>Pare de confundir despesas pessoais com as do negócio. Alterne entre ambientes com um clique e mantenha tudo organizado no mesmo app.</p>
+                      <h3 style={styles.landingCardTitle}>{t('web_landing_feature_title_pf_pj')}</h3>
+                    <p style={styles.landingCardText}>{t('web_landing_feature_desc_pf_pj')}</p>
                   </div>
                   <div className="landing-card" style={styles.landingCard}>
                     <div style={styles.landingCardIcon}>🌍</div>
-                    <h3 style={styles.landingCardTitle}>Multi-moedas Nativo</h3>
-                    <p style={styles.landingCardText}>Registre transações em USD, EUR, GBP, JPY ou BRL. O sistema converte automaticamente com taxas de câmbio atualizadas diariamente.</p>
+                    <h3 style={styles.landingCardTitle}>{t('web_landing_feature_title_multicurrency')}</h3>
+                    <p style={styles.landingCardText}>{t('web_landing_feature_desc_multicurrency')}</p>
                   </div>
                   <div className="landing-card" style={styles.landingCard}>
                     <div style={styles.landingCardIcon}>🐷</div>
-                    <h3 style={styles.landingCardTitle}>Metas com Progresso Visual</h3>
-                    <p style={styles.landingCardText}>Crie caixinhas para cada objetivo — Reserva de Emergência, Viagem, Computador — e acompanhe o progresso com barras visuais.</p>
+                    <h3 style={styles.landingCardTitle}>{t('web_landing_feature_title_goals')}</h3>
+                    <p style={styles.landingCardText}>{t('web_landing_feature_desc_goals')}</p>
                   </div>
                   <div className="landing-card" style={styles.landingCard}>
                     <div style={styles.landingCardIcon}>🧭</div>
-                    <h3 style={styles.landingCardTitle}>Custo de Vida Real</h3>
-                    <p style={styles.landingCardText}>Compare seus gastos mensais com dados oficiais do IBGE de salário médio e PIB per capita de qualquer município brasileiro.</p>
+                    <h3 style={styles.landingCardTitle}>{t('web_landing_feature_title_explorer')}</h3>
+                    <p style={styles.landingCardText}>{t('web_landing_feature_desc_explorer')}</p>
                   </div>
                 </div>
 
@@ -1824,7 +1827,7 @@ export default function App() {
                   boxSizing: 'border-box'
                 }}>
                   <h3 style={{ fontSize: '1.6rem', fontWeight: '800', margin: '0 0 12px 0', letterSpacing: '-0.5px'}}>
-                    Simulador de Custo de Vida (IBGE)
+                  {t('web_landing_sandbox_title')}
                   </h3>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: '0 0 24px 0', lineHeight: '1.5'}}>
                     Experimente o recurso premium de inteligência geográfica. Selecione um estado e digite seu gasto estimado para ver a comparação imediata com o salário médio oficial.
@@ -1832,7 +1835,7 @@ export default function App() {
 
                   <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap', marginBottom: '24px'}}>
                     <div style={{ flex: 1, minWidth: '200px' }}>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>Gasto Mensal Estimado</label>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>{t('web_landing_sandbox_expense')}</label>
                       <div style={{ position: 'relative' }}>
                         <span style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>R$</span>
                         <input 
@@ -1854,7 +1857,7 @@ export default function App() {
                     </div>
 
                     <div style={{ flex: 1, minWidth: '200px' }}>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>Região Comparada</label>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>{t('web_landing_sandbox_region')}</label>
                       <select
                         className="select-input"
                         style={{ 
@@ -1889,11 +1892,11 @@ export default function App() {
                   }}>
                     <div className="rg-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '16px'}}>
                       <div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Salário Médio da Região</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('web_landing_sandbox_avg_salary')}</span>
                         <strong style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>R$ {ESTADO_PROFILES[sandboxState] ? ESTADO_PROFILES[sandboxState].salarioMedio.toLocaleString('pt-BR') : '2400'}</strong>
                       </div>
                       <div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Custo Classe Média Regional</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('web_landing_sandbox_cost')}</span>
                         <strong style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>R$ {ESTADO_PROFILES[sandboxState] ? ESTADO_PROFILES[sandboxState].custoVidaClasseMedia.toLocaleString('pt-BR') : '2900'}</strong>
                       </div>
                     </div>
@@ -1905,7 +1908,7 @@ export default function App() {
                           ? `+${Math.round(((sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) / (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) * 100)}%` 
                           : `${Math.round(((sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) / (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) * 100)}%`}{' '}
                       </strong>
-                      {sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400) > 0 ? 'maior' : 'menor'} que o salário médio oficial.
+                      {sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400) > 0 ? t('web_landing_sandbox_higher') : t('web_landing_sandbox_lower')} {t('web_landing_sandbox_than_salary')}
                     </div>
                   </div>
                 </div>
@@ -1913,16 +1916,16 @@ export default function App() {
                 {/* CALL TO ACTION BOTTOM */}
                 <div style={{ margin: '40px 0 60px 0' }}>
                   <h2 style={{ fontSize: '2.2rem', fontWeight: 800, marginBottom: '16px', letterSpacing: '-0.5px' }}>
-                    Comece a Organizar Suas Finanças Hoje
+                    {t('web_landing_cta_title')}
                   </h2>
                   <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '1.1rem' }}>
-                    Grátis para sempre no plano básico. Upgrade quando precisar de mais.
+                    {t('web_landing_cta_subtitle')}
                   </p>
                   <PrimaryButton 
                     onClick={() => setShowLandingPage(false)}
                     style={{ padding: '24px 36px', fontSize: '1.05rem', borderRadius: '14px'}}
                   >
-                    Criar Minha Conta Grátis
+                    {t('web_landing_create_free')}
                   </PrimaryButton>
                 </div>
               </div>
@@ -1940,7 +1943,7 @@ export default function App() {
               }}>
                 <div style={{ marginBottom: '32px', textAlign: 'center' }}>
                   <h2 style={{ fontSize: '2.5rem', fontWeight: '800', margin: '0 0 12px 0', letterSpacing: '-0.5px'}}>
-                    Explorador de Custo de Vida
+                    {t('web_cost_title')}
                   </h2>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '650px', margin: '0 auto 24px auto', lineHeight: '1.5'}}>
                     Pesquise dados oficiais de PIB e renda de qualquer município brasileiro no mapa interativo. Simule suas despesas locais personalizando o campo abaixo.
@@ -2007,7 +2010,7 @@ export default function App() {
                   <>
                     <div style={{ marginBottom: '40px', textAlign: 'center' }}>
                       <h2 style={{ fontSize: '2.5rem', fontWeight: '800', margin: '0 0 12px 0', letterSpacing: '-0.5px'}}>
-                        Dicas & Educação Financeira
+                        {t('web_blog_title')}
                       </h2>
                       <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '650px', margin: '0 auto', lineHeight: '1.5'}}>
                         Aprenda a planejar melhor seus orçamentos, investir de forma inteligente e gerenciar as finanças da sua empresa.
@@ -2030,10 +2033,10 @@ export default function App() {
                   textAlign: 'center',
                 }}>
                   <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '8px' }}>
-                    Receba Dicas Exclusivas de Finanças
+                    {t('web_lead_title')}
                   </h3>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '20px', maxWidth: '500px', margin: '0 auto 20px auto' }}>
-                    E-mail semanal com dicas de organização financeira, multi-moedas e controle PF+PJ para freelancers e autônomos.
+                    {t('web_lead_subtitle')}
                   </p>
                   <form
                     onSubmit={async (e) => {
@@ -2048,7 +2051,7 @@ export default function App() {
                           });
                         } catch {}
                         input.value = '';
-                        alert('Obrigado! Em breve você receberá nossas dicas.');
+                        alert(t('web_lead_thanks'));
                       }
                     }}
                     style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}
@@ -2064,7 +2067,7 @@ export default function App() {
                       }}
                     />
                     <PrimaryButton type="submit" style={{ padding: '14px 24px', fontSize: '0.9rem' }}>
-                      Quero Receber
+                      {t('web_lead_submit')}
                     </PrimaryButton>
                   </form>
                 </div>
@@ -2078,11 +2081,11 @@ export default function App() {
               color: 'var(--text-muted)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                <a href="#privacidade" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>Política de Privacidade</a>
-                <a href="#termos" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>Termos de Uso</a>
-                <a href="#contato" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>Contato</a>
+                <a href="#privacidade" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_privacy')}</a>
+                <a href="#termos" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_terms')}</a>
+                <a href="#contato" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_contact')}</a>
               </div>
-              <div>&copy; 2026 Com Réis · Controle Financeiro Inteligente. Todos os direitos reservados.</div>
+              <div>&copy; 2026 {t('web_landing_footer_copyright')}</div>
               <div style={{ marginTop: '8px', fontSize: '0.7rem', opacity: 0.5 }}>
                 Desenvolvido por <a href="https://pstec.pavilasantana.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>PSTec</a>
               </div>
@@ -2115,7 +2118,7 @@ export default function App() {
                 fontWeight: 600
               }}
             >
-              &larr; Voltar para a página inicial
+              &larr; {t('web_auth_back_to_login')}
             </button>
             <Card style={{ maxWidth: '500px', width: '100%', textAlign: 'left' }} className="fade-in">
             <div style={{ marginBottom: '24px' }}>
@@ -2126,13 +2129,13 @@ export default function App() {
               <div>
               {isSettingNewPassword ? (
                 <div style={{ marginBottom: '24px' }}>
-                  <h3 style={{ color: 'var(--text-main)', fontSize: '1.2rem', marginBottom: '8px' }}>Criar Nova Senha</h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Digite sua nova senha de acesso.</p>
+                  <h3 style={{ color: 'var(--text-main)', fontSize: '1.2rem', marginBottom: '8px' }}>{t('web_auth_new_password_title')}</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{t('web_auth_new_password_desc')}</p>
                 </div>
               ) : isRecoveryMode ? (
                 <div style={{ marginBottom: '24px' }}>
-                  <h3 style={{ color: 'var(--text-main)', fontSize: '1.2rem', marginBottom: '8px' }}>Recuperar Senha</h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Informe seu e-mail para receber um link de redefinição.</p>
+                  <h3 style={{ color: 'var(--text-main)', fontSize: '1.2rem', marginBottom: '8px' }}>{t('web_auth_recovery_title')}</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{t('web_auth_recovery_desc')}</p>
                 </div>
               ) : (
                 <div style={{
@@ -2155,7 +2158,7 @@ export default function App() {
                       transition: 'all 0.2s'
                     }}
                   >
-                    Criar Conta
+                    {t('signup')}
                   </button>
                   <button
                     onClick={() => { setIsLoginMode(true); setAuthEmail(''); setAuthPassword(''); }}
@@ -2171,7 +2174,7 @@ export default function App() {
                       transition: 'all 0.2s'
                     }}
                   >
-                    Já tenho conta
+                    {t('already_have_account')}
                   </button>
                 </div>
               )}
@@ -2180,11 +2183,11 @@ export default function App() {
                 <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '24px'}}>
                   <div>
                     <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                      Nova Senha
+                      {t('new_password')}
                     </label>
                     <TextInput 
                       type="password"
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder={t('password_min_placeholder')}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
@@ -2192,7 +2195,7 @@ export default function App() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px'}}>
                     <PrimaryButton type="submit" style={{ width: '100%' }} disabled={isAuthLoading}>
-                      {isAuthLoading ? 'Salvando...' : 'Salvar Nova Senha'}
+                      {isAuthLoading ? t('web_auth_saving') : t('web_auth_save_password')}
                     </PrimaryButton>
                   </div>
                 </form>
@@ -2200,7 +2203,7 @@ export default function App() {
                 <form onSubmit={handleRecoverySubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px'}}>
                   <div>
                     <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                      E-mail Cadastrado
+                      {t('email')}
                     </label>
                     <TextInput 
                       type="email"
@@ -2212,7 +2215,7 @@ export default function App() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px'}}>
                     <PrimaryButton type="submit" style={{ width: '100%' }} disabled={isAuthLoading}>
-                      {isAuthLoading ? 'Enviando...' : 'Enviar Link'}
+                      {isAuthLoading ? t('web_auth_saving') : t('send')}
                     </PrimaryButton>
                     <button 
                       type="button" 
@@ -2228,7 +2231,7 @@ export default function App() {
                   <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px'}}>
                     <div>
                       <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                        E-mail
+                        {t('email')}
                       </label>
                       <TextInput 
                         type="email"
@@ -2240,11 +2243,11 @@ export default function App() {
                     </div>
                     <div>
                       <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                        Senha
+                        {t('password')}
                       </label>
                       <TextInput 
                         type="password"
-                        placeholder="Sua senha"
+                        placeholder={t('password_min_placeholder')}
                         value={authPassword}
                         onChange={(e) => setAuthPassword(e.target.value)}
                         required
@@ -2261,7 +2264,7 @@ export default function App() {
                           style={{ accentColor: 'var(--primary)', width: '16px', height: '16px', cursor: 'pointer' }}
                         />
                         <label htmlFor="lembrar_credenciais_login" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                          Lembrar
+                          {t('web_auth_remember')}
                         </label>
                       </div>
                       <button 
@@ -2269,18 +2272,18 @@ export default function App() {
                         onClick={() => setIsRecoveryMode(true)}
                         style={{ background: 'none', border: 'none', color: 'var(--accent-blue)', fontSize: '0.85rem', cursor: 'pointer' }}
                       >
-                        Esqueci minha senha
+                        {t('forgot_password')}
                       </button>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px'}}>
                       <PrimaryButton type="submit" style={{ width: '100%' }} disabled={isAuthLoading || authLoading}>
-                        {isAuthLoading ? 'Acessando...' : 'Acessar Conta'} <ChevronRight size={18} />
+                        {isAuthLoading ? t('web_auth_accessing') : t('web_auth_access_account')} <ChevronRight size={18} />
                       </PrimaryButton>
 
                       <div style={{ display: 'flex', alignItems: 'center', margin: '10px 0' }}>
                         <div style={{ flex: 1, height: '1px', background: 'var(--card-border)' }} />
-                        <span style={{ margin: '0 10px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ou continue com</span>
+                        <span style={{ margin: '0 10px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t('web_auth_or_continue')}</span>
                         <div style={{ flex: 1, height: '1px', background: 'var(--card-border)' }} />
                       </div>
 
@@ -2348,7 +2351,7 @@ export default function App() {
                   <form onSubmit={handleOnboarding} style={{ display: 'flex', flexDirection: 'column', gap: '24px'}}>
                     <div>
                       <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                        Qual é o seu nome?
+                        {t('web_auth_name_question')}
                       </label>
                       <TextInput 
                         placeholder="Ex: Rodrigo Silva"
@@ -2359,7 +2362,7 @@ export default function App() {
                     </div>
                     <div>
                       <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                        E-mail
+                        {t('email')}
                       </label>
                       <TextInput 
                         type="email"
@@ -2371,11 +2374,11 @@ export default function App() {
                     </div>
                     <div>
                       <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                        Senha
+                        {t('password')}
                       </label>
                       <TextInput 
                         type="password"
-                        placeholder="Mínimo 6 caracteres"
+                        placeholder={t('password_min_placeholder')}
                         value={authPassword}
                         onChange={(e) => setAuthPassword(e.target.value)}
                         required
@@ -2383,7 +2386,7 @@ export default function App() {
                     </div>
                     <div>
                       <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                        Sua renda líquida mensal ({onboardCurrency})?
+                        {t('web_auth_net_income')} ({onboardCurrency})?
                       </label>
                       <TextInput 
                         type="number"
@@ -2395,7 +2398,7 @@ export default function App() {
                     </div>
                     <div>
                       <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                        Moeda Base
+                        {t('web_auth_base_currency')}
                       </label>
                       <select 
                         className="select-input" 
@@ -2418,13 +2421,13 @@ export default function App() {
                         style={{ accentColor: 'var(--primary)', width: '16px', height: '16px', cursor: 'pointer' }}
                       />
                       <label htmlFor="lembrar_credenciais_signup" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                        Lembrar credenciais
+                        {t('web_auth_remember_credentials')}
                       </label>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px'}}>
                       <PrimaryButton type="submit" style={{ width: '100%' }} disabled={isAuthLoading || authLoading}>
-                        {isAuthLoading ? 'Cadastrando...' : 'Criar Conta e Começar'} <ChevronRight size={18} />
+                        {isAuthLoading ? t('web_auth_creating') : t('web_auth_create_start')} <ChevronRight size={18} />
                       </PrimaryButton>
                     </div>
                   </form>
@@ -2444,12 +2447,12 @@ export default function App() {
                   alignItems: 'center',
                   gap: '12px'
                 }}>
-                  <Sparkles size={16} /> Modo Demonstração Local Ativo (Sem Supabase)
+                  <Sparkles size={16} /> {t('web_auth_demo_mode')}
                 </div>
 
                 <div>
                   <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                    Qual é o seu nome?
+                    {t('web_auth_name_question')}
                   </label>
                   <TextInput 
                     placeholder="Ex: Rodrigo Silva"
@@ -2461,7 +2464,7 @@ export default function App() {
 
                 <div>
                   <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                    Sua renda líquida mensal (BRL)?
+                    {t('web_auth_net_income')} (BRL)?
                   </label>
                   <TextInput 
                     type="number"
@@ -2474,7 +2477,7 @@ export default function App() {
 
                 <div>
                   <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                    Moeda Base
+                    {t('web_auth_base_currency')}
                   </label>
                   <select 
                     className="select-input" 
@@ -2490,7 +2493,7 @@ export default function App() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px'}}>
                   <PrimaryButton type="submit" style={{ width: '100%' }}>
-                    Começar Jornada Local <ChevronRight size={18} />
+                    {t('web_auth_start_local')} <ChevronRight size={18} />
                   </PrimaryButton>
                 </div>
               </form>
@@ -2519,7 +2522,7 @@ export default function App() {
                 onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-blue)'}
                 onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--card-border)'}
               >
-                <Sparkles size={16} /> Entrar com Dados de Demonstração
+                <Sparkles size={16} /> {t('web_auth_enter_demo')}
               </button>
             </div>
           </Card>
@@ -2656,6 +2659,9 @@ export default function App() {
                 </select>
               </div>
 
+              {/* SELETOR DE IDIOMA */}
+              <LanguageSelector />
+
               {/* MODO PRIVACIDADE (Phase 4.1) */}
               <button
                 onClick={() => setPrivacyMode(p => !p)}
@@ -2763,7 +2769,7 @@ export default function App() {
               }}
             >
               <Wallet size={16} />
-              Painel de Controle
+              {t('web_dashboard_panel')}
             </button>
             <button
               onClick={() => setActiveView('costExplorer')}
@@ -2782,7 +2788,7 @@ export default function App() {
               }}
             >
               <MapPin size={16} />
-              Explorador de Custo de Vida
+              {t('web_cost_title')}
             </button>
             <button
               onClick={() => { setActiveView('blog'); setActiveArticle(null); }}
@@ -2801,7 +2807,7 @@ export default function App() {
               }}
             >
               <BookOpen size={16} />
-              Blog & Educação
+              {t('web_dashboard_blog')}
             </button>
             <button
               onClick={() => setActiveView('investimentos')}
@@ -2820,7 +2826,7 @@ export default function App() {
               }}
             >
               <TrendingUp size={16} />
-              Investimentos
+              {t('web_dashboard_investments')}
             </button>
             {activeSpace?.tipo === 'PJ' && (
             <button
@@ -2840,7 +2846,7 @@ export default function App() {
               }}
             >
               <Briefcase size={16} />
-              Fluxo PJ
+              {t('web_dashboard_fluxopj')}
             </button>
             )}
             <button
@@ -2860,7 +2866,7 @@ export default function App() {
               }}
             >
               <PiggyBank size={16} />
-              Inventário
+              {t('web_dashboard_inventory')}
             </button>
             <button
               onClick={() => setActiveView('calendario')}
@@ -2879,7 +2885,7 @@ export default function App() {
               }}
             >
               <CalendarDays size={16} />
-              Calendário
+              {t('web_dashboard_calendar')}
             </button>
           </div>
 
@@ -2905,7 +2911,7 @@ export default function App() {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <span className="text-gray-mangos" style={{ fontSize: '0.85rem' }}>
-                    Saldo Total Consolidado ({activeSpace?.nome})
+                    {t('web_dashboard_balance_title')} ({activeSpace?.nome})
                   </span>
                   {plano_usuario === 'premium' ? (
                     <span className="text-accent-mangos" style={{ 
@@ -2928,7 +2934,7 @@ export default function App() {
                       borderRadius: '8px',
                       fontWeight: 500
                     }}>
-                      Cotações Estáticas
+                      {t('web_dashboard_static_rates')}
                     </span>
                   )}
                 </div>
@@ -2938,7 +2944,7 @@ export default function App() {
                   </h2>
                   {totalBalance < 0 && !privacyMode && (
                     <span className="badge-danger-mangos" style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: '8px', fontWeight: 700 }}>
-                      ⚠ Negativo
+                      ⚠ {t('web_dashboard_negative')}
                     </span>
                   )}
                 </div>
@@ -2947,7 +2953,7 @@ export default function App() {
                   <div className="text-success-mangos" style={{ display: 'flex', alignItems: 'center', gap: '9px'}}>
                     <TrendingUp size={16} />
                     <span style={{ fontSize: '0.85rem', filter: privacyMode ? 'blur(6px)' : 'none', transition: 'filter 0.3s' }}>
-                      Receitas: {formatCurrency(
+                      {t('web_dashboard_receitas')}: {formatCurrency(
                         activeTransactions.filter(t => t.tipo === 'receita').reduce((sum, t) => {
                           const conta = activeAccounts.find(c => c.id === t.id_conta);
                           const moedaTx = conta?.moeda_conta || moeda_base;
@@ -2960,7 +2966,7 @@ export default function App() {
                   <div className="text-danger-mangos" style={{ display: 'flex', alignItems: 'center', gap: '9px'}}>
                     <TrendingDown size={16} />
                     <span style={{ fontSize: '0.85rem', filter: privacyMode ? 'blur(6px)' : 'none', transition: 'filter 0.3s' }}>
-                      Despesas: {formatCurrency(
+                      {t('web_dashboard_despesas')}: {formatCurrency(
                         activeTransactions.filter(t => t.tipo === 'despesa').reduce((sum, t) => {
                           const conta = activeAccounts.find(c => c.id === t.id_conta);
                           const moedaTx = conta?.moeda_conta || moeda_base;
@@ -2978,7 +2984,7 @@ export default function App() {
                 <Card>
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '1rem', marginBottom: '16px' }}>
                     <TrendingUp size={18} color="var(--accent-green)" />
-                    Saúde Financeira — Regra 50/30/20
+                    {t('web_dashboard_health_title')}
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {[
@@ -2997,7 +3003,7 @@ export default function App() {
                     ))}
                     <div style={{ marginTop: '8px', padding: '12px', background: 'var(--card-border)', borderRadius: '10px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Gasto atual do orçamento</span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t('web_dashboard_budget_spent')}</span>
                         <span className={
                           regra502030.pctGasto > 80 ? 'text-danger-mangos' : regra502030.pctGasto > 60 ? 'text-warning-mangos' : 'text-success-mangos'
                         } style={{
@@ -3034,16 +3040,16 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '1.1rem'}}>
                     <Wallet size={18} color="var(--accent-blue)" />
-                    Minhas Contas / Carteiras
+                    {t('web_dashboard_accounts_title')}
                     <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 400, fontStyle: 'italic' }}>
-                      (solte transações aqui para reconciliar)
+                      ({t('web_dashboard_drag_hint')})
                     </span>
                   </h3>
                   <button 
                     onClick={() => setShowAddAccountModal(true)}
                     style={{ background: 'transparent', border: 'none', color: 'var(--accent-blue)', fontWeight: 700, cursor: 'pointer' }}
                   >
-                    + Nova Conta
+                    {t('web_dashboard_new_account')}
                   </button>
                 </div>
 
@@ -3057,7 +3063,7 @@ export default function App() {
                       background: 'var(--card-border)'
                     }}>
                       <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '12px' }}>
-                        Nenhuma conta cadastrada neste espaço.
+                        {t('no_accounts_in_space')}
                       </p>
                       <button 
                         onClick={() => setShowAddAccountModal(true)}
@@ -3075,7 +3081,7 @@ export default function App() {
                         onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 210, 255, 0.2)'}
                         onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0, 210, 255, 0.1)'}
                       >
-                        + Adicionar Minha Primeira Conta
+                        {t('web_dashboard_add_first_account')}
                       </button>
                     </div>
                   ) : (
@@ -3123,7 +3129,7 @@ export default function App() {
                         }}>
                           <div>
                             <span style={{ fontWeight: 600, display: 'block' }}>{conta.nome_instituicao}</span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Moeda Nativa: {conta.moeda_conta}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('web_dashboard_native_currency')} {conta.moeda_conta}</span>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span style={{ fontWeight: 700 }}>
@@ -3131,7 +3137,7 @@ export default function App() {
                             </span>
                             <button 
                               onClick={() => {
-                                if (window.confirm(`Tem certeza que deseja excluir a conta ${conta.nome_instituicao}?`)) {
+                                if (window.confirm(`${t('web_dashboard_confirm_delete_account')} ${conta.nome_instituicao}?`)) {
                                   removeConta(conta.id);
                                 }
                               }}
@@ -3153,13 +3159,13 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '1.1rem'}}>
                     <CreditCard size={18} color="var(--accent-blue)" />
-                    Meus Cartões de Crédito
+                    {t('web_dashboard_cards_title')}
                   </h3>
                   <button 
                     onClick={() => setShowAddCardModal(true)}
                     style={{ background: 'transparent', border: 'none', color: 'var(--accent-blue)', fontWeight: 700, cursor: 'pointer' }}
                   >
-                    + Novo Cartão
+                    {t('web_dashboard_new_card')}
                   </button>
                 </div>
 
@@ -3173,7 +3179,7 @@ export default function App() {
                       background: 'var(--card-border)'
                     }}>
                       <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '12px' }}>
-                        Nenhum cartão cadastrado neste espaço.
+                        {t('no_cards')}
                       </p>
                       <button 
                         onClick={() => setShowAddCardModal(true)}
@@ -3191,7 +3197,7 @@ export default function App() {
                         onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 210, 255, 0.2)'}
                         onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0, 210, 255, 0.1)'}
                       >
-                        + Adicionar Meu Primeiro Cartão
+                        {t('web_dashboard_add_first_card')}
                       </button>
                     </div>
                   ) : (
@@ -3209,7 +3215,7 @@ export default function App() {
                           <div>
                             <span style={{ fontWeight: 600, display: 'block' }}>{card.nome}</span>
                             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                              Fatura: <span style={{ filter: privacyMode ? 'blur(5px)' : 'none' }}>{formatCurrency(card.fatura_atual, moeda_base)}</span> / Limite: <span style={{ filter: privacyMode ? 'blur(5px)' : 'none' }}>{formatCurrency(card.limite, moeda_base)}</span>
+                              {t('web_dashboard_invoice')} <span style={{ filter: privacyMode ? 'blur(5px)' : 'none' }}>{formatCurrency(card.fatura_atual, moeda_base)}</span> / {t('web_dashboard_limit')} <span style={{ filter: privacyMode ? 'blur(5px)' : 'none' }}>{formatCurrency(card.limite, moeda_base)}</span>
                             </span>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -3225,7 +3231,7 @@ export default function App() {
                             </button>
                             <button 
                               onClick={() => {
-                                if (window.confirm(`Tem certeza que deseja excluir o cartão ${card.nome}?`)) {
+                                if (window.confirm(`${t('web_dashboard_confirm_delete_card')} ${card.nome}?`)) {
                                   handleCardDelete(card.id);
                                 }
                               }}
@@ -3247,13 +3253,13 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '1.1rem'}}>
                     <PiggyBank size={18} color="var(--accent-green)" />
-                    Caixinhas (Metas)
+                    {t('web_dashboard_jars_title')}
                   </h3>
                   <button 
                     onClick={() => setShowAddCaixinhaModal(true)}
                     style={{ background: 'transparent', border: 'none', color: 'var(--accent-green)', fontWeight: 700, cursor: 'pointer' }}
                   >
-                    + Nova Caixinha
+                    {t('web_dashboard_new_jar')}
                   </button>
                 </div>
 

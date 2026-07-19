@@ -5,18 +5,30 @@ import {
 import type { Transacao } from '../store/useStore';
 import { Card } from './Card';
 import { formatCurrency } from '../utils/currency';
+import { useI18n } from '../i18n';
 
 interface Props {
   transacoes: Transacao[];
   moedaBase: string;
 }
 
-const MESES_COMPLETO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-
 export const CalendarioFinanceiro: React.FC<Props> = ({ transacoes, moedaBase }) => {
+  const { t } = useI18n();
   const hoje = new Date();
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth());
+
+  const meses = useMemo(() => [
+    t('month_january'), t('month_february'), t('month_march'), t('month_april'),
+    t('month_may'), t('month_june'), t('month_july'), t('month_august'),
+    t('month_september'), t('month_october'), t('month_november'), t('month_december'),
+  ], [t]);
+
+  const diasSemana = useMemo(() => [
+    t('web_calendar_sun'), t('web_calendar_mon'), t('web_calendar_tue'),
+    t('web_calendar_wed'), t('web_calendar_thu'), t('web_calendar_fri'),
+    t('web_calendar_sat'),
+  ], [t]);
 
   const primeiroDia = new Date(ano, mes, 1);
   const ultimoDia = new Date(ano, mes + 1, 0);
@@ -54,45 +66,43 @@ export const CalendarioFinanceiro: React.FC<Props> = ({ transacoes, moedaBase })
       <div style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '0 0 8px 0', letterSpacing: '-0.5px'}}>
           <CalendarDays size={24} style={{ verticalAlign: 'middle', marginRight: '12px' }} />
-          Calendário Financeiro
+          {t('web_calendar_title')}
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', margin: 0 }}>
-          Visualização mensal de receitas, despesas, vencimentos e aportes.
+          {t('web_calendar_subtitle')}
         </p>
       </div>
 
       <Card>
-        {/* Header do calendário */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <button onClick={() => navegar(-1)} style={{ background: 'none', border: 'none', color: 'var(--accent-blue)', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
             <ChevronLeft size={20} />
           </button>
-          <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>{MESES_COMPLETO[mes]} {ano}</h3>
+          <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>{meses[mes]} {ano}</h3>
           <button onClick={() => navegar(1)} style={{ background: 'none', border: 'none', color: 'var(--accent-blue)', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
             <ChevronRight size={20} />
           </button>
         </div>
 
-        {/* Resumo do mês */}
         <div style={{ display: 'flex', gap: '24px', marginBottom: '24px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--card-border)', padding: '12px 16px', borderRadius: '12px' }}>
             <TrendingUp size={18} color="var(--accent-green)" />
             <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Receitas</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>{t('revenues')}</span>
               <strong style={{ color: 'var(--accent-green)' }}>{formatCurrency(totalReceitas, moedaBase)}</strong>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--card-border)', padding: '12px 16px', borderRadius: '12px' }}>
             <TrendingDown size={18} color="#FF5252" />
             <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Despesas</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>{t('expenses')}</span>
               <strong style={{ color: '#FF5252' }}>{formatCurrency(totalDespesas, moedaBase)}</strong>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--card-border)', padding: '12px 16px', borderRadius: '12px' }}>
             <CalendarDays size={18} color="var(--accent-blue)" />
             <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Saldo</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>{t('current_balance')}</span>
               <strong style={{ color: totalReceitas - totalDespesas >= 0 ? 'var(--accent-green)' : '#FF5252' }}>
                 {formatCurrency(totalReceitas - totalDespesas, moedaBase)}
               </strong>
@@ -100,9 +110,8 @@ export const CalendarioFinanceiro: React.FC<Props> = ({ transacoes, moedaBase })
           </div>
         </div>
 
-        {/* Grade do calendário */}
         <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
-          {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => (
+          {diasSemana.map(d => (
             <div key={d} style={{ textAlign: 'center', padding: '8px', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
               {d}
             </div>
@@ -138,7 +147,7 @@ export const CalendarioFinanceiro: React.FC<Props> = ({ transacoes, moedaBase })
                 )}
                 {txs.length > 0 && (
                   <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    {txs.length} {txs.length === 1 ? 'transação' : 'transações'}
+                    {txs.length} {t('transactions').toLowerCase()}
                   </div>
                 )}
               </div>

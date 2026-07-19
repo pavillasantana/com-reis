@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { Transacao } from '../store/useStore';
 import { PrimaryButton } from './PrimaryButton';
+import { useI18n } from '../i18n';
 
 const CATEGORIAS = [
   'Alimentação',
@@ -46,6 +47,7 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
   onConfirm,
   onClose,
 }) => {
+  const { t } = useI18n();
   const [rows, setRows] = useState<PendingTransaction[]>(() => transactions);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(transactions.map(t => t._key)));
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
@@ -124,12 +126,12 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--modal-text)' }}>
-                Revisar Importação
+                {t('web_import_review_title')}
               </h2>
               <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                Conta: <strong style={{ color: 'var(--accent-cyan)' }}>{accountName}</strong>
-                &nbsp;·&nbsp;Formato: <strong style={{ color: 'var(--accent-cyan)' }}>{format.toUpperCase()}</strong>
-                &nbsp;·&nbsp;{rows.length} transações detectadas
+                {t('web_import_review_account_label')} <strong style={{ color: 'var(--accent-cyan)' }}>{accountName}</strong>
+                &nbsp;·&nbsp;{t('web_import_review_format_label')} <strong style={{ color: 'var(--accent-cyan)' }}>{format.toUpperCase()}</strong>
+                &nbsp;·&nbsp;{rows.length} {t('web_import_review_detected')}
               </p>
             </div>
             <button
@@ -140,7 +142,7 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
                 cursor: 'pointer', fontSize: '0.82rem', flexShrink: 0,
               }}
             >
-              Cancelar
+              {t('cancel')}
             </button>
           </div>
 
@@ -154,7 +156,7 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
               borderRadius: '10px', padding: '8px 14px', fontSize: '0.82rem',
             }}>
               <CheckSquare size={14} color="var(--accent-cyan)" />
-              <span style={{ color: 'var(--text-secondary)' }}>{summary.count} selecionadas</span>
+              <span style={{ color: 'var(--text-secondary)' }}>{summary.count} {t('web_import_review_selected')}</span>
             </div>
             <div style={{
               display: 'flex', alignItems: 'center', gap: '8px',
@@ -179,7 +181,7 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
                 borderRadius: '10px', padding: '8px 14px', fontSize: '0.82rem',
               }}>
                 <AlertTriangle size={14} color="#FFB400" />
-                <span style={{ color: '#FFB400' }}>Nenhuma transação restante</span>
+                <span style={{ color: '#FFB400' }}>{t('web_import_review_no_remaining')}</span>
               </div>
             )}
           </div>
@@ -208,11 +210,11 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
               : <Square size={16} color="var(--text-muted)" />
             }
           </button>
-          <span>Data</span>
-          <span>Descrição</span>
-          <span>Categoria</span>
-          <span style={{ textAlign: 'right' }}>Valor</span>
-          <span style={{ textAlign: 'center' }}>Tipo</span>
+          <span>{t('web_import_review_date')}</span>
+          <span>{t('web_import_review_desc')}</span>
+          <span>{t('web_import_review_category')}</span>
+          <span style={{ textAlign: 'right' }}>{t('web_import_review_value')}</span>
+          <span style={{ textAlign: 'center' }}>{t('web_import_review_type')}</span>
           <span />
         </div>
 
@@ -221,7 +223,7 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
           {rows.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>
               <AlertTriangle size={32} style={{ opacity: 0.4, marginBottom: '12px' }} />
-              <p style={{ margin: 0 }}>Todas as transações foram removidas.</p>
+              <p style={{ margin: 0 }}>{t('web_import_review_all_removed')}</p>
             </div>
           ) : (
             rows.map(row => {
@@ -366,7 +368,7 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
                       color: 'var(--text-muted)', borderRadius: '6px',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
-                    title="Remover esta linha"
+                    title={t('web_import_review_remove_row')}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -385,8 +387,8 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
         }}>
           <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             {summary.count === 0
-              ? 'Nenhuma transação selecionada para importar.'
-              : `${summary.count} de ${rows.length} transações serão importadas.`
+              ? t('web_import_review_none_selected')
+              : t('web_import_review_will_import', { count: String(summary.count), total: String(rows.length) })
             }
           </p>
           <div style={{ display: 'flex', gap: '10px' }}>
@@ -398,13 +400,13 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
                 borderRadius: '10px', cursor: 'pointer', fontWeight: 600,
               }}
             >
-              Cancelar
+              {t('cancel')}
             </button>
             <PrimaryButton
               onClick={() => onConfirm(rows.filter(r => selected.has(r._key)))}
               disabled={summary.count === 0}
             >
-              Importar {summary.count > 0 ? `${summary.count} transações` : ''}
+              Importar {summary.count > 0 ? t('web_import_review_import', { count: String(summary.count) }) : t('web_import_review_import_empty')}
             </PrimaryButton>
           </div>
         </div>

@@ -1,10 +1,4 @@
-/**
- * sentry.ts — Inicialização do Sentry para monitoramento de erros em produção.
- *
- * Como usar:
- * 1. Adicione VITE_SENTRY_DSN=https://xxx@oXXX.ingest.sentry.io/YYYY ao seu .env
- * 2. Importe initSentry() no main.tsx ANTES de renderizar o app.
- */
+
 import * as Sentry from '@sentry/react';
 
 export function initSentry(): void {

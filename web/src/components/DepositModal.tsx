@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TextInput } from './TextInput';
 import { PrimaryButton } from './PrimaryButton';
+import { useI18n } from '../i18n';
 
 interface DepositModalProps {
   goalName: string;
@@ -23,6 +24,7 @@ export function DepositModal({
   onConfirm,
   onClose,
 }: DepositModalProps) {
+  const { t } = useI18n();
   const [value, setValue] = useState('');
   const [error, setError] = useState('');
 
@@ -33,11 +35,11 @@ export function DepositModal({
     const num = parseFloat(value.replace(',', '.'));
 
     if (isNaN(num) || num <= 0) {
-      setError('Digite um valor maior que zero.');
+      setError(t('web_deposit_invalid_value'));
       return;
     }
     if (num > remaining + 0.01) {
-      setError(`Valor excede o restante da meta (${currencySymbol} ${remaining.toFixed(2)}).`);
+      setError(t('web_deposit_exceeds_remaining', { value: `${currencySymbol} ${remaining.toFixed(2)}` }));
       return;
     }
 
@@ -74,7 +76,7 @@ export function DepositModal({
           </div>
           <div>
             <h3 id="deposit-title" style={{ margin: 0, fontSize: '1.1rem' }}>
-              Depositar na Caixinha
+              {t('web_deposit_title')}
             </h3>
             <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
               {goalName}
@@ -89,12 +91,12 @@ export function DepositModal({
           display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem',
         }}>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Guardado: <strong style={{ color: 'var(--accent-green)' }}>
+            {t('web_deposit_saved')} <strong style={{ color: 'var(--accent-green)' }}>
               {currencySymbol} {currentSaved.toFixed(2)}
             </strong>
           </span>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Falta: <strong style={{ color: 'var(--text-primary)' }}>
+            {t('web_deposit_remaining')} <strong style={{ color: 'var(--text-primary)' }}>
               {currencySymbol} {remaining.toFixed(2)}
             </strong>
           </span>
@@ -106,7 +108,7 @@ export function DepositModal({
               fontSize: '0.8rem', color: 'var(--text-secondary)',
               display: 'block', marginBottom: '6px',
             }}>
-              Quanto deseja depositar? ({currencySymbol})
+              {t('web_deposit_how_much')} ({currencySymbol})
             </label>
             <TextInput
               id="deposit-amount"
@@ -142,10 +144,10 @@ export function DepositModal({
                 fontFamily: 'inherit',
               }}
             >
-              Cancelar
+              {t('cancel')}
             </button>
             <PrimaryButton type="submit" style={{ flex: 1 }}>
-              Depositar
+              {t('web_deposit_submit')}
             </PrimaryButton>
           </div>
         </form>
