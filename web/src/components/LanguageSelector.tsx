@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { Globe } from 'lucide-react';
-import { useI18n, LOCALE_LABELS, type Locale } from '../i18n';
+import { useI18n, LOCALE_LABELS, LOCALES, type Locale } from '../i18n';
 
 interface LanguageSelectorProps {
   className?: string;
@@ -12,7 +12,25 @@ export function LanguageSelector({ className = '' }: LanguageSelectorProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const locales: Locale[] = ['pt-BR', 'en-US', 'es-ES'];
+  const localeFlags: Record<Locale, string> = {
+    'pt-BR': '🇧🇷',
+    'pt-PT': '🇵🇹',
+    'en-US': '🇺🇸',
+    'es-ES': '🇪🇸',
+    'es-AR': '🇦🇷',
+    'fr-FR': '🇫🇷',
+    'it-IT': '🇮🇹',
+  };
+
+  const localeShort: Record<Locale, string> = {
+    'pt-BR': 'PT',
+    'pt-PT': 'PT',
+    'en-US': 'EN',
+    'es-ES': 'ES',
+    'es-AR': 'ES',
+    'fr-FR': 'FR',
+    'it-IT': 'IT',
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -35,22 +53,23 @@ export function LanguageSelector({ className = '' }: LanguageSelectorProps) {
           background: 'rgba(255,255,255,0.04)',
           color: 'var(--text-secondary)',
           border: '1px solid var(--card-border)',
-          padding: '12px 16px',
-          borderRadius: '12px',
+          padding: '8px 12px',
+          borderRadius: '10px',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          gap: '6px',
           transition: 'all 0.2s',
-          minWidth: '140px',
+          minWidth: '80px',
+          justifyContent: 'center',
         }}
         title={t('select_language') || 'Selecionar idioma'}
       >
-        <Globe size={16} />
-        <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>
-          {LOCALE_LABELS[locale] || locale}
+        <Globe size={14} />
+        <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.5px' }}>
+          {localeShort[locale] || locale}
         </span>
-        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
           {isOpen ? '▲' : '▼'}
         </span>
       </button>
@@ -64,15 +83,15 @@ export function LanguageSelector({ className = '' }: LanguageSelectorProps) {
             right: 0,
             background: 'var(--card-bg)',
             border: '1px solid var(--card-border)',
-            borderRadius: '12px',
+            borderRadius: '10px',
             boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            minWidth: '160px',
+            minWidth: '150px',
             zIndex: 100,
             overflow: 'hidden',
             animation: 'slideUp 0.15s ease-out',
           }}
         >
-          {locales.map((l) => (
+          {LOCALES.map((l) => (
             <button
               key={l}
               onClick={() => {
@@ -81,23 +100,24 @@ export function LanguageSelector({ className = '' }: LanguageSelectorProps) {
               }}
               style={{
                 width: '100%',
-                padding: '12px 16px',
+                padding: '10px 14px',
                 border: 'none',
                 background: locale === l ? 'rgba(0, 229, 255, 0.1)' : 'transparent',
                 color: locale === l ? 'var(--accent-blue)' : 'var(--text-primary)',
                 textAlign: 'left',
                 cursor: 'pointer',
-                fontSize: '0.9rem',
+                fontSize: '0.85rem',
                 transition: 'background 0.15s',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
+                gap: '10px',
               }}
               onMouseOver={(e) => e.currentTarget.style.background = locale === l ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255,255,255,0.04)'}
               onMouseOut={(e) => e.currentTarget.style.background = locale === l ? 'rgba(0, 229, 255, 0.1)' : 'transparent'}
             >
-              {LOCALE_LABELS[l]}
-              {locale === l && <span style={{ marginLeft: 'auto', color: 'var(--accent-blue)' }}>✓</span>}
+              <span style={{ fontSize: '1rem' }}>{localeFlags[l]}</span>
+              <span style={{ flex: 1 }}>{LOCALE_LABELS[l]}</span>
+              {locale === l && <span style={{ color: 'var(--accent-blue)', fontSize: '0.9rem' }}>✓</span>}
             </button>
           ))}
         </div>
