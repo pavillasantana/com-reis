@@ -38,8 +38,8 @@
       script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://www.google-analytics.com https://js.sentry-cdn.com https://browser.sentry-cdn.com;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
-      img-src 'self' data: https:;
-      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io https://*.ingest.us.sentry.io https://brapi.dev https://openexchange.bcb.gov.br https://economia.awesomeapi.com.br;
+      img-src 'self' data: https: blob: https://*.basemaps.cartocdn.com;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io https://*.ingest.us.sentry.io https://brapi.dev https://openexchange.bcb.gov.br https://economia.awesomeapi.com.br https://servicodados.ibge.gov.br https://apisidra.ibge.gov.br https://countriesnow.space https://api.teleport.org;
       frame-src https://pagead2.googlesyndication.com https://tpc.googlesyndication.com;
       base-uri 'self';
       form-action 'self';
