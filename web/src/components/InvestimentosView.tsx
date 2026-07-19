@@ -617,7 +617,12 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                     zIndex: 50, boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
                   }}>
                     {sugestoes.map(s => (
-                      <button key={s} onClick={() => { setFTicker(s); setSugestoes([]); handleTickerChange(s); }} style={{
+                      <button key={s} onClick={() => {
+                        setFTicker(s);
+                        setSugestoes([]);
+                        const cat = getCategoriaByTicker(s);
+                        if (cat) { setFCategoria(cat.categoria); setFSubcategoria(cat.subcategoria); }
+                      }} style={{
                         display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px',
                         background: 'transparent', border: 'none', cursor: 'pointer',
                         borderRadius: '6px', color: CLEAN_TEXT_SECONDARY, fontSize: '0.83rem',
