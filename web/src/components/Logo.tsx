@@ -50,7 +50,7 @@ export const Logo: React.FC<LogoProps> = ({
   const brandBlue = '#1045A1';
   const mangoYellow = '#FFB800';
 
-  // Helper to render the unified wordmark "mang[o]s" where 'o' is the mango icon
+  // Helper to render the unified wordmark "com[réi]s" where the icon replaces part of the name
   const renderWordmark = (textColor: string, iconColor: string) => (
     <div 
       style={{ 
@@ -65,7 +65,7 @@ export const Logo: React.FC<LogoProps> = ({
         userSelect: 'none'
       }}
     >
-      <span style={{ textTransform: 'lowercase' }}>mang</span>
+      <span style={{ textTransform: 'lowercase' }}>com</span>
       <span 
         style={{ 
           display: 'inline-flex', 
@@ -83,7 +83,7 @@ export const Logo: React.FC<LogoProps> = ({
           glow={glow} 
         />
       </span>
-      <span style={{ textTransform: 'lowercase' }}>s</span>
+      <span style={{ textTransform: 'lowercase' }}>réis</span>
     </div>
   );
 

@@ -288,7 +288,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       fontSize: '0.9rem', fontWeight: 800,
                       color: cardNumber.startsWith('4') ? '#00e2ff' : cardNumber.startsWith('5') ? '#ff5f00' : 'var(--text-muted)'
                     }}>
-                      {cardNumber.startsWith('4') ? 'VISA' : cardNumber.startsWith('5') ? 'MASTERCARD' : 'MANGOS PAY'}
+                      {cardNumber.startsWith('4') ? 'VISA' : cardNumber.startsWith('5') ? 'MASTERCARD' : 'COM REIS PAY'}
                     </span>
                   </div>
                   
