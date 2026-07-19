@@ -513,6 +513,18 @@ button, input, select, textarea {
   border-color: var(--accent-blue) !important;
 }
 
+/* Auth Language Selector - compact */
+.auth-language-selector {
+  margin-left: auto;
+}
+.auth-language-selector button {
+  min-width: 70px !important;
+  padding: 6px 10px !important;
+}
+.auth-language-selector .language-selector button:hover {
+  background: rgba(255,255,255,0.1) !important;
+}
+
 /* CostExplorer Layout */
 .explorer-grid {
   display: grid;

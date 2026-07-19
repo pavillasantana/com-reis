@@ -1661,6 +1661,9 @@ export default function App() {
                 </span>
               </div>
 
+              {/* LANGUAGE SELECTOR */}
+              <LanguageSelector />
+
               <PrimaryButton 
                 onClick={() => setShowLandingPage(false)}
                 style={{ padding: '10px 20px', fontSize: '0.9rem', borderRadius: '8px' }}
@@ -2102,24 +2105,26 @@ export default function App() {
             padding: '36px',
             width: '100%'
           }}>
-            <button 
-              onClick={() => setShowLandingPage(true)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--accent-blue)',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '9px',
-                marginBottom: '20px',
-                padding: 0,
-                fontWeight: 600
-              }}
-            >
-              &larr; {t('web_auth_back_to_login')}
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '500px', marginBottom: '20px' }}>
+              <button 
+                onClick={() => setShowLandingPage(true)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--accent-blue)',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '9px',
+                  padding: 0,
+                  fontWeight: 600
+                }}
+              >
+                &larr; {t('web_auth_back_to_login')}
+              </button>
+              <LanguageSelector className="auth-language-selector" />
+            </div>
             <Card style={{ maxWidth: '500px', width: '100%', textAlign: 'left' }} className="fade-in">
             <div style={{ marginBottom: '24px' }}>
               <Logo size="lg" />
