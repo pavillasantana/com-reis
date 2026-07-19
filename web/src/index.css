@@ -493,15 +493,106 @@ button, input, select, textarea {
   animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+/* CostExplorer Layout */
+.explorer-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  min-height: 450px;
+  gap: 0;
+}
+
+.explorer-map {
+  position: relative;
+  min-height: 450px;
+  background: #080c14;
+}
+
+.explorer-map-locked {
+  width: 100%;
+  height: 100%;
+  min-height: 450px;
+  background-image: radial-gradient(circle at center, #1b2640 10%, #0b0f19 80%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.35;
+  text-align: center;
+}
+
+.explorer-sidebar {
+  padding: 36px;
+  background: rgba(20, 28, 47, 0.95);
+  border-left: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 280px;
+}
+
+/* App Header - Responsivo */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .app-header {
+    gap: 16px;
+  }
+  .app-header > div:first-child {
+    flex: 1;
+    min-width: 280px;
+  }
+  .app-header > div:last-child {
+    flex: 1;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .app-header > div {
+    width: 100%;
+  }
+  .app-header > div:first-child {
+    min-width: auto;
+  }
+  .app-header > div:last-child {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header > div:last-child {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .app-header select,
+  .language-selector button {
+    width: 100% !important;
+    min-width: auto !important;
+  }
+}
+
 /* Responsividade Extrema do Cabeçalho e Seletores */
 @media (max-width: 580px) {
-  header {
+  .app-header {
     flex-direction: column !important;
     align-items: center !important;
     text-align: center !important;
     gap: 18px !important;
   }
-  header > div {
+  .app-header > div {
     justify-content: center !important;
     width: 100% !important;
     flex-wrap: wrap !important;
@@ -510,11 +601,36 @@ button, input, select, textarea {
 }
 
 @media (max-width: 400px) {
-  header {
+  .app-header {
     margin-bottom: 20px !important;
   }
-  header select {
+  .app-header select {
     width: 100% !important;
+  }
+}
+
+/* CostExplorer Responsivo */
+@media (max-width: 900px) {
+  .explorer-grid {
+    grid-template-columns: 1fr !important;
+    min-height: auto !important;
+  }
+  .explorer-sidebar {
+    border-left: none !important;
+    border-top: 1px solid var(--card-border) !important;
+    padding: 20px !important;
+  }
+  .explorer-grid > div:first-child {
+    min-height: 350px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .explorer-grid > div:first-child {
+    min-height: 300px !important;
+  }
+  .explorer-sidebar {
+    padding: 16px !important;
   }
 }
 

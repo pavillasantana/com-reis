@@ -265,38 +265,20 @@ export function CostExplorer({
 
   return (
     <Card style={{ position: 'relative', overflow: 'hidden', padding: 0 }}>
-      <div className="explorer-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', minHeight: '450px', flexWrap: 'wrap' }}>
+      <div className="explorer-grid">
         
-        <div style={{ position: 'relative', minHeight: '300px', background: '#080c14' }}>
+        <div className="explorer-map">
           {planoUsuario === 'premium' ? (
-            <div ref={mapContainerRef} style={{ width: '100%', height: '100%', minHeight: '450px', zIndex: 1 }} />
+            <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
           ) : (
-            <div style={{
-              width: '100%',
-              height: '100%',
-              backgroundImage: 'radial-gradient(circle at center, #1b2640 10%, #0b0f19 80%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: '450px'
-            }}>
-              <div style={{ opacity: 0.35, textAlign: 'center' }}>
-                <MapPin size={48} color="var(--accent-blue)" style={{ margin: '0 auto 12px' }} />
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t('web_cost_description')}</span>
-              </div>
+            <div className="explorer-map-locked">
+              <MapPin size={48} color="var(--accent-blue)" style={{ margin: '0 auto 12px' }} />
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t('web_cost_description')}</span>
             </div>
           )}
         </div>
 
-        <div className="explorer-sidebar" style={{
-          padding: '36px',
-          background: 'rgba(20, 28, 47, 0.95)',
-          borderLeft: '1px solid var(--card-border)',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          zIndex: 2
-        }}>
+        <div className="explorer-sidebar">
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '1.1rem', color: 'var(--text-primary)'}}>

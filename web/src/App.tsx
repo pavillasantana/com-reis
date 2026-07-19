@@ -2533,7 +2533,7 @@ export default function App() {
         <div className="dashboard-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '36px'}}>
           
           {/* HEADER */}
-          <header style={{ 
+          <header className="app-header" style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center', 
