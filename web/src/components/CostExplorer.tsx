@@ -54,6 +54,9 @@ export function CostExplorer({
 
   const isBrazil = selectedCountry.toLowerCase() === 'brazil' || selectedCountry.toLowerCase() === 'brasil';
 
+  const sourceLabel = isBrazil ? t('web_cost_source_ibge') : t('web_cost_source_teleport');
+  const brazilLabel = t('web_cost_brazil');
+
   const { data: estados, isLoading: loadingEstados, isError: errorEstados, refetch: refetchEstados } = useIbgeEstados();
   const { data: municipios, isLoading: loadingMunicipios, isError: errorMunicipios, refetch: refetchMunicipios } = useIbgeMunicipios(isBrazil ? selectedUf : '');
 
@@ -356,7 +359,7 @@ export function CostExplorer({
                         setCitySearchQuery('');
                       }}
                     >
-                      <option value="Brazil">Brazil (Brasil)</option>
+                      <option value="Brazil">{brazilLabel}</option>
                       {globalCountries?.filter(c => c.country.toLowerCase() !== 'brazil').map(c => (
                         <option key={c.iso3} value={c.country}>{c.country}</option>
                       ))}
@@ -367,7 +370,7 @@ export function CostExplorer({
                 {isBrazil ? (
                   <>
                     <div>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_cost_state')} (IBGE)</label>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_cost_state')} {t('web_cost_source_ibge')}</label>
                       {loadingEstados ? (
                         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('web_cost_loading')}</div>
                       ) : (
@@ -413,7 +416,7 @@ export function CostExplorer({
 
                     {selectedUf && (
                       <div>
-                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_cost_city')} (IBGE)</label>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_cost_city')} {t('web_cost_source_ibge')}</label>
                         {loadingMunicipios ? (
                           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('web_cost_loading')}</div>
                         ) : (
@@ -501,7 +504,7 @@ export function CostExplorer({
             <div style={{ marginTop: '24px', borderTop: '1px solid var(--card-border)', paddingTop: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  {t('web_cost_avg_salary')} {isBrazil ? '(IBGE/SIDRA)' : '(Teleport/Numbeo)'}
+                  {t('web_cost_avg_salary')} {sourceLabel}
                 </span>
                 {profileLoading && (
                   <RefreshCw size={14} color="var(--text-muted)" style={{ animation: 'spin 1s linear infinite' }} />
@@ -553,26 +556,27 @@ export function CostExplorer({
                 <span style={{ color: 'var(--text-muted)' }}>{t('web_cost_description')}</span>
               ) : (
                 <>
-                  Seus gastos mensais de{' '}
+                  {t('web_cost_your_monthly_expenses')}{' '}
                   <strong style={{ color: 'var(--text-primary)' }}>{formatCurrency(userAverageExpense, moedaBase)}</strong>{' '}
                   {profileCurrency !== moedaBase && (
                     <span style={{ color: 'var(--text-muted)' }}>
-                      (aprox. {formatCurrency(
+                      ({t('web_cost_or_approx')} {formatCurrency(
                         rates ? convertCurrency(userAverageExpense, moedaBase, profileCurrency, rates) : userAverageExpense,
                         profileCurrency
                       )})
                     </span>
                   )}{' '}
-                  são{' '}
+                  {t('web_cost_are')}{' '}
                   <strong style={{ color: percentDiff > 0 ? 'var(--color-danger)' : 'var(--accent-green)' }}>
                     {percentDiff > 0 ? `+${percentDiff}%` : `${percentDiff}%`}{' '}
                   </strong>
-                  {percentDiff > 0 ? 'maiores' : 'menores'} do que o salário médio em{' '}
+                  {percentDiff > 0 ? t('web_cost_higher_than') : t('web_cost_lower_than')}{' '}
+                  {t('web_cost_than_average_salary')}{' '}
                   <strong>{localName}</strong>{' '}
                   <span style={{ color: 'var(--text-muted)' }}>
                     ({formatCurrency(profile.salarioMedio, profileCurrency)}
                     {profileCurrency !== moedaBase && profileSalarioConvertido > 0 && (
-                      <> ou aprox. {formatCurrency(profileSalarioConvertido, moedaBase)}</>
+                      <> {t('web_cost_or_approx')} {formatCurrency(profileSalarioConvertido, moedaBase)}</>
                     )})
                   </span>.
                 </>
@@ -600,7 +604,7 @@ export function CostExplorer({
             {t('web_cost_title')}
           </h3>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', maxWidth: '400px', marginBottom: '24px', lineHeight: '1.5' }}>
-            {t('web_cost_description')}
+            {t('web_cost_free_overlay_desc')}
           </p>
           <PrimaryButton onClick={onUpgrade}>
             {t('unlock_premium')}
