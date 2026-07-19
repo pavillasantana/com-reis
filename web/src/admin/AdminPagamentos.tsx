@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, RefreshCw, DollarSign, Calendar, Clock, CheckCircle, XCircle, Ban, AlertTriangle } from 'lucide-react';
+import { Search, RefreshCw, DollarSign, Clock, CheckCircle, XCircle, Ban, AlertTriangle } from 'lucide-react';
 
 interface Pagamento {
   id: string;
@@ -88,14 +88,6 @@ export function AdminPagamentos() {
     return new Date(d).toLocaleDateString('pt-BR');
   }
 
-  function formatDateTime(d: string | null) {
-    if (!d) return '—';
-    return new Date(d).toLocaleString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    });
-  }
-
   function diasRestantes(dataFim: string) {
     const fim = new Date(dataFim);
     const agora = new Date();
@@ -153,10 +145,6 @@ export function AdminPagamentos() {
   }
 
   // Métricas
-  const totalReceita = filtered
-    .filter(p => p.status === 'active' && p.valor_pago)
-    .reduce((s, p) => s + (p.valor_pago || 0), 0);
-
   const countActive = pagamentos.filter(p => p.status === 'active').length;
   const countExpired = pagamentos.filter(p => p.status === 'expired').length;
   const countCancelled = pagamentos.filter(p => p.status === 'cancelled').length;
@@ -273,7 +261,7 @@ export function AdminPagamentos() {
                 </tr>
               ) : filtered.map(p => {
                 const dias = diasRestantes(p.data_fim);
-                const proxStatus = proximaCobrancaStatus(p.data_proxima_cobranca);
+                const proxStatus = proximaCobrancaStatus(p.data_proxima_cobranca ?? null);
                 return (
                   <tr key={p.id}>
                     <td>

@@ -76,7 +76,7 @@ export function useAuth(): UseAuthReturn {
   // Carrega dados do perfil (plano, moeda, nome) do banco e popula o store
   const syncUserToStore = async (userId: string, email: string) => {
     try {
-      const { data: perfil, error } = await fetchPerfil(userId);
+      const { data: perfil } = await fetchPerfil(userId);
       if (perfil) {
         // Avatar: tentar DB primeiro, fallback para auth metadata
         let avatar = perfil.avatar_url ?? null;

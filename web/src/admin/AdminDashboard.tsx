@@ -31,11 +31,11 @@ export function AdminDashboard() {
     const usuarios = usuariosRes.data || [];
     const assinaturas = assinaturasRes.data || [];
 
-    const premiumCount = usuarios.filter(u => u.plano === 'premium').length;
-    const assinaturasAtivas = assinaturas.filter(a => a.status === 'active').length;
+    const premiumCount = usuarios.filter((u: { plano: string }) => u.plano === 'premium').length;
+    const assinaturasAtivas = assinaturas.filter((a: { status: string }) => a.status === 'active').length;
     const receitaEstimada = assinaturas
-      .filter(a => a.status === 'active')
-      .reduce((s, a) => s + (a.valor_pago || 0), 0);
+      .filter((a: { status: string }) => a.status === 'active')
+      .reduce((s: number, a: { valor_pago?: number | null }) => s + (a.valor_pago || 0), 0);
 
     setStats({
       totalUsuarios: usuarios.length,
@@ -43,7 +43,7 @@ export function AdminDashboard() {
       freeCount: usuarios.length - premiumCount,
       totalAssinaturas: assinaturas.length,
       assinaturasAtivas,
-      assinaturasExpiradas: assinaturas.filter(a => a.status === 'expired').length,
+      assinaturasExpiradas: assinaturas.filter((a: { status: string }) => a.status === 'expired').length,
       receitaEstimada,
     });
     setLoading(false);

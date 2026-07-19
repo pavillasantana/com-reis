@@ -13,7 +13,7 @@ import type { TransacaoAtivo } from '../services/supabaseService';
 import { Logo } from './Logo';
 import {
   CATEGORIAS_INVESTIMENTO, getCategoriaByTicker,
-  getNomeCategoria, getNomeSubcategoria,
+  getNomeSubcategoria,
   getCategoriaInfo, searchTickers, getTickerName,
 } from '../utils/investmentCategories';
 
@@ -92,7 +92,6 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   const handleTickerChange = (v: string) => {
     setFTicker(v.toUpperCase());
     if (v.length >= 2) {
-      const q = v.toUpperCase();
       setSugestoes(searchTickers(v, 6).map(r => r.ticker));
     } else { setSugestoes([]); }
 
@@ -212,7 +211,6 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
     fontSize: '0.88rem', width: '100%', outline: 'none',
   };
 
-  const catAtiva = filtroCategoria !== 'todas' ? getCategoriaInfo(filtroCategoria) : null;
 
   if (loading) {
     return (

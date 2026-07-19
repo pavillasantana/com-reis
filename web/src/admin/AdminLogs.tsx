@@ -49,7 +49,7 @@ export function AdminLogs() {
       .limit(20);
 
     if (recentUsers) {
-      recentUsers.forEach((u, i) => {
+      recentUsers.forEach((u: { email: string; id: string; created_at: string | null }, i: number) => {
         syntheticLogs.push({
           id: `user-${i}`,
           event_type: 'signup',
@@ -69,7 +69,7 @@ export function AdminLogs() {
       .limit(10);
 
     if (recentSubs) {
-      recentSubs.forEach((s, i) => {
+      recentSubs.forEach((s: { status: string; id_usuario: string; created_at: string | null }, i: number) => {
         syntheticLogs.push({
           id: `sub-${i}`,
           event_type: s.status === 'active' ? 'subscription_active' : 'subscription_expired',

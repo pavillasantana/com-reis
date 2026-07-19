@@ -73,7 +73,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const isOpen = visible !== undefined ? visible : storeVisible;
   const onClose = onCloseProp || (() => toggleCheckoutModal(false));
 
-  const [receiptId] = React.useState(() => `MNG-PRM-${Math.floor(100000 + Math.random() * 900000)}`);
+  const [_receiptId] = React.useState(() => `MNG-PRM-${Math.floor(100000 + Math.random() * 900000)}`);
   const { premium_preco, premium_preco_anual } = useAppConfig();
   const [billingType, setBillingType] = React.useState<'monthly' | 'annual'>('monthly');
   const [installments, setInstallments] = React.useState(1);

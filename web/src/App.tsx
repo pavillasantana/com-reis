@@ -59,12 +59,8 @@ import {
   CreditCard,
   ChevronRight,
   LogOut,
-  Lock,
   Globe,
-  LineChart as LineChartIcon,
   BookOpen,
-  ArrowUpRight,
-  ArrowDownRight,
   MapPin,
   Trash2,
   Eye,
@@ -89,11 +85,6 @@ import {
   Cell, 
   ResponsiveContainer, 
   Tooltip,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid
 } from 'recharts';
 
 
@@ -260,7 +251,7 @@ export default function App() {
   };
 
   // Investments Data (Brapi.dev)
-  const { data: investments } = useInvestments(Boolean(id_usuario));
+  const { data: _investments } = useInvestments(Boolean(id_usuario));
 
   // Financial tips (Strapi CMS)
   const [tipsPage, setTipsPage] = useState(1);

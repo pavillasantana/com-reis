@@ -279,7 +279,7 @@ export function parseXLSX(arrayBuffer: ArrayBuffer, idConta: string): Omit<Trans
         const descricao = descKey ? String(row[descKey] || '').trim() : '';
         return {
           id_conta: idConta,
-          tipo: (typeof row[valueKey!] === 'number' && row[valueKey!] < 0 ? 'despesa' : 'receita') as 'receita' | 'despesa',
+          tipo: (typeof row[valueKey!] === 'number' && (row[valueKey!] as number) < 0 ? 'despesa' : 'receita') as 'receita' | 'despesa',
           valor: valorNum,
           categoria: autoCategorize(descricao),
           descricao: descricao || 'Transação Excel',
