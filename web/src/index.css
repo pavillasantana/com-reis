@@ -562,82 +562,80 @@ button, input, select, textarea {
   min-width: 280px;
 }
 
-/* App Header - Responsivo */
+/* App Header - Responsivo
+   Mantém os botões lado a lado (horizontal) o máximo possível.
+   Só empilha verticalmente em telas muito estreitas (≤520px). */
 .app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 24px;
+  gap: 16px;
 }
 
+/* Tablet / telas médias: segue lado a lado, só deixa quebrar se necessário */
 @media (max-width: 1024px) {
   .app-header {
-    gap: 16px;
+    gap: 14px;
   }
   .app-header > div:first-child {
-    flex: 1;
-    min-width: 280px;
+    flex: 0 1 auto;
+    min-width: 0;
   }
   .app-header > div:last-child {
-    flex: 1;
+    flex: 1 1 auto;
     justify-content: flex-end;
+    flex-wrap: wrap;
   }
 }
 
+/* Mobile landscape / phones grandes: controles continuam em linha (scroll se precisar) */
 @media (max-width: 768px) {
+  .app-header {
+    gap: 14px;
+  }
+  .app-header > div:last-child {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 4px;
+  }
+  .app-header > div:last-child > * {
+    flex: 0 0 auto;
+  }
+}
+
+/* Phones estreitos: só aqui empilha o grupo de controles */
+@media (max-width: 520px) {
   .app-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 16px;
-  }
-  .app-header > div {
-    width: 100%;
+    gap: 14px;
   }
   .app-header > div:first-child {
-    min-width: auto;
+    justify-content: flex-start;
   }
-  .app-header > div:last-child {
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-}
-
-@media (max-width: 480px) {
   .app-header > div:last-child {
     flex-direction: column;
     align-items: stretch;
+    flex-wrap: nowrap;
+    overflow-x: visible;
+    gap: 12px;
+  }
+  .app-header > div:last-child > * {
+    width: 100%;
   }
   .app-header select,
   .language-selector button {
     width: 100% !important;
-    min-width: auto !important;
-  }
-}
-
-/* Responsividade Extrema do Cabeçalho e Seletores */
-@media (max-width: 580px) {
-  .app-header {
-    flex-direction: column !important;
-    align-items: center !important;
-    text-align: center !important;
-    gap: 18px !important;
-  }
-  .app-header > div {
-    justify-content: center !important;
-    width: 100% !important;
-    flex-wrap: wrap !important;
-    gap: 12px !important;
   }
 }
 
 @media (max-width: 400px) {
   .app-header {
     margin-bottom: 20px !important;
-  }
-  .app-header select {
-    width: 100% !important;
   }
 }
 
@@ -749,6 +747,38 @@ button, input, select, textarea {
   .calendar-grid > div {
     min-height: 50px !important;
     padding: 4px !important;
+  }
+}
+
+/* Landing Navbar - mantém itens lado a lado, empilha só em telas estreitas */
+@media (max-width: 768px) {
+  .landing-navbar {
+    padding: 20px 16px !important;
+    gap: 12px !important;
+  }
+  .landing-navbar .nav-links {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 520px) {
+  .landing-navbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px !important;
+  }
+  .landing-navbar > *:not(.nav-links) {
+    justify-content: center;
+    width: 100%;
+  }
+  .landing-navbar .btn-primary,
+  .landing-navbar .language-selector {
+    width: 100% !important;
+  }
+  .landing-navbar .language-selector button {
+    width: 100% !important;
   }
 }
 

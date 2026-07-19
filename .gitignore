@@ -79,3 +79,6 @@ Android/AGENTS.md
 # Se quiser versionar migrations, comente esta linha:
 supabase/migrations/
 migrations/
+
+# Local Netlify folder
+.netlify

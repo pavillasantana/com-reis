@@ -1591,19 +1591,19 @@ export default function App() {
             flexDirection: 'column',
             width: '100%'
           }}>
-            {/* NAVBAR */}
-            <nav style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '36px 40px',
-              maxWidth: '1200px',
-              width: '100%',
-              margin: '0 auto',
-              boxSizing: 'border-box',
-              flexWrap: 'wrap',
-              gap: '24px'
-            }}>
+             {/* NAVBAR */}
+             <nav className="landing-navbar" style={{
+               display: 'flex',
+               justifyContent: 'space-between',
+               alignItems: 'center',
+               padding: '36px 40px',
+               maxWidth: '1200px',
+               width: '100%',
+               margin: '0 auto',
+               boxSizing: 'border-box',
+               flexWrap: 'wrap',
+               gap: '16px'
+             }}>
               <Logo 
                 size="xl" 
                 onClick={() => { setLandingView('home'); setActiveArticle(null); }} 
