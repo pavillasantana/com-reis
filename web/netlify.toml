@@ -1,0 +1,110 @@
+# ─── Com Réis — Netlify Configuration ─────────────────────────────────────
+# Produção: comreis.com
+# Staging:  staging.comreis.com
+# ───────────────────────────────────────────────────────────────────────────
+
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+# ─── Headers de Segurança ─────────────────────────────────────────────────
+# Aplicados em TODAS as páginas
+
+[[headers]]
+  for = "/*"
+
+  # Previne XSS
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(self)"
+
+    # HSTS — força HTTPS por 1 ano (inclui subdomínios)
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+    # CSP — Content Security Policy
+    # NOTA: Se AdSense/Sentry quebrar, adicionar domínio na lista
+    Content-Security-Policy = """
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://www.google-analytics.com https://js.sentry-cdn.com https://browser.sentry-cdn.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: https:;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io https://*.ingest.us.sentry.io https://brapi.dev https://openexchange.bcb.gov.br https://economia.awesomeapi.com.br;
+      frame-src https://pagead2.googlesyndication.com https://tpc.googlesyndication.com;
+      base-uri 'self';
+      form-action 'self';
+    """
+
+# ─── Cache de Assets Estáticos ────────────────────────────────────────────
+# Arquivos com hash (JS/CSS do Vite) → cache agressivo
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Imagens e fontes → cache moderado
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+[[headers]]
+  for = "/*.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+# ─── Redirects ────────────────────────────────────────────────────────────
+
+# SPA fallback — todas as rotas caem no index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["admin"]}
+
+# Redirecionar www para domínio apex
+[[redirects]]
+  from = "https://www.comreis.com/*"
+  to = "https://comreis.com/:splat"
+  status = 301
+  force = true
+
+# Redirecionar HTTP para HTTPS (Netlify faz isso automaticamente, mas reforço)
+[[redirects]]
+  from = "http://comreis.com/*"
+  to = "https://comreis.com/:splat"
+  status = 301
+  force = true
+
+# ─── Admin Panel — Segurança Reforçada ────────────────────────────────────
+# Admin já tem auth via Supabase (role='admin'), mas reforçamos no edge:
+# - Sem cache nenhum
+# - Bloqueado de mecanismos de busca
+# - Sem preview em deploy previews do Netlify
+[[headers]]
+  for = "/admin.html"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
+    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
+    Pragma = "no-cache"
+    Expires = "0"
+
+# Bloquear acesso direto a scripts/admin por bots maliciosos
+[[headers]]
+  for = "/src/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-store"

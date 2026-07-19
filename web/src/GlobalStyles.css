@@ -1,0 +1,209 @@
+:root {
+  /*Aliased to index.css variables for consistency */
+  --card-color: var(--card-bg);
+  --accent-color: var(--accent-blue);
+  --text-dark: var(--modal-text);
+}
+
+/* Classes utilitárias oficiais do Com Réis para travamento de design */
+.bg-mangos {
+  background-color: var(--bg-color) !important;
+}
+
+.card-mangos {
+  background-color: var(--card-color) !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+}
+
+.text-accent-mangos {
+  color: var(--accent-color) !important;
+}
+
+.text-white-mangos {
+  color: var(--text-white) !important;
+}
+
+.text-gray-mangos {
+  color: var(--text-gray) !important;
+}
+
+.text-dark-mangos {
+  color: var(--text-dark) !important;
+}
+
+.border-accent-mangos {
+  border-color: var(--accent-color) !important;
+}
+
+/* Cores de Alerta / Estado */
+.text-danger-mangos {
+  color: #EF4444 !important;
+}
+
+.text-success-mangos {
+  color: #10B981 !important;
+}
+
+.text-warning-mangos {
+  color: #F59E0B !important;
+}
+
+.bg-accent-glow-mangos {
+  background-color: rgba(16, 69, 161, 0.08) !important;
+}
+
+.badge-danger-mangos {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  color: #EF4444 !important;
+}
+
+/* Abas de Navegação (Tabs) */
+.btn-tab-active {
+  background-color: var(--accent-color) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(16, 69, 161, 0.15) !important;
+}
+
+.btn-tab-inactive {
+  background-color: transparent !important;
+  color: var(--text-gray) !important;
+}
+
+/* Botões de Upgrade / Assinatura */
+.btn-upgrade-active {
+  background-color: var(--accent-color) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(16, 69, 161, 0.15) !important;
+}
+
+.btn-upgrade-inactive {
+  background-color: #E2E8F0 !important;
+  color: var(--text-dark) !important;
+  border: 1px solid #CBD5E1 !important;
+}
+
+/* Tooltips de Gráfico */
+.chart-tooltip-mangos {
+  background-color: var(--card-color) !important;
+  border: 1px solid #E2E8F0 !important;
+  color: var(--text-dark) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Janela/Browser simulado decorativo */
+.window-dot-red {
+  background-color: #EF4444 !important;
+}
+
+.window-dot-yellow {
+  background-color: #F59E0B !important;
+}
+
+.window-dot-green {
+  background-color: #10B981 !important;
+}
+
+/* Fundos de Alerta / Estado com Glow */
+.bg-danger-mangos {
+  background-color: #EF4444 !important;
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2) !important;
+}
+
+.bg-warning-mangos {
+  background-color: #F59E0B !important;
+  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2) !important;
+}
+
+.bg-success-mangos {
+  background-color: #10B981 !important;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2) !important;
+}
+
+/* Barra de Progresso */
+.progress-track-mangos {
+  background-color: #E2E8F0 !important;
+}
+
+/* Botões de Ação Rápidos */
+.btn-action-success-mangos {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+  color: #10B981 !important;
+}
+
+.btn-action-danger-mangos {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  color: #EF4444 !important;
+}
+
+/* Estilos para Modais e Formulários oficiais do Com Réis */
+.modal-overlay-mangos {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(18, 26, 47, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1000 !important;
+  padding: 24px !important;
+}
+
+.modal-content-mangos {
+  max-width: 400px !important;
+  width: 100% !important;
+}
+
+.modal-title-mangos {
+  margin-bottom: 20px !important;
+  font-size: 1.2rem !important;
+  color: var(--modal-text) !important;
+}
+
+.modal-form-mangos {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 24px !important;
+}
+
+.form-group-mangos {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.form-label-mangos {
+  font-size: 0.8rem !important;
+  color: var(--text-gray) !important;
+  display: block !important;
+}
+
+.modal-actions-mangos {
+  display: flex !important;
+  gap: 18px !important;
+  margin-top: 10px !important;
+}
+
+.btn-secondary-mangos {
+  flex: 1 !important;
+  background: transparent !important;
+  border: 1px solid #CBD5E1 !important;
+  color: var(--text-gray) !important;
+  padding: 12px 18px !important;
+  border-radius: 16px !important;
+  cursor: pointer !important;
+  font-weight: 600 !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.btn-secondary-mangos:hover {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border-color: #94A3B8 !important;
+}
+
+.flex-1-mangos {
+  flex: 1 !important;
+}

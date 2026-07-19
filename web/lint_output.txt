@@ -1,0 +1,159 @@
+
+> web@0.0.0 lint
+> eslint .
+
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/App.tsx
+  171:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/App.tsx:171:7
+  169 |   React.useEffect(() => {
+  170 |     if (newTips && newTips.length > 0) {
+> 171 |       setAccumulatedTips(prev => {
+      |       ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  172 |         const ids = new Set(prev.map(t => t.id));
+  173 |         const filtered = newTips.filter(t => !ids.has(t.id));
+  174 |         return [...prev, ...filtered];         react-hooks/set-state-in-effect
+  196:43  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  196:55  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  212:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/App.tsx:212:9
+  210 |       window.history.replaceState(null, '', window.location.pathname);
+  211 |       if (id_usuario) {
+> 212 |         setShowLandingPage(false);
+      |         ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  213 |         setActiveView(view as 'costExplorer' | 'blog');
+  214 |       } else {
+  215 |         setLandingView(view as 'costExplorer' | 'blog');  react-hooks/set-state-in-effect
+  325:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/App.tsx:325:7
+  323 |   React.useEffect(() => {
+  324 |     if (window.location.hash.includes('type=recovery')) {
+> 325 |       setIsSettingNewPassword(true);
+      |       ^^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  326 |     }
+  327 |   }, []);
+  328 |                                                                                                                        react-hooks/set-state-in-effect
+  435:6   warning  React Hook React.useEffect has missing dependencies: 'addCaixinha', 'addConta', and 'toast'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/__tests__/analytics.test.ts
+  52:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/components/CheckoutModal.tsx
+  90:116  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/components/CheckoutModal.tsx:90:116
+  88 |               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+  89 |                 <span style={{ color: 'var(--text-secondary)' }}>ID do Recibo:</span>
+> 90 |                 <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>MNG-PRM-{Math.floor(100000 + Math.random() * 900000)}</span>
+     |                                                                                                                    ^^^^^^^^^^^^^ Cannot call impure function
+  91 |               </div>
+  92 |             </div>
+  93 |  react-hooks/purity
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/components/MangosIcon.tsx
+  32:33  error  React Hook "React.useId" is called conditionally. React Hooks must be called in the exact same order in every component render                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react-hooks/rules-of-hooks
+  32:67  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/components/MangosIcon.tsx:32:67
+  30 |   const dim = typeof size === 'number' ? size : (sizeMap[size] || 28);
+  31 |
+> 32 |   const reactId = React.useId ? React.useId().replace(/:/g, '') : Math.random().toString(36).substring(2, 9);
+     |                                                                   ^^^^^^^^^^^^^ Cannot call impure function
+  33 |   const gradientId = `mangos-grad-${reactId}`;
+  34 |   const filterId = `mangos-glow-${reactId}`;
+  35 |  react-hooks/purity
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/components/TextInput.tsx
+  3:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/components/Toast.tsx
+  27:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/components/TransactionModal.tsx
+  21:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/hooks/useAuth.ts
+  40:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/hooks/useAuth.ts:40:7
+  38 |     if (!isSupabaseConfigured) {
+  39 |       // Modo offline: considera "autenticado" se houver id no store (localStorage)
+> 40 |       setIsLoading(false);
+     |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  41 |       return;
+  42 |     }
+  43 |                                                                                                                                                                                                                                                                                                                                                          react-hooks/set-state-in-effect
+  48:15  error    Error: Cannot access variable before it is declared
+
+`syncUserToStore` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/hooks/useAuth.ts:48:15
+  46 |       const session = data?.session;
+  47 |       if (session?.user) {
+> 48 |         await syncUserToStore(session.user.id, session.user.email ?? '');
+     |               ^^^^^^^^^^^^^^^ `syncUserToStore` accessed before it is declared
+  49 |       }
+  50 |       setIsLoading(false);
+  51 |     });
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/hooks/useAuth.ts:68:3
+  66 |
+  67 |   // Carrega dados do perfil (plano, moeda, nome) do banco e popula o store
+> 68 |   const syncUserToStore = async (userId: string, email: string) => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 69 |     const { data: perfil } = await fetchPerfil(userId);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 70 |     if (perfil) {
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 81 |     }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 82 |   };
+     | ^^^^^ `syncUserToStore` is declared here
+  83 |
+  84 |   // ─── SIGN UP ──────────────────────────────────────────────────────────────────
+  85 |   const signUp = useCallback(async (  react-hooks/immutability
+  65:6   warning  React Hook useEffect has a missing dependency: 'syncUserToStore'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/hooks/useFinancialTips.ts
+  86:12  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/hooks/useInvestments.ts
+  55:12  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/media/pavilla/HD1/Documentos/Projetos/Mangos/web/src/lib/supabase.ts
+  23:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 19 problems (17 errors, 2 warnings)
+

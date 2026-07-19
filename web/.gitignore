@@ -1,0 +1,20 @@
+# ─── Web (Vite + React) ─────────────────────────────────────────────────────
+
+# Dependências
+node_modules/
+
+# Build
+dist/
+*.tsbuildinfo
+
+# Env local
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.vscode/
+.idea/
+
+# Logs
+*.log
