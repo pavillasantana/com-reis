@@ -6,6 +6,7 @@ import type { Espaco, Conta, Transacao, Caixinha, Cartao } from './store/useStor
 import { useAuth } from './hooks/useAuth';
 import { useSupabaseSync } from './hooks/useSupabaseSync';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
+import { SUPABASE_URL } from './constants/config';
 import { updatePerfil } from './services/supabaseService';
 import { formatCurrency, addMoney, subtractMoney, multiplyMoney, convertCurrency } from './utils/currency';
 import { parseCSV, parseOFX, parseXLSX, parsePDF } from './utils/importer';
@@ -288,7 +289,7 @@ export default function App() {
       window.history.replaceState(null, '', window.location.pathname);
 
       import('./lib/supabase').then(({ supabase }) => {
-        fetch('https://bwcquemvvqaivsxaclpl.supabase.co/functions/v1/sso-exchange-code', {
+        fetch(`${SUPABASE_URL}/functions/v1/sso-exchange-code`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: ssoCode }),
@@ -2040,7 +2041,7 @@ export default function App() {
                       const input = (e.target as HTMLFormElement).querySelector('input[type=email]') as HTMLInputElement;
                       if (input?.value) {
                         try {
-                          await fetch('https://bwcquemvvqaivsxaclpl.supabase.co/functions/v1/lead-capture', {
+                          await fetch(`${SUPABASE_URL}/functions/v1/lead-capture`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ email: input.value, source: 'landing_page' }),
