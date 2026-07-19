@@ -286,7 +286,7 @@ export function CostExplorer({
           )}
         </div>
 
-        <div style={{
+        <div className="explorer-sidebar" style={{
           padding: '36px',
           background: 'rgba(20, 28, 47, 0.95)',
           borderLeft: '1px solid var(--card-border)',

@@ -75,11 +75,11 @@ export function useSupabaseSync() {
         await updatePerfil(id_usuario, { plano: 'free' });
       }
 
-      if (espacosRes.data)    setEspacos(espacosRes.data);
-      if (contasRes.data)     setContas(contasRes.data);
-      if (transacoesRes.data) setTransacoes(transacoesRes.data);
-      if (caixinhasRes.data)  setCaixinhas(caixinhasRes.data);
-      if (cartoesRes.data)    setCartoes(cartoesRes.data);
+      if (espacosRes.data && espacosRes.data.length > 0)    setEspacos(espacosRes.data);
+      if (contasRes.data && contasRes.data.length > 0)     setContas(contasRes.data);
+      if (transacoesRes.data && transacoesRes.data.length > 0) setTransacoes(transacoesRes.data);
+      if (caixinhasRes.data && caixinhasRes.data.length > 0)  setCaixinhas(caixinhasRes.data);
+      if (cartoesRes.data && cartoesRes.data.length > 0)    setCartoes(cartoesRes.data);
 
       // Log erros no Sentry mas não bloqueia a UI
       [assinaturaRes, espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes].forEach(({ error }) => {

@@ -523,6 +523,11 @@ button, input, select, textarea {
     grid-template-columns: 1fr !important;
     min-height: auto !important;
   }
+  .explorer-sidebar {
+    border-left: none !important;
+    border-top: 1px solid var(--card-border) !important;
+    padding: 20px !important;
+  }
   /* Import review table: scroll horizontal */
   .import-review-modal {
     max-width: 100% !important;
@@ -577,6 +582,15 @@ button, input, select, textarea {
   [style*="min-width: 260px"] {
     min-width: 0 !important;
   }
+
+  /* Calendário Financeiro: cells menores */
+  .calendar-grid {
+    gap: 1px !important;
+  }
+  .calendar-grid > div {
+    min-height: 50px !important;
+    padding: 4px !important;
+  }
 }
 
 /* ── Mobile pequeno (≤ 480px) ─────────────────────────────────────── */
@@ -600,5 +614,10 @@ button, input, select, textarea {
   .import-review-modal {
     margin: 4px !important;
     border-radius: 12px !important;
+  }
+
+  /* Calendário Financeiro: cells ainda menores */
+  .calendar-grid > div {
+    min-height: 42px !important;
   }
 }
