@@ -8,6 +8,10 @@
   publish = "dist"
   command = "npm run build"
 
+[build.environment]
+  EXPO_PUBLIC_SUPABASE_URL = "https://bwcquemvvqaivsxaclpl.supabase.co"
+  EXPO_PUBLIC_SUPABASE_ANON_KEY = "sb_publishable_5QbtKEEs8J4D27sx9nQ5Nw_AHnHtFVu"
+
 # ─── Headers de Segurança ─────────────────────────────────────────────────
 # Aplicados em TODAS as páginas
 
