@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { criarAssinatura } from '../services/supabaseService';
 import {
   Search, ChevronLeft, ChevronRight, Crown, UserX,
   ToggleLeft, ToggleRight, UserPlus, X, RefreshCw,
@@ -107,14 +106,21 @@ export function AdminUsuarios() {
   async function togglePlano(usuario: Usuario) {
     const newPlano = usuario.plano === 'premium' ? 'free' : 'premium';
     setToggling(usuario.id);
-    const { error } = await supabase.from('usuarios').update({ plano: newPlano }).eq('id', usuario.id);
-    if (!error) {
-      setUsuarios(prev => prev.map(u => u.id === usuario.id ? { ...u, plano: newPlano } : u));
-      // Ao conceder premium manualmente, cria assinatura para o middleware
-      // do app não reverter para 'free' (ver useSupabaseSync).
-      if (newPlano === 'premium') {
-        await criarAssinatura(usuario.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('admin-update-plan', {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+        body: { user_id: usuario.id, plano: newPlano },
+      });
+      if (error) {
+        console.error('Erro ao alterar plano:', error);
+      } else if (data?.error) {
+        console.error('Erro ao alterar plano:', data.error);
+      } else {
+        setUsuarios(prev => prev.map(u => u.id === usuario.id ? { ...u, plano: newPlano } : u));
       }
+    } catch (err) {
+      console.error('Erro ao alterar plano:', err);
     }
     setToggling(null);
   }
