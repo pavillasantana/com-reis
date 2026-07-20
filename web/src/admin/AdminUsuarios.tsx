@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import { criarAssinatura } from '../services/supabaseService';
 import {
   Search, ChevronLeft, ChevronRight, Crown, UserX,
   ToggleLeft, ToggleRight, UserPlus, X, RefreshCw,
@@ -109,6 +110,11 @@ export function AdminUsuarios() {
     const { error } = await supabase.from('usuarios').update({ plano: newPlano }).eq('id', usuario.id);
     if (!error) {
       setUsuarios(prev => prev.map(u => u.id === usuario.id ? { ...u, plano: newPlano } : u));
+      // Ao conceder premium manualmente, cria assinatura para o middleware
+      // do app não reverter para 'free' (ver useSupabaseSync).
+      if (newPlano === 'premium') {
+        await criarAssinatura(usuario.id);
+      }
     }
     setToggling(null);
   }
