@@ -589,5 +589,15 @@
   "web_cost_than_average_salary": "au salaire moyen à",
   "web_cost_or_approx": "ou env.",
   "web_cost_unlock_description": "Débloquez l'Explorateur du Coût de la Vie complet avec les données IBGE, Teleport et Numbeo pour comparer salaires et coût de la vie dans n'importe quelle ville du monde.",
-  "web_cost_free_overlay_desc": "Accédez aux données officielles de PIB, revenu moyen et coût de la vie par municipalité. Comparez vos dépenses à la réalité locale."
+  "web_cost_free_overlay_desc": "Accédez aux données officielles de PIB, revenu moyen et coût de la vie par municipalité. Comparez vos dépenses à la réalité locale.",
+  "web_landing_hero_subtitle": "Arrêtez de jongler entre les apps. Prenez le contrôle total de votre argent — personnel, professionnel et dans toutes les devises — tout en un seul endroit.",
+  "web_landing_features_title": "Tout ce Dont Vous Avez Besoin en Un Seul Endroit",
+  "web_landing_feature_desc_multicurrency": "Recevez en dollars, payez en euros. Tout est enregistré automatiquement sans tableur.",
+  "web_landing_feature_desc_goals": "Misez de l'argent de côté pour des objectifs spécifiques et suivez vos progrès en temps réel.",
+  "web_landing_cta_title": "Assez de tableurs. Commencez à voir tout au même endroit.",
+  "web_landing_cta_subtitle": "Plan gratuit sans carte de crédit. Passez au supérieur quand vous en avez besoin.",
+  "web_landing_sandbox_title": "Gagnez-vous bien là où vous vivez ?",
+  "web_landing_sandbox_expense": "Combien dépensez-vous par mois ?",
+  "web_lead_title": "Chaque semaine : un conseil pratique pour dépenser moins et épargner plus.",
+  "web_lead_subtitle": "Des conseils financiers pratiques directement dans votre boîte mail. Sans spam, sans détours."
 }

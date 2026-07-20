@@ -589,5 +589,15 @@
   "web_cost_than_average_salary": "do que o salário médio em",
   "web_cost_or_approx": "ou aprox.",
   "web_cost_unlock_description": "Desbloqueie o Explorador de Custo de Vida completo com dados do IBGE, Teleport e Numbeo para comparar salários e custo de vida em qualquer cidade do mundo.",
-  "web_cost_free_overlay_desc": "Aceda a dados oficiais de PIB, rendimento médio e custo de vida por município. Compare os seus gastos com a realidade local."
+  "web_cost_free_overlay_desc": "Aceda a dados oficiais de PIB, rendimento médio e custo de vida por município. Compare os seus gastos com a realidade local.",
+  "web_landing_hero_subtitle": "Pare de alternar entre apps. Tenha controlo total do seu dinheiro — pessoal, do negócio e em qualquer moeda — tudo num só lugar.",
+  "web_landing_features_title": "Tudo Que Precisa num Só Lugar",
+  "web_landing_feature_desc_multicurrency": "Receba em dólar, pague em euro. Tudo registado automaticamente sem folhas de cálculo.",
+  "web_landing_feature_desc_goals": "Reserve dinheiro para objetivos específicos e acompanhe o progresso em tempo real.",
+  "web_landing_cta_title": "Chega de folhas de cálculo. Comece a ver tudo num só lugar.",
+  "web_landing_cta_subtitle": "Plano gratuito sem cartão de crédito. Faça upgrade quando precisar de mais.",
+  "web_landing_sandbox_title": "Ganha bem para onde mora?",
+  "web_landing_sandbox_expense": "Quanto gasta por mês?",
+  "web_lead_title": "Toda semana: uma dica prática para gastar menos e guardar mais.",
+  "web_lead_subtitle": "Dicas práticas de finanças direto no seu e-mail. Sem spam, sem enrolação."
 }

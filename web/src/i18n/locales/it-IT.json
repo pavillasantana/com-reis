@@ -589,5 +589,15 @@
   "web_cost_than_average_salary": "rispetto allo stipendio medio a",
   "web_cost_or_approx": "o ca.",
   "web_cost_unlock_description": "Sblocca l'Esploratore del Costo della Vita completo con dati IBGE, Teleport e Numbeo per confrontare stipendi e costo della vita in qualsiasi città del mondo.",
-  "web_cost_free_overlay_desc": "Accedi ai dati ufficiali su PIL, reddito medio e costo della vita per comune. Confronta le tue spese con la realtà locale."
+  "web_cost_free_overlay_desc": "Accedi ai dati ufficiali su PIL, reddito medio e costo della vita per comune. Confronta le tue spese con la realtà locale.",
+  "web_landing_hero_subtitle": "Smetti di passare da un'app all'altra. Prendi il controllo totale del tuo denaro — personale, dell'attività e in qualsiasi valuta — tutto in un unico posto.",
+  "web_landing_features_title": "Tutto Quello Che Ti Serve in Un Solo Posto",
+  "web_landing_feature_desc_multicurrency": "Ricevi in dollari, paga in euro. Tutto registrato automaticamente senza fogli di calcolo.",
+  "web_landing_feature_desc_goals": "Accantonare denaro per obiettivi specifici e monitorare i progressi in tempo reale.",
+  "web_landing_cta_title": "Basta fogli di calcolo. Inizia a vedere tutto in un unico posto.",
+  "web_landing_cta_subtitle": "Piano gratuito senza carta di credito. Fai l'upgrade quando ne hai bisogno.",
+  "web_landing_sandbox_title": "Guadagni bene per dove vivi?",
+  "web_landing_sandbox_expense": "Quanto spendi al mese?",
+  "web_lead_title": "Ogni settimana: un consiglio pratico per spendere di più e risparmiare di più.",
+  "web_lead_subtitle": "Consigli finanziari pratici direttamente nella tua casella di posta. Niente spam, niente giri di parole."
 }

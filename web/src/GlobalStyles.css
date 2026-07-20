@@ -78,9 +78,9 @@
 }
 
 .btn-upgrade-inactive {
-  background-color: #E2E8F0 !important;
-  color: var(--text-dark) !important;
-  border: 1px solid #CBD5E1 !important;
+  background-color: transparent !important;
+  color: var(--text-secondary, #64748B) !important;
+  border: 1px solid var(--card-border, #E2E8F0) !important;
 }
 
 /* Tooltips de Gráfico */

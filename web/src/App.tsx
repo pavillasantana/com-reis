@@ -1,7 +1,12 @@
 import React, { useState, useRef } from 'react';
+import { Routes, Route, Link } from 'react-router-dom';
 import './GlobalStyles.css';
 import { useStore } from './store/useStore';
 import { useI18n } from './i18n';
+import { PrivacidadePage } from './pages/PrivacidadePage';
+import { TermosPage } from './pages/TermosPage';
+import { PrecosPage } from './pages/PrecosPage';
+import { LandingFAQPage } from './pages/LandingFAQPage';
 
 import type { Espaco, Conta, Transacao, Caixinha, Cartao } from './store/useStore';
 import { useAuth } from './hooks/useAuth';
@@ -75,6 +80,7 @@ import {
   CalendarDays,
   CheckSquare,
   Square,
+  Compass,
 } from 'lucide-react';
 
 import { UpsellModal } from './components/UpsellModal';
@@ -166,7 +172,7 @@ export default function App() {
   const [profileAvatarFile, setProfileAvatarFile] = useState<File | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [showLandingPage, setShowLandingPage] = useState(true);
-  const [sandboxExpense, setSandboxExpense] = useState(3500);
+  const [sandboxExpense, setSandboxExpense] = useState(0);
   const [sandboxState, setSandboxState] = useState('SP');
 
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
@@ -1577,6 +1583,12 @@ export default function App() {
   };
 
   return (
+    <Routes>
+      <Route path="/privacidade" element={<PrivacidadePage />} />
+      <Route path="/termos" element={<TermosPage />} />
+      <Route path="/precos" element={<PrecosPage />} />
+      <Route path="/faq" element={<LandingFAQPage />} />
+      <Route path="*" element={
     <div style={{ paddingBottom: '100px' }}>
       {/* 1. SE NÃO LOGADO: LANDING PAGE OU TELA DE ONBOARDING */}
       {!id_usuario ? (
@@ -1743,9 +1755,9 @@ export default function App() {
                   borderRadius: '24px',
                   padding: '48px',
                   width: '100%',
-                  maxWidth: '900px',
+                  maxWidth: '1000px',
                   textAlign: 'left',
-                  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+                  boxShadow: '0 25px 50px rgba(0, 0, 0, 0.35)',
                   marginBottom: '80px',
                   backdropFilter: 'blur(10px)'
                 }}>
@@ -1784,33 +1796,33 @@ export default function App() {
 
                 {/* FEATURES GRID */}
                 <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '40px', letterSpacing: '-0.5px' }}>
-                  Tudo Que Você Precisa em Um Só Lugar
+                  {t('web_landing_features_title')}
                 </h2>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
                   gap: '36px',
                   width: '100%',
-                  maxWidth: '1050px',
+                  maxWidth: '760px',
                   marginBottom: '80px'
                 }}>
                   <div className="landing-card" style={styles.landingCard}>
-                    <div style={styles.landingCardIcon}>💼</div>
+                    <div style={styles.landingCardIcon}><Briefcase size={28} color="var(--accent-blue)" strokeWidth={1.5} /></div>
                       <h3 style={styles.landingCardTitle}>{t('web_landing_feature_title_pf_pj')}</h3>
                     <p style={styles.landingCardText}>{t('web_landing_feature_desc_pf_pj')}</p>
                   </div>
                   <div className="landing-card" style={styles.landingCard}>
-                    <div style={styles.landingCardIcon}>🌍</div>
+                    <div style={styles.landingCardIcon}><Globe size={28} color="var(--accent-blue)" strokeWidth={1.5} /></div>
                     <h3 style={styles.landingCardTitle}>{t('web_landing_feature_title_multicurrency')}</h3>
                     <p style={styles.landingCardText}>{t('web_landing_feature_desc_multicurrency')}</p>
                   </div>
                   <div className="landing-card" style={styles.landingCard}>
-                    <div style={styles.landingCardIcon}>🐷</div>
+                    <div style={styles.landingCardIcon}><PiggyBank size={28} color="var(--accent-blue)" strokeWidth={1.5} /></div>
                     <h3 style={styles.landingCardTitle}>{t('web_landing_feature_title_goals')}</h3>
                     <p style={styles.landingCardText}>{t('web_landing_feature_desc_goals')}</p>
                   </div>
                   <div className="landing-card" style={styles.landingCard}>
-                    <div style={styles.landingCardIcon}>🧭</div>
+                    <div style={styles.landingCardIcon}><Compass size={28} color="var(--accent-blue)" strokeWidth={1.5} /></div>
                     <h3 style={styles.landingCardTitle}>{t('web_landing_feature_title_explorer')}</h3>
                     <p style={styles.landingCardText}>{t('web_landing_feature_desc_explorer')}</p>
                   </div>
@@ -1843,6 +1855,8 @@ export default function App() {
                         <span style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>R$</span>
                         <input 
                           type="number"
+                          placeholder="Ex: 3500"
+                          min={0}
                           style={{
                             background: 'var(--card-bg)',
                             border: '1px solid var(--card-border)',
@@ -1905,6 +1919,7 @@ export default function App() {
                     </div>
                     
                     <div style={{ borderTop: '1px solid var(--card-border)', paddingTop: '12px', fontSize: '0.9rem' }}>
+                      {sandboxExpense > 0 ? (<>
                       Seu gasto de <strong style={{ color: 'var(--text-primary)' }}>R$ {sandboxExpense.toLocaleString('pt-BR')}</strong> é{' '}
                       <strong className={sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400) > 0 ? 'text-danger-mangos' : 'text-success-mangos'}>
                         {Math.round(((sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) / (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) * 100) > 0 
@@ -1912,6 +1927,9 @@ export default function App() {
                           : `${Math.round(((sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) / (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) * 100)}%`}{' '}
                       </strong>
                       {sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400) > 0 ? t('web_landing_sandbox_higher') : t('web_landing_sandbox_lower')} {t('web_landing_sandbox_than_salary')}
+                      </>) : (
+                      <span style={{ color: 'var(--text-muted)' }}>Digite um valor acima para ver a comparação.</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2044,7 +2062,13 @@ export default function App() {
                   <form
                     onSubmit={async (e) => {
                       e.preventDefault();
-                      const input = (e.target as HTMLFormElement).querySelector('input[type=email]') as HTMLInputElement;
+                      const form = e.target as HTMLFormElement;
+                      const input = form.querySelector('input[type=email]') as HTMLInputElement;
+                      const checkbox = form.querySelector('input[type=checkbox]') as HTMLInputElement;
+                      if (!checkbox?.checked) {
+                        alert(t('web_lead_lgpd_required'));
+                        return;
+                      }
                       if (input?.value) {
                         try {
                           await fetch(`${SUPABASE_URL}/functions/v1/lead-capture`, {
@@ -2054,43 +2078,75 @@ export default function App() {
                           });
                         } catch {}
                         input.value = '';
+                        checkbox.checked = false;
                         alert(t('web_lead_thanks'));
                       }
                     }}
-                    style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}
                   >
-                    <input
-                      type="email"
-                      placeholder="seu@email.com"
-                      required
-                      style={{
-                        padding: '14px 18px', borderRadius: '12px',
-                        border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)',
-                        color: '#fff', fontSize: '0.9rem', width: '280px', outline: 'none',
-                      }}
-                    />
-                    <PrimaryButton type="submit" style={{ padding: '14px 24px', fontSize: '0.9rem' }}>
-                      {t('web_lead_submit')}
-                    </PrimaryButton>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                      <input
+                        type="email"
+                        placeholder="seu@email.com"
+                        required
+                        style={{
+                          padding: '14px 18px', borderRadius: '12px',
+                          border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)',
+                          color: '#fff', fontSize: '0.9rem', width: '280px', outline: 'none',
+                        }}
+                      />
+                      <PrimaryButton type="submit" style={{ padding: '14px 24px', fontSize: '0.9rem' }}>
+                        {t('web_lead_submit')}
+                      </PrimaryButton>
+                    </div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                      <input type="checkbox" required style={{ width: 14, height: 14, accentColor: 'var(--accent-green)' }} />
+                      <span>
+                        {t('web_lead_lgpd_concordo')}{' '}
+                        <a href="/privacidade" style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>{t('web_lead_lgpd_privacy')}</a>
+                        {' '}{t('web_lead_lgpd_e')}{' '}
+                        <a href="/termos" style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>{t('web_lead_lgpd_terms')}</a>
+                      </span>
+                    </label>
                   </form>
                 </div>
 
                 {/* FOOTER */}
             <footer style={{
               borderTop: '1px solid var(--card-border)',
-              padding: '36px 40px',
-              textAlign: 'center',
+              padding: '48px 40px 36px',
               fontSize: '0.85rem',
               color: 'var(--text-muted)'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                <a href="#privacidade" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_privacy')}</a>
-                <a href="#termos" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_terms')}</a>
-                <a href="#contato" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_contact')}</a>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '40px', marginBottom: '32px' }}>
+                <div style={{ minWidth: '200px' }}>
+                  <Logo size="md" />
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '10px', lineHeight: 1.5, maxWidth: '220px' }}>
+                    Controle financeiro inteligente para PF, PJ e multimoedas.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
+                  <div style={{ minWidth: '120px' }}>
+                    <h4 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px', color: 'var(--text-secondary)' }}>Produto</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <Link to="/precos" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_pricing')}</Link>
+                      <a href="https://t.me/comreisbot" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_contact')}</a>
+                    </div>
+                  </div>
+                  <div style={{ minWidth: '120px' }}>
+                    <h4 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px', color: 'var(--text-secondary)' }}>Legal</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <Link to="/privacidade" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_privacy')}</Link>
+                      <Link to="/termos" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_terms')}</Link>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>&copy; 2026 {t('web_landing_footer_copyright')}</div>
-              <div style={{ marginTop: '8px', fontSize: '0.7rem', opacity: 0.5 }}>
-                Desenvolvido por <a href="https://pstec.pavilasantana.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>PSTec</a>
+              <div style={{ borderTop: '1px solid var(--card-border)', paddingTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div>&copy; 2026 {t('web_landing_footer_copyright')}</div>
+                <div style={{ fontSize: '0.7rem', opacity: 0.5 }}>
+                  Desenvolvido por <a href="https://pstec.pavilasantana.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>PSTec</a>
+                </div>
               </div>
             </footer>
           </div>
@@ -3737,7 +3793,7 @@ export default function App() {
             gap: '24px'
           }}>
             <div>
-              <h4 className={plano_usuario === 'premium' ? 'text-success-mangos' : 'text-accent-mangos'} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '1rem' }}>
+              <h4 className={plano_usuario === 'premium' ? 'text-warning-mangos' : 'text-accent-mangos'} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '1rem' }}>
                 <Sparkles size={16} /> 
                 {plano_usuario === 'premium' ? 'Você é um Assinante Premium!' : 'Libere o Potencial Completo do Com Réis'}
               </h4>
@@ -4264,6 +4320,8 @@ export default function App() {
         </div>
       )}
     </div>
+      } />
+    </Routes>
   );
 }
 
@@ -4278,8 +4336,9 @@ const styles = {
     transition: 'all 0.2s'
   },
   landingCardIcon: {
-    fontSize: '2rem',
-    marginBottom: '16px'
+    marginBottom: '16px',
+    display: 'flex',
+    alignItems: 'center',
   },
   landingCardTitle: {
     fontSize: '1.2rem',

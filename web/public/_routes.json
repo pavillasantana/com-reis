@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": ["/assets/*", "/admin.html", "/_headers", "/_routes.json"],
+  "rules": [
+    { "include": "/privacidade", "status": 200 },
+    { "include": "/termos", "status": 200 },
+    { "include": "/precos", "status": 200 },
+    { "include": "/faq", "status": 200 }
+  ]
+}
