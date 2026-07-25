@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert, Image, BackHandler, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
-import { Compass, BookOpen, Settings, LogOut, ChevronRight, Tags, User, Share2, ArrowLeft, Globe, HelpCircle, ChevronDown } from 'lucide-react-native';
+import { Compass, BookOpen, Settings, LogOut, ChevronRight, Tags, User, Share2, ArrowLeft, Globe, HelpCircle, ChevronDown, BarChart3 } from 'lucide-react-native';
 import { Logo } from '../components/Logo';
 import { theme } from '../lib/theme';
 import { supabase } from '../lib/supabase';
@@ -15,10 +15,11 @@ interface MenuScreenProps {
   onNavigateToMoedas: () => void;
   onNavigateToFechamento: () => void;
   onNavigateToCostExplorer: () => void;
+  onNavigateToAnaliseGastos: () => void;
   onBackToDashboard: () => void;
 }
 
-export const MenuScreen = ({ onNavigateToPerfil, onNavigateToTags, onNavigateToMoedas, onNavigateToFechamento, onNavigateToCostExplorer, onBackToDashboard }: MenuScreenProps) => {
+export const MenuScreen = ({ onNavigateToPerfil, onNavigateToTags, onNavigateToMoedas, onNavigateToFechamento, onNavigateToCostExplorer, onNavigateToAnaliseGastos, onBackToDashboard }: MenuScreenProps) => {
   const { t } = useI18n();
   const { clearSession, id_usuario, nome_usuario, email_usuario, avatar_url } = useStore();
   const [faqOpen, setFaqOpen] = useState(false);
@@ -159,6 +160,14 @@ export const MenuScreen = ({ onNavigateToPerfil, onNavigateToTags, onNavigateToM
           <View style={styles.menuLeft}>
             <Share2 size={18} color={theme.colors.textMuted} />
             <Text style={styles.menuText}>{t('shared_closing')}</Text>
+          </View>
+          <ChevronRight size={16} color={theme.colors.border} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={onNavigateToAnaliseGastos} activeOpacity={0.7}>
+          <View style={styles.menuLeft}>
+            <BarChart3 size={18} color={theme.colors.textMuted} />
+            <Text style={styles.menuText}>{t('menu_expense_analysis')}</Text>
           </View>
           <ChevronRight size={16} color={theme.colors.border} />
         </TouchableOpacity>

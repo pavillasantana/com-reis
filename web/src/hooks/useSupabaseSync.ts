@@ -23,7 +23,7 @@ import {
   updateTransacao,
   createCaixinhaMovimento,
   updateCaixinhaMovimento, deleteCaixinhaMovimento,
-  verificarAssinatura, criarAssinatura,
+  criarAssinatura,
 } from '../services/supabaseService';
 import type { Espaco, Conta, Transacao, Caixinha, Cartao } from '../store/useStore';
 import type { MovimentoCaixinha } from '../components/CaixinhaHistoricoModal';
@@ -60,8 +60,7 @@ export function useSupabaseSync() {
     const loadAll = async () => {
       hasSynced.current = true;
 
-      const [assinaturaRes, espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes] = await Promise.all([
-        verificarAssinatura(id_usuario),
+      const [espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes] = await Promise.all([
         fetchEspacos(),
         fetchContas(),
         fetchTransacoes(),
@@ -69,11 +68,8 @@ export function useSupabaseSync() {
         fetchCartoes(),
       ]);
 
-      // Middleware de Expiração: força 'free' se assinatura estiver expirada
-      if (assinaturaRes.data === false) {
-        setPlanoUsuario('free');
-        await updatePerfil(id_usuario, { plano: 'free' });
-      }
+      // O plano do usuário é definido pelo syncUserToStore (lê do DB).
+      // NÃO sobrescrevemos aqui — o DB é a fonte de verdade.
 
       if (espacosRes.data && espacosRes.data.length > 0)    setEspacos(espacosRes.data);
       if (contasRes.data && contasRes.data.length > 0)     setContas(contasRes.data);
@@ -82,13 +78,13 @@ export function useSupabaseSync() {
       if (cartoesRes.data && cartoesRes.data.length > 0)    setCartoes(cartoesRes.data);
 
       // Log erros no Sentry mas não bloqueia a UI
-      [assinaturaRes, espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes].forEach(({ error }) => {
+      [espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes].forEach(({ error }) => {
         if (error) captureError(new Error(error), { action: 'loadAll' });
       });
     };
 
     loadAll();
-  }, [id_usuario, isAuthLoading, setEspacos, setContas, setTransacoes, setCaixinhas, setCartoes, setPlanoUsuario]);
+  }, [id_usuario, isAuthLoading, setEspacos, setContas, setTransacoes, setCaixinhas, setCartoes]);
 
   // Reset hasSynced quando o usuário muda (logout/login)
   useEffect(() => {

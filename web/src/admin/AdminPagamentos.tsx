@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from './adminSupabase';
 import { Search, RefreshCw, DollarSign, Clock, CheckCircle, XCircle, Ban, AlertTriangle } from 'lucide-react';
 
 interface Pagamento {

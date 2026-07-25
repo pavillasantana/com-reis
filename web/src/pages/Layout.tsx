@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Logo } from '../components/Logo';
+
 import { useI18n } from '../i18n';
 
 const TELEGRAM_URL = 'https://t.me/comreisbot';
@@ -41,8 +41,10 @@ export function Layout({ children, meta }: { children: React.ReactNode; meta: Pa
         backdropFilter: 'blur(12px)',
       }}>
         <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Logo size="sm" />
-          <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Com Réis</span>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.5px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', lineHeight: 1 }}>
+            com<span style={{ color: 'var(--accent-blue)' }}>réis</span>
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-blue)', marginLeft: '4px' }}></div>
+          </div>
         </Link>
         <nav style={{ display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
           <Link to="/precos" style={{

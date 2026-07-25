@@ -55,7 +55,15 @@ export const parseOFX = (text: string): ParsedBankTransaction[] => {
     // Sugere uma categoria inicial com base na descrição
     let categoria = 'Outros';
     const descLower = description.toLowerCase();
-    if (descLower.includes('mercado') || descLower.includes('super') || descLower.includes('pao de acucar') || descLower.includes('carrefour')) {
+
+    const investKeywords = ['bovespa', 'b3', 'corretora', 'açao', 'acao', 'ações', 'investimento', 'fundo', 'etf', 'fiis', 'fiagro', 'renda fixa', 'cdb', 'lci', 'lca', 'tesouro', 'stock', 'broker', 'trading', ' Bolsa', 'bolsa de valores', 'clear', 'xp investimentos', 'btg', 'itau ubs', 'bradesco asset', 'itaú asset', 'asset management', 'aplicacao', 'aplicação', 'resgate'];
+    const proventoKeywords = ['dividendo', 'dividends', 'jcp', 'juros sobre capital', 'rendimento', 'provento', 'provents', 'fracao', 'fraction'];
+
+    if (investKeywords.some(kw => descLower.includes(kw))) {
+      categoria = 'Investimentos';
+    } else if (proventoKeywords.some(kw => descLower.includes(kw))) {
+      categoria = 'Proventos';
+    } else if (descLower.includes('mercado') || descLower.includes('super') || descLower.includes('pao de acucar') || descLower.includes('carrefour')) {
       categoria = 'Alimentação';
     } else if (descLower.includes('aluguel') || descLower.includes('condominio')) {
       categoria = 'Moradia';

@@ -28,6 +28,9 @@ export function AdSenseBanner({ style, className, adSlot }: AdSenseBannerProps) 
   // AdSense inativo: não renderiza até que o publisher ID real seja configurado no .env
   if (!ADSENSE_CLIENT_ID || ADSENSE_CLIENT_ID === 'ca-pub-0000000000000000') return null;
 
+  // Slot placeholder (não é numérico) — não renderiza até configurar slots reais no AdSense
+  if (!adSlot || !/^\d+$/.test(adSlot)) return null;
+
   return (
     <div style={{ overflow: 'hidden', textAlign: 'center', ...style }} className={className}>
       <ins

@@ -567,5 +567,19 @@
   "faq_q5": "Can I use it on more than one device?",
   "faq_a5": "Yes! Log in with the same credentials on any device. Data syncs automatically via the cloud.",
   "faq_q6": "How do I change the default currency?",
-  "faq_a6": "Go to Menu > Currencies and select your base currency. The app supports BRL, USD, EUR, ARS and more."
+  "faq_a6": "Go to Menu > Currencies and select your base currency. The app supports BRL, USD, EUR, ARS and more.",
+  "expense_analysis": "Expense Analysis",
+  "monthly": "Monthly",
+  "weekly": "Weekly",
+  "yearly": "Yearly",
+  "this_week": "This Week",
+  "total_expenses": "Total Expenses",
+  "transactions": "transactions",
+  "filter_by_tag": "Filter by Tag",
+  "by_category": "By Category",
+  "by_tag": "By Tag",
+  "no_tag": "No Tag",
+  "more_items": "more items",
+  "shared_items": "shared items",
+  "menu_expense_analysis": "Expense Analysis"
 }

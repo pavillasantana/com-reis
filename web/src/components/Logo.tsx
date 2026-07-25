@@ -26,7 +26,6 @@ export const Logo: React.FC<LogoProps> = ({
   style = {},
   onClick
 }) => {
-  // Dimensions map
   const iconSizes = {
     xs: 16,
     sm: 22,
@@ -46,11 +45,9 @@ export const Logo: React.FC<LogoProps> = ({
   const dim = iconSizes[size] || 30;
   const fontSize = fontSizes[size] || '32px';
 
-  // Exact brand colors from design reference (Aligned to Com Réis Clean theme)
   const brandBlue = '#1045A1';
   const mangoYellow = '#FFB800';
 
-  // Helper to render the unified wordmark "com[réi]s" where the icon replaces part of the name
   const renderWordmark = (textColor: string, iconColor: string) => (
     <div 
       style={{ 
@@ -87,7 +84,6 @@ export const Logo: React.FC<LogoProps> = ({
     </div>
   );
 
-  // 1. Icon Only Variant
   if (variant === 'icon') {
     return (
       <div 
@@ -106,7 +102,6 @@ export const Logo: React.FC<LogoProps> = ({
     );
   }
 
-  // 2. Card / Badge App Tile Variant
   if (variant === 'card' || variant === 'badge') {
     const cardPaddings = {
       xs: '8px 14px',
@@ -156,7 +151,6 @@ export const Logo: React.FC<LogoProps> = ({
     );
   }
 
-  // 3. Monogram Emblem Variant
   if (variant === 'monogram') {
     return (
       <div
@@ -180,7 +174,6 @@ export const Logo: React.FC<LogoProps> = ({
     );
   }
 
-  // 4. Horizontal Pill Variant
   if (variant === 'horizontal') {
     return (
       <div
@@ -203,7 +196,6 @@ export const Logo: React.FC<LogoProps> = ({
     );
   }
 
-  // 5. Default Standard Wordmark Logo (mangOs)
   return (
     <div
       className={`mangos-logo-full ${className}`}

@@ -213,7 +213,7 @@ interface AppState {
 
   // Derived Getters
   getSaldoTotal: (cotacoes?: Record<string, number>) => number;
-  getResumoMensal: () => { receitas: number; despesas: number };
+  getResumoMensal: (mesRef?: string) => { receitas: number; despesas: number };
   getTransacoesEspacoAtivo: () => Transacao[];
   getContasEspacoAtivo: () => Conta[];
   getCartoesEspacoAtivo: () => Cartao[];
@@ -1640,7 +1640,7 @@ export const useStore = create<AppState>()(
         return total;
       },
 
-      getResumoMensal: () => {
+      getResumoMensal: (mesRef?: string) => {
         const state = get();
         const activeSpaceId = state.id_espaco_ativo;
         if (!activeSpaceId) return { receitas: 0, despesas: 0 };
@@ -1649,11 +1649,29 @@ export const useStore = create<AppState>()(
           .filter((c) => c.id_espaco === activeSpaceId)
           .map((c) => c.id);
 
+        const mesAlvo = mesRef || new Date().toISOString().slice(0, 7);
+
+        const pertenceAoMes = (dataStr: string) => {
+          if (!dataStr) return false;
+          if (dataStr.includes('/')) {
+            const partes = dataStr.split('/');
+            if (partes.length === 3) {
+              const mes = partes[1].padStart(2, '0');
+              const ano = partes[2];
+              return `${ano}-${mes}` === mesAlvo;
+            }
+          }
+          if (dataStr.includes('-')) {
+            return dataStr.startsWith(mesAlvo);
+          }
+          return false;
+        };
+
         let receitas = 0;
         let despesas = 0;
 
         state.transacoes.forEach((t) => {
-          if (activeAccountIds.includes(t.id_conta)) {
+          if (activeAccountIds.includes(t.id_conta) && pertenceAoMes(t.data_transacao)) {
             const conta = state.contas.find(c => c.id === t.id_conta);
             const moedaOrigem = conta ? conta.moeda_conta : state.moeda_base;
             const valorConvertido = convertCurrency(t.valor, moedaOrigem, state.moeda_base, state.cotacoes_moedas);

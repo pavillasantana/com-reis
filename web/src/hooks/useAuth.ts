@@ -78,6 +78,29 @@ export function useAuth(): UseAuthReturn {
     try {
       const { data: perfil } = await fetchPerfil(userId);
       if (perfil) {
+        // Check soft-delete recovery: if deleted_at exists and < 60 days, restore
+        if (perfil.deleted_at) {
+          const deletedAt = new Date(perfil.deleted_at);
+          const now = new Date();
+          const daysSinceDeletion = (now.getTime() - deletedAt.getTime()) / (1000 * 60 * 60 * 24);
+          
+          if (daysSinceDeletion < 60) {
+            // Restore account: clear deleted_at
+            await supabase.from('usuarios').update({ deleted_at: null }).eq('id', userId);
+            // Also restore active subscriptions if any
+            await supabase.from('assinaturas').update({ status: 'active' }).eq('id_usuario', userId).eq('status', 'cancelled');
+          } else {
+            // Account expired (60+ days) — will be cleaned by pg_cron
+            // Sign out and notify
+            setAuthLoading(false);
+            await supabase.auth.signOut();
+            if (typeof window !== 'undefined') {
+              alert('Conta expirada. Sua conta foi permanentemente excluída por inatividade.');
+            }
+            return;
+          }
+        }
+
         // Avatar: tentar DB primeiro, fallback para auth metadata
         let avatar = perfil.avatar_url ?? null;
         if (!avatar) {
@@ -188,7 +211,13 @@ export function useAuth(): UseAuthReturn {
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider });
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: window.location.origin,
+          queryParams: provider === 'azure' ? { prompt: 'select_account' } : undefined,
+        },
+      });
       if (error) return { message: error.message };
       return null;
     } catch (e) {

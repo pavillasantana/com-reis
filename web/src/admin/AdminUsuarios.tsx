@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from './adminSupabase';
 import {
   Search, ChevronLeft, ChevronRight, Crown, UserX,
   ToggleLeft, ToggleRight, UserPlus, X, RefreshCw,
@@ -41,6 +41,7 @@ export function AdminUsuarios() {
   const [giving, setGiving] = useState(false);
   const [giveError, setGiveError] = useState('');
   const [giveSuccess, setGiveSuccess] = useState('');
+  const [toggleError, setToggleError] = useState('');
 
   useEffect(() => { loadUsuarios(); }, []);
 
@@ -106,21 +107,27 @@ export function AdminUsuarios() {
   async function togglePlano(usuario: Usuario) {
     const newPlano = usuario.plano === 'premium' ? 'free' : 'premium';
     setToggling(usuario.id);
+    setToggleError('');
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setToggleError('Sessão expirada. Faça login novamente.');
+        setToggling(null);
+        return;
+      }
       const { data, error } = await supabase.functions.invoke('admin-update-plan', {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
+        headers: { Authorization: `Bearer ${session.access_token}` },
         body: { user_id: usuario.id, plano: newPlano },
       });
       if (error) {
-        console.error('Erro ao alterar plano:', error);
+        setToggleError(`Erro ao alterar plano: ${error.message || error}`);
       } else if (data?.error) {
-        console.error('Erro ao alterar plano:', data.error);
+        setToggleError(`Erro ao alterar plano: ${data.error}`);
       } else {
         setUsuarios(prev => prev.map(u => u.id === usuario.id ? { ...u, plano: newPlano } : u));
       }
-    } catch (err) {
-      console.error('Erro ao alterar plano:', err);
+    } catch (err: any) {
+      setToggleError(`Erro ao alterar plano: ${err?.message || err}`);
     }
     setToggling(null);
   }
@@ -390,6 +397,16 @@ export function AdminUsuarios() {
             ))}
           </div>
         </div>
+
+        {toggleError && (
+          <div style={{
+            padding: '10px 16px', borderRadius: '8px', marginBottom: '12px',
+            background: 'rgba(239,68,68,0.1)', color: 'var(--admin-red)',
+            fontSize: '0.82rem', fontWeight: 600,
+          }}>
+            {toggleError}
+          </div>
+        )}
 
         <div className="admin-card-body" style={{ overflowX: 'auto' }}>
           <table className="admin-table">

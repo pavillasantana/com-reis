@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from './adminSupabase';
 import { Search, RefreshCw, Ban, CheckCircle } from 'lucide-react';
 
 interface Assinatura {

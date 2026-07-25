@@ -1,10 +1,11 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   envDir: '../', // Lê o .env da raiz do monorepo (fonte única de verdade)
   // Expõe ao cliente variáveis com AMBOS os prefixos:
   // EXPO_PUBLIC_ → compartilhado com Android (root .env)

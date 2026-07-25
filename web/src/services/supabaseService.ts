@@ -28,6 +28,7 @@ export interface UsuarioPerfil {
   plano: 'free' | 'premium';
   moeda_base: string;
   avatar_url?: string | null;
+  deleted_at?: string | null;
 }
 
 /**
@@ -40,14 +41,14 @@ export async function fetchPerfil(userId: string): ServiceResult<UsuarioPerfil> 
     // Tentar com avatar_url primeiro
     let { data, error } = await supabase
       .from('usuarios')
-      .select('id, email, nome_completo, plano, moeda_base, avatar_url')
+      .select('id, email, nome_completo, plano, moeda_base, avatar_url, deleted_at')
       .eq('id', userId)
       .single();
     // Se a query falhou (coluna avatar_url pode não existir), tentar sem ela
     if (error && error.message?.includes('avatar_url')) {
       const result = await supabase
         .from('usuarios')
-        .select('id, email, nome_completo, plano, moeda_base')
+        .select('id, email, nome_completo, plano, moeda_base, deleted_at')
         .eq('id', userId)
         .single();
       data = result.data;

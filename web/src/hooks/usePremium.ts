@@ -12,7 +12,9 @@ export function usePremium() {
   const setPlanoUsuario = useStore((state) => state.setPlanoUsuario);
   const isPremium = plano_usuario === 'premium';
 
-  // Middleware de Expiração: verifica assinatura no servidor ao montar
+  // Sincroniza plano premium a partir do DB (fonte de verdade).
+  // Só faz UPGRADE se a assinatura for confirmada — nunca downgrade.
+  // O downgrade é feito pelo admin ou pelo sistema de assinatura (DB).
   useEffect(() => {
     if (!isSupabaseConfigured || !id_usuario) return;
 
@@ -22,8 +24,9 @@ export function usePremium() {
         captureError(new Error(error), { action: 'usePremium:verificarAssinatura' });
         return;
       }
-      if (data === false) {
-        setPlanoUsuario('free');
+      // Só sobrescreve para premium se confirmado no servidor
+      if (data === true && plano_usuario !== 'premium') {
+        setPlanoUsuario('premium');
       }
     };
     check();

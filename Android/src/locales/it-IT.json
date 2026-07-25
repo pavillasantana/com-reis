@@ -567,5 +567,19 @@
   "faq_q5": "Posso usarlo su più di un dispositivo?",
   "faq_a5": "Sì! Accedi con le stesse credenziali su qualsiasi dispositivo. I dati si sincronizzano automaticamente.",
   "faq_q6": "Come cambio la valuta predefinita?",
-  "faq_a6": "Vai a Menu > Valute e seleziona la tua valuta base. L'app supporta BRL, USD, EUR, ARS e altro."
+  "faq_a6": "Vai a Menu > Valute e seleziona la tua valuta base. L'app supporta BRL, USD, EUR, ARS e altro.",
+  "expense_analysis": "Analisi delle Spese",
+  "monthly": "Mensile",
+  "weekly": "Settimanale",
+  "yearly": "Annuale",
+  "this_week": "Questa Settimana",
+  "total_expenses": "Totale Spese",
+  "transactions": "transazioni",
+  "filter_by_tag": "Filtra per Tag",
+  "by_category": "Per Categoria",
+  "by_tag": "Per Tag",
+  "no_tag": "Nessun Tag",
+  "more_items": "altri articoli",
+  "shared_items": "articoli condivisi",
+  "menu_expense_analysis": "Analisi delle Spese"
 }

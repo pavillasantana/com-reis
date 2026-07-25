@@ -7,8 +7,9 @@ import { AdminPagamentos } from './AdminPagamentos';
 import { AdminConfig } from './AdminConfig';
 import { AdminLogs } from './AdminLogs';
 import { LayoutDashboard, Users, CreditCard, Settings, ScrollText, LogOut, DollarSign } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { Logo } from '../components/Logo';
+import { supabase } from './adminSupabase';
+
 
 type AdminView = 'dashboard' | 'usuarios' | 'assinaturas' | 'pagamentos' | 'config' | 'logs';
 

@@ -112,7 +112,8 @@ export const DashboardScreen = () => {
 
   const activeSpace = espacos.find(e => e.id === id_espaco_ativo);
   const saldoTotal = getSaldoTotal();
-  const { receitas, despesas } = getResumoMensal();
+  const mesCorrente = new Date().toISOString().slice(0, 7);
+  const { receitas, despesas } = getResumoMensal(mesCorrente);
   const contas = getContasEspacoAtivo();
   const cartoes = getCartoesEspacoAtivo();
   const caixinhas = getCaixinhasEspacoAtivo();
@@ -143,8 +144,24 @@ export const DashboardScreen = () => {
     return convertCurrency(valor, moedaOrigem, moeda_base, cotacoes_moedas);
   };
 
+  const pertenceAoMes = (dataStr: string) => {
+    if (!dataStr) return false;
+    if (dataStr.includes('/')) {
+      const partes = dataStr.split('/');
+      if (partes.length === 3) {
+        const mes = partes[1].padStart(2, '0');
+        const ano = partes[2];
+        return `${ano}-${mes}` === mesCorrente;
+      }
+    }
+    if (dataStr.includes('-')) {
+      return dataStr.startsWith(mesCorrente);
+    }
+    return false;
+  };
+
   transacoes.forEach(t => {
-    if (t.tipo === 'despesa') {
+    if (t.tipo === 'despesa' && pertenceAoMes(t.data_transacao)) {
       const contaOrigem = contas.find(c => c.id === t.id_conta);
       const moedaOrigem = contaOrigem ? contaOrigem.moeda_conta : moeda_base;
       const valorConvertido = converterValorParaBase(t.valor, moedaOrigem);

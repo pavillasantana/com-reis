@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from './adminSupabase';
 import { Save, RotateCcw } from 'lucide-react';
 
 interface ConfigItem {

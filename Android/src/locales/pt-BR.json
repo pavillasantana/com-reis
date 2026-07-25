@@ -568,5 +568,19 @@
   "faq_q5": "Posso usar em mais de um dispositivo?",
   "faq_a5": "Sim! Faça login com as mesmas credenciais em qualquer dispositivo. Os dados sincronizam automaticamente via nuvem.",
   "faq_q6": "Como alterar a moeda padrão?",
-  "faq_a6": "Vá em Menu > Moedas e selecione sua moeda base. O app suporta BRL, USD, EUR, ARS e mais."
+  "faq_a6": "Vá em Menu > Moedas e selecione sua moeda base. O app suporta BRL, USD, EUR, ARS e mais.",
+  "expense_analysis": "Análise de Gastos",
+  "monthly": "Mensal",
+  "weekly": "Semanal",
+  "yearly": "Anual",
+  "this_week": "Esta Semana",
+  "total_expenses": "Total de Despesas",
+  "transactions": "transações",
+  "filter_by_tag": "Filtrar por Tag",
+  "by_category": "Por Categoria",
+  "by_tag": "Por Tag",
+  "no_tag": "Sem Tag",
+  "more_items": "mais itens",
+  "shared_items": "itens compartilhados",
+  "menu_expense_analysis": "Análise de Gastos"
 }

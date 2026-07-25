@@ -14,6 +14,7 @@ import { TagsScreen } from '../screens/TagsScreen';
 import { MoedasScreen } from '../screens/MoedasScreen';
 import { FechamentoScreen } from '../screens/FechamentoScreen';
 import { CostExplorerScreen } from '../screens/CostExplorerScreen';
+import { AnaliseGastosScreen } from '../screens/AnaliseGastosScreen';
 
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -40,6 +41,10 @@ const CostExplorerScreenWrapper = ({ navigation }: any) => {
   return <CostExplorerScreen onBack={() => navigation.navigate('Mais', { screen: 'MenuPrincipal' })} />;
 };
 
+const AnaliseGastosScreenWrapper = ({ navigation }: any) => {
+  return <AnaliseGastosScreen onBack={() => navigation.navigate('Mais', { screen: 'MenuPrincipal' })} />;
+};
+
 const MenuScreenWrapper = ({ navigation }: any) => {
   return (
     <MenuScreen 
@@ -48,6 +53,7 @@ const MenuScreenWrapper = ({ navigation }: any) => {
       onNavigateToMoedas={() => navigation.navigate('Moedas')} 
       onNavigateToFechamento={() => navigation.navigate('Fechamento')} 
       onNavigateToCostExplorer={() => navigation.navigate('CostExplorer')}
+      onNavigateToAnaliseGastos={() => navigation.navigate('AnaliseGastos')}
       onBackToDashboard={() => {
         const parent = navigation.getParent();
         if (parent) {
@@ -72,6 +78,7 @@ const MaisContainer = () => {
       <Stack.Screen name="Moedas" component={MoedasScreenWrapper} />
       <Stack.Screen name="Fechamento" component={FechamentoScreenWrapper} />
       <Stack.Screen name="CostExplorer" component={CostExplorerScreenWrapper} />
+      <Stack.Screen name="AnaliseGastos" component={AnaliseGastosScreenWrapper} />
     </Stack.Navigator>
   );
 };

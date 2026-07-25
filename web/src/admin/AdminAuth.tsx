@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { AlertTriangle, LogIn } from 'lucide-react';
+import { supabase } from './adminSupabase';
 import { Logo } from '../components/Logo';
+import { AlertTriangle, LogIn } from 'lucide-react';
+
 
 interface AdminAuthProps {
   onAuthorized: (userId: string) => void;

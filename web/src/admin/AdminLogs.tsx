@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from './adminSupabase';
 import { RefreshCw, LogIn, Crown, CreditCard, UserMinus, Settings } from 'lucide-react';
 
 interface LogEntry {

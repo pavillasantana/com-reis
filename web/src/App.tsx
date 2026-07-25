@@ -36,7 +36,7 @@ import { CaixinhaHistoricoModal } from './components/CaixinhaHistoricoModal';
 import { FechamentoMensalModal } from './components/FechamentoMensalModal';
 import { InventarioView } from './components/InventarioView';
 import { CalendarioFinanceiro } from './components/CalendarioFinanceiro';
-import { Logo } from './components/Logo';
+import { AnaliseGastos } from './components/AnaliseGastos';
 import { FAQModal, TermosModal } from './components/FAQTermos';
 import { useExchangeRates } from './hooks/useExchangeRates';
 import { usePremium } from './hooks/usePremium';
@@ -67,13 +67,10 @@ import {
   ChevronRight,
   LogOut,
   Globe,
-  BookOpen,
-  MapPin,
   Trash2,
   Eye,
   EyeOff,
   HelpCircle,
-  Shield,
   Pencil,
   Check,
   X,
@@ -115,8 +112,8 @@ export default function App() {
     cartoes,
     setUsuario,
     setPlanoUsuario,
-    setMoedaBase,
     setIdEspacoAtivo,
+    setMoedaBase,
     getSaldoTotal,
     getTransacoesEspacoAtivo,
     getContasEspacoAtivo,
@@ -162,7 +159,7 @@ export default function App() {
   const [depositGoal, setDepositGoal] = useState<{ id: string; nome: string; saved: number; target: number } | null>(null);
 
   // Local UI States
-  const [activeView, setActiveView] = useState<'dashboard' | 'costExplorer' | 'blog' | 'investimentos' | 'fluxopj' | 'inventario' | 'calendario'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'costExplorer' | 'blog' | 'investimentos' | 'fluxopj' | 'inventario' | 'calendario' | 'analiseGastos'>('dashboard');
   const [landingView, setLandingView] = useState<'home' | 'costExplorer' | 'blog'>('home');
   const [activeArticle, setActiveArticle] = useState<Article | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
@@ -171,6 +168,7 @@ export default function App() {
   const [profileAvatarInput, setProfileAvatarInput] = useState('');
   const [profileAvatarFile, setProfileAvatarFile] = useState<File | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarLoadError, setAvatarLoadError] = useState(false);
   const [showLandingPage, setShowLandingPage] = useState(true);
   const [sandboxExpense, setSandboxExpense] = useState(0);
   const [sandboxState, setSandboxState] = useState('SP');
@@ -244,6 +242,19 @@ export default function App() {
   const [showCaixinhaHistorico, setShowCaixinhaHistorico] = useState<Caixinha | null>(null);
   const [showFechamentoMensal, setShowFechamentoMensal] = useState(false);
 
+  // ─── Mobile Sidebar Toggle ─────────────────────────────────────────────
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
+  // ─── User Menu Dropdown & Settings Modals ─────────────────────────────
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordConfirmInput, setPasswordConfirmInput] = useState('');
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deleteAccountStep, setDeleteAccountStep] = useState<1 | 2>(1);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
   // ─── Phase 4.1: Fluxo PJ, Inventário, Calendário ────────────────────────
   const [_showFluxoPJ, _setShowFluxoPJ] = useState(false);
   const [_showInventario, _setShowInventario] = useState(false);
@@ -269,6 +280,11 @@ export default function App() {
   const [accumulatedTips, setAccumulatedTips] = useState<Article[]>([]);
 
   // Se o espaço ativo não é PJ, volta para dashboard
+  // Reset avatar error state when avatar URL changes
+  React.useEffect(() => {
+    setAvatarLoadError(false);
+  }, [avatar_url]);
+
   React.useEffect(() => {
     const space = espacos.find(e => e.id === id_espaco_ativo);
     if (activeView === 'fluxopj' && space?.tipo !== 'PJ') {
@@ -360,11 +376,7 @@ export default function App() {
 
   // Clean tips when logging out
   const handleLogout = () => {
-    const confirm = window.confirm(`${t('web_logout_title')} ${t('web_logout_desc')}`);
-    if (!confirm) return;
-    signOut();
-    setAccumulatedTips([]);
-    setTipsPage(1);
+    setShowLogoutModal(true);
   };
 
   // 5-Minute Inactivity Timeout
@@ -487,9 +499,20 @@ export default function App() {
       toast.warning(t('web_auth_weak_password'), t('web_auth_min_6_chars'));
       return;
     }
+    const hasUpper = /[A-Z]/.test(newPassword);
+    const hasLower = /[a-z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+    if (!hasUpper || !hasLower || !hasNumber) {
+      toast.warning(t('web_auth_weak_password'), t('web_auth_password_requirements'));
+      return;
+    }
     const err = await updatePassword(newPassword);
     if (err) {
-      toast.error('Erro', err.message);
+      if (err.message.includes('Password should') || err.message.includes('password')) {
+        toast.error(t('web_auth_weak_password'), t('web_auth_password_requirements'));
+      } else {
+        toast.error('Erro', err.message);
+      }
     } else {
       toast.success(t('web_auth_password_updated'), t('web_auth_login_again'));
       setIsSettingNewPassword(false);
@@ -1269,6 +1292,97 @@ export default function App() {
     setProfileAvatarFile(null);
   };
 
+  // ─── User Menu Handlers ──────────────────────────────────────────────
+  const handleCopyUserId = async () => {
+    await navigator.clipboard.writeText(id_usuario || '');
+    toast.success(t('web_user_menu_id_copied'));
+    setShowUserMenu(false);
+  };
+
+  const handleChangePassword = async () => {
+    if (passwordInput.length < 6) {
+      toast.error(t('web_user_menu_password_min_length'));
+      return;
+    }
+    if (passwordInput !== passwordConfirmInput) {
+      toast.error(t('web_user_menu_password_mismatch'));
+      return;
+    }
+    const error = await updatePassword(passwordInput);
+    if (error) {
+      toast.error(t('web_user_menu_password_error'), error.message);
+    } else {
+      toast.success(t('web_user_menu_password_success'));
+      setShowPasswordModal(false);
+      setPasswordInput('');
+      setPasswordConfirmInput('');
+    }
+  };
+
+  const handleRequestDeleteAccount = async () => {
+    if (deleteConfirmInput !== 'EXCLUIR') return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao excluir conta');
+      toast.success(t('web_user_menu_delete_success'));
+      setShowDeleteAccountModal(false);
+      setDeleteConfirmInput('');
+      setDeleteAccountStep(1);
+      signOut();
+      setAccumulatedTips([]);
+      setTipsPage(1);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao excluir conta');
+    }
+  };
+
+  const handleOpenDeleteAccount = () => {
+    setShowUserMenu(false);
+    setDeleteAccountStep(1);
+    setDeleteConfirmInput('');
+    setShowDeleteAccountModal(true);
+  };
+
+  const handleOpenPasswordModal = () => {
+    setShowUserMenu(false);
+    setPasswordInput('');
+    setPasswordConfirmInput('');
+    setShowPasswordModal(true);
+  };
+
+  const handleLogoutClick = () => {
+    setShowUserMenu(false);
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    signOut();
+    setAccumulatedTips([]);
+    setTipsPage(1);
+    setShowLogoutModal(false);
+  };
+
+  // Close user menu on outside click
+  const userMenuRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!showUserMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserMenu]);
+
   // Calculate Chart Data (Expense Category Breakdown) — converte para moeda_base
   const expenseData = activeTransactions
     .filter(t => t.tipo === 'despesa')
@@ -1499,7 +1613,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {(isPublic || plano_usuario === 'free') && index === 0 && false && (
+                {(isPublic || plano_usuario === 'free') && index === 0 && (
                   <div style={{
                     padding: '30px',
                     background: 'linear-gradient(90deg, rgba(255, 184, 0, 0.05) 0%, rgba(255, 74, 90, 0.05) 100%)',
@@ -1590,415 +1704,355 @@ export default function App() {
       <Route path="/faq" element={<LandingFAQPage />} />
       <Route path="*" element={
     <div style={{ paddingBottom: '100px' }}>
+      {/* RECOVERY PASSWORD OVERLAY */}
+      {isSettingNewPassword && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'var(--surface-bg, #f5f5f5)',
+        }}>
+          <div style={{
+            maxWidth: '420px', width: '100%', padding: '40px',
+            background: 'var(--card-bg, #fff)', borderRadius: '16px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+            textAlign: 'center',
+          }}>
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary, #1a237e)' }}>
+                com<span style={{ color: 'var(--secondary, #00897b)' }}>réis</span>
+              </div>
+            </div>
+            <h3 style={{ color: 'var(--text-primary, #1a1a1a)', fontSize: '1.2rem', marginBottom: '8px' }}>
+              {t('web_auth_new_password_title')}
+            </h3>
+            <p style={{ color: 'var(--text-secondary, #666)', fontSize: '0.9rem', marginBottom: '24px' }}>
+              {t('web_auth_new_password_desc')}
+            </p>
+            <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ textAlign: 'left' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
+                  {t('new_password')}
+                </label>
+                <TextInput
+                  type="password"
+                  placeholder={t('password_min_placeholder')}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <PrimaryButton type="submit" style={{ width: '100%' }} disabled={isAuthLoading}>
+                {isAuthLoading ? t('web_auth_saving') : t('web_auth_save_password')}
+              </PrimaryButton>
+            </form>
+          </div>
+        </div>
+      )}
       {/* 1. SE NÃO LOGADO: LANDING PAGE OU TELA DE ONBOARDING */}
       {!id_usuario ? (
         showLandingPage ? (
           /* LANDING PAGE MODERNA E PREMIUM */
-          <div style={{
-            background: 'var(--bg-color)',
-            color: 'var(--text-primary)',
-            fontFamily: 'system-ui, sans-serif',
-            minHeight: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-            width: '100%'
-          }}>
-             {/* NAVBAR */}
-             <nav className="landing-navbar" style={{
-               display: 'flex',
-               justifyContent: 'space-between',
-               alignItems: 'center',
-               padding: '36px 40px',
-               maxWidth: '1200px',
-               width: '100%',
-               margin: '0 auto',
-               boxSizing: 'border-box',
-               flexWrap: 'wrap',
-               gap: '16px'
-             }}>
-              <Logo 
-                size="xl" 
-                onClick={() => { setLandingView('home'); setActiveArticle(null); }} 
-              />
+          <>
+          {/* STICKY HEADER */}
+          <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-outline/30">
+            <div className="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
+              <div
+                className="flex items-center gap-2 cursor-pointer"
+                onClick={() => { setLandingView('home'); setActiveArticle(null); }}
+              >
+                <div className="text-3xl font-extrabold text-primary flex items-center">
+                  com<span className="text-secondary">réis</span>
+                  <div className="w-2.5 h-2.5 rounded-full bg-secondary ml-1.5"></div>
+                </div>
+              </div>
 
-              {/* TABS DE NAVEGAÇÃO PÚBLICA */}
-              <div className="nav-links" style={{ display: 'flex', gap: '36px', alignItems: 'center'}}>
-                <span 
+              <nav className="hidden md:flex items-center gap-8">
+                <span
                   onClick={() => { setLandingView('home'); setActiveArticle(null); }}
-                  style={{
-                    color: landingView === 'home' ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    transition: 'all 0.2s',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseOut={(e) => e.currentTarget.style.color = landingView === 'home' ? 'var(--accent-blue)' : 'var(--text-secondary)'}
+                  className={`text-sm font-bold cursor-pointer transition-colors border-b-2 pb-1 ${
+                    landingView === 'home'
+                      ? 'text-secondary border-secondary'
+                      : 'text-on-surface-variant border-transparent hover:text-primary'
+                  }`}
                 >
                   {t('web_landing_nav_home')}
                 </span>
-                <span 
+                <span
                   onClick={() => { setLandingView('costExplorer'); setActiveArticle(null); }}
-                  style={{
-                    color: landingView === 'costExplorer' ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    transition: 'all 0.2s',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseOut={(e) => e.currentTarget.style.color = landingView === 'costExplorer' ? 'var(--accent-blue)' : 'var(--text-secondary)'}
+                  className={`text-sm font-medium cursor-pointer transition-colors ${
+                    landingView === 'costExplorer'
+                      ? 'text-secondary font-bold'
+                      : 'text-on-surface-variant hover:text-primary'
+                  }`}
                 >
                   {t('web_cost_living')}
                 </span>
-                <span 
+                <span
                   onClick={() => { setLandingView('blog'); setActiveArticle(null); }}
-                  style={{
-                    color: landingView === 'blog' ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    transition: 'all 0.2s',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseOut={(e) => e.currentTarget.style.color = landingView === 'blog' ? 'var(--accent-blue)' : 'var(--text-secondary)'}
+                  className={`text-sm font-medium cursor-pointer transition-colors ${
+                    landingView === 'blog'
+                      ? 'text-secondary font-bold'
+                      : 'text-on-surface-variant hover:text-primary'
+                  }`}
                 >
                   {t('web_landing_nav_blog')}
                 </span>
+              </nav>
+
+              <div className="flex items-center gap-4">
+                <LanguageSelector />
+                <PrimaryButton
+                  onClick={() => setShowLandingPage(false)}
+                  className="bg-primary text-white text-sm font-bold px-6 py-2.5 rounded-eight hover:opacity-90 active:scale-95 transition-all shadow-md"
+                >
+                  {t('web_landing_access_platform')}
+                </PrimaryButton>
               </div>
-
-              {/* LANGUAGE SELECTOR */}
-              <LanguageSelector />
-
-              <PrimaryButton 
-                onClick={() => setShowLandingPage(false)}
-                style={{ padding: '10px 20px', fontSize: '0.9rem', borderRadius: '8px' }}
-              >
-                {t('web_landing_access_platform')}
-              </PrimaryButton>
-            </nav>
+            </div>
+          </header>
 
             {/* VISTA HOME */}
             {landingView === 'home' && (
-              <div className="section-padding" style={{
-                maxWidth: '1200px',
-                margin: '0 auto',
-                padding: '90px 40px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center',
-                flex: 1
-              }}>
+              <div className="w-full">
                 {/* HERO SECTION */}
-                <h1 style={{
-                  fontSize: '3.5rem',
-                  fontWeight: 800,
-                  lineHeight: 1.1,
-                  letterSpacing: '-0.03em',
-                  margin: '0 0 24px 0',
-                  background: 'linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-green) 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  maxWidth: '850px'
-                }}>
-                  {t('web_landing_hero_title')}
-                </h1>
-                
-                <p style={{
-                  fontSize: '1.25rem',
-                  color: 'var(--text-secondary)',
-                  maxWidth: '650px',
-                  lineHeight: 1.6,
-                  margin: '0 0 40px 0'
-                }}>
-                  {t('web_landing_hero_subtitle')}
-                </p>
+                <section className="relative pt-20 pb-16 px-6 overflow-hidden">
+                  <div className="max-w-4xl mx-auto text-center relative z-10">
+                    <h1 className="text-4xl md:text-6xl font-extrabold leading-tight tracking-tight mb-6">
+                      {t('web_landing_hero_title')}
+                    </h1>
 
-                <div style={{ display: 'flex', gap: '24px', marginBottom: '60px'}}>
-                  <PrimaryButton 
-                    onClick={() => setShowLandingPage(false)}
-                    style={{ padding: '12px 24px', fontSize: '0.9rem', borderRadius: '8px'}}
-                  >
-                    {t('web_landing_create_free')}
-                  </PrimaryButton>
-                  <button
-                    onClick={() => { loadDemoData(); trackDemoLoaded(); }}
-                    style={{
-                      background: 'var(--card-border)',
-                      border: '1px solid var(--card-border)',
-                      color: 'var(--text-primary)',
-                      padding: '12px 24px',
-                      fontSize: '0.9rem',
-                      borderRadius: '8px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-border)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'var(--card-border)'}
-                  >
-                    {t('web_landing_test_demo')}
-                  </button>
-                </div>
+                    <p className="text-lg md:text-xl text-on-surface-variant max-w-2xl mx-auto mb-10 leading-relaxed">
+                      {t('web_landing_hero_subtitle')}
+                    </p>
 
-                {/* INTERACTIVE FINANCE PREVIEW (MOCKUP CARD) */}
-                <div style={{
-                  background: 'var(--card-bg)',
-                  border: '1px solid var(--card-border)',
-                  borderRadius: '24px',
-                  padding: '48px',
-                  width: '100%',
-                  maxWidth: '1000px',
-                  textAlign: 'left',
-                  boxShadow: '0 25px 50px rgba(0, 0, 0, 0.35)',
-                  marginBottom: '80px',
-                  backdropFilter: 'blur(10px)'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '24px'}}>
-                    <div style={{ display: 'flex', gap: '18px'}}>
-                      <div className="window-dot-red" style={{ width: '12px', height: '12px', borderRadius: '50%'}}></div>
-                      <div className="window-dot-yellow" style={{ width: '12px', height: '12px', borderRadius: '50%'}}></div>
-                      <div className="window-dot-green" style={{ width: '12px', height: '12px', borderRadius: '50%'}}></div>
-                    </div>
-                    <div style={{ display: 'flex', background: 'var(--card-border)', padding: '6px', borderRadius: '10px'}}>
-                      <span className="btn-tab-active" style={{ fontSize: '0.8rem', padding: '9px 12px', borderRadius: '6px', fontWeight: 'bold'}}>Minha Vida (PF)</span>
-                      <span style={{ fontSize: '0.8rem', padding: '9px 12px', color: 'var(--text-secondary)'}}>Consultoria (PJ)</span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '30px'}}>
-                    <div style={{ background: 'var(--card-border)', padding: '24px', borderRadius: '16px', border: '1px solid var(--card-border)'}}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>SALDO CONSOLIDADO</span>
-                      <strong style={{ fontSize: '1.4rem' }}>R$ 17.290,00</strong>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--accent-green)', display: 'block', marginTop: '6px' }}>+12.4% este mês</span>
-                    </div>
-                    <div style={{ background: 'var(--card-border)', padding: '24px', borderRadius: '16px', border: '1px solid var(--card-border)'}}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>CAIXINHA: RESERVA</span>
-                      <strong style={{ fontSize: '1.4rem' }}>R$ 4.500,00</strong>
-                      <div style={{ height: '6px', background: 'var(--card-border)', borderRadius: '3px', marginTop: '8px', overflow: 'hidden'}}>
-                        <div style={{ width: '30%', height: '100%', background: 'linear-gradient(90deg, var(--accent-blue) 0%, var(--accent-green) 100%)' }}></div>
-                      </div>
-                    </div>
-                    <div style={{ background: 'var(--card-border)', padding: '24px', borderRadius: '16px', border: '1px solid var(--card-border)'}}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>WISE USD</span>
-                      <strong style={{ fontSize: '1.4rem' }}>$ 350,00</strong>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>Eq. R$ 1.890,00</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* FEATURES GRID */}
-                <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '40px', letterSpacing: '-0.5px' }}>
-                  {t('web_landing_features_title')}
-                </h2>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '36px',
-                  width: '100%',
-                  maxWidth: '760px',
-                  marginBottom: '80px'
-                }}>
-                  <div className="landing-card" style={styles.landingCard}>
-                    <div style={styles.landingCardIcon}><Briefcase size={28} color="var(--accent-blue)" strokeWidth={1.5} /></div>
-                      <h3 style={styles.landingCardTitle}>{t('web_landing_feature_title_pf_pj')}</h3>
-                    <p style={styles.landingCardText}>{t('web_landing_feature_desc_pf_pj')}</p>
-                  </div>
-                  <div className="landing-card" style={styles.landingCard}>
-                    <div style={styles.landingCardIcon}><Globe size={28} color="var(--accent-blue)" strokeWidth={1.5} /></div>
-                    <h3 style={styles.landingCardTitle}>{t('web_landing_feature_title_multicurrency')}</h3>
-                    <p style={styles.landingCardText}>{t('web_landing_feature_desc_multicurrency')}</p>
-                  </div>
-                  <div className="landing-card" style={styles.landingCard}>
-                    <div style={styles.landingCardIcon}><PiggyBank size={28} color="var(--accent-blue)" strokeWidth={1.5} /></div>
-                    <h3 style={styles.landingCardTitle}>{t('web_landing_feature_title_goals')}</h3>
-                    <p style={styles.landingCardText}>{t('web_landing_feature_desc_goals')}</p>
-                  </div>
-                  <div className="landing-card" style={styles.landingCard}>
-                    <div style={styles.landingCardIcon}><Compass size={28} color="var(--accent-blue)" strokeWidth={1.5} /></div>
-                    <h3 style={styles.landingCardTitle}>{t('web_landing_feature_title_explorer')}</h3>
-                    <p style={styles.landingCardText}>{t('web_landing_feature_desc_explorer')}</p>
-                  </div>
-                </div>
-
-                {/* ECONOMIC CALCULATOR SANDBOX (IBGE) */}
-                <div style={{
-                  background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.05) 0%, rgba(0, 245, 160, 0.05) 100%)',
-                  border: '1px solid rgba(0, 210, 255, 0.15)',
-                  borderRadius: '24px',
-                  padding: '60px',
-                  width: '100%',
-                  maxWidth: '900px',
-                  textAlign: 'left',
-                  boxShadow: '0 15px 30px rgba(0, 0, 0, 0.2)',
-                  marginBottom: '80px',
-                  boxSizing: 'border-box'
-                }}>
-                  <h3 style={{ fontSize: '1.6rem', fontWeight: '800', margin: '0 0 12px 0', letterSpacing: '-0.5px'}}>
-                  {t('web_landing_sandbox_title')}
-                  </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: '0 0 24px 0', lineHeight: '1.5'}}>
-                    Experimente o recurso premium de inteligência geográfica. Selecione um estado e digite seu gasto estimado para ver a comparação imediata com o salário médio oficial.
-                  </p>
-
-                  <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap', marginBottom: '24px'}}>
-                    <div style={{ flex: 1, minWidth: '200px' }}>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>{t('web_landing_sandbox_expense')}</label>
-                      <div style={{ position: 'relative' }}>
-                        <span style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>R$</span>
-                        <input 
-                          type="number"
-                          placeholder="Ex: 3500"
-                          min={0}
-                          style={{
-                            background: 'var(--card-bg)',
-                            border: '1px solid var(--card-border)',
-                            borderRadius: '12px',
-                            color: 'var(--text-primary)',
-                            padding: '18px 12px 12px 36px',
-                            fontSize: '0.95rem',
-                            width: '100%',
-                            boxSizing: 'border-box'
-                          }}
-                          value={sandboxExpense}
-                          onChange={(e) => setSandboxExpense(Number(e.target.value))}
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ flex: 1, minWidth: '200px' }}>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>{t('web_landing_sandbox_region')}</label>
-                      <select
-                        className="select-input"
-                        style={{ 
-                          background: 'var(--card-bg)', 
-                          borderRadius: '12px', 
-                          padding: '18px', 
-                          fontSize: '0.95rem',
-                          boxSizing: 'border-box'
-                        }}
-                        value={sandboxState}
-                        onChange={(e) => setSandboxState(e.target.value)}
+                    <div className="flex flex-col sm:flex-row justify-center gap-4 mb-20">
+                      <PrimaryButton
+                        onClick={() => setShowLandingPage(false)}
+                        className="bg-primary text-white font-bold px-8 py-4 rounded-eight shadow-lg hover:opacity-90 active:scale-95 transition-all"
                       >
-                        <option value="SP">São Paulo (SP)</option>
-                        <option value="RJ">Rio de Janeiro (RJ)</option>
-                        <option value="DF">Distrito Federal (DF)</option>
-                        <option value="SC">Santa Catarina (SC)</option>
-                        <option value="PR">Paraná (PR)</option>
-                        <option value="RS">Rio Grande do Sul (RS)</option>
-                        <option value="MG">Minas Gerais (MG)</option>
-                        <option value="BA">Bahia (BA)</option>
-                        <option value="PE">Pernambuco (PE)</option>
-                        <option value="CE">Ceará (CE)</option>
-                      </select>
+                        {t('web_landing_create_free')}
+                      </PrimaryButton>
+                      <button
+                        onClick={() => { loadDemoData(); trackDemoLoaded(); }}
+                        className="bg-white border border-outline text-primary font-bold px-8 py-4 rounded-eight hover:bg-surface transition-all active:scale-95"
+                      >
+                        {t('web_landing_test_demo')}
+                      </button>
                     </div>
                   </div>
 
-                  <div style={{
-                    background: 'var(--card-border)',
-                    padding: '30px',
-                    borderRadius: '16px',
-                    border: '1px solid var(--card-border)'
-                  }}>
-                    <div className="rg-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '16px'}}>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('web_landing_sandbox_avg_salary')}</span>
-                        <strong style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>R$ {ESTADO_PROFILES[sandboxState] ? ESTADO_PROFILES[sandboxState].salarioMedio.toLocaleString('pt-BR') : '2400'}</strong>
+                  {/* DASHBOARD MOCKUP PREVIEW */}
+                  <div className="max-w-5xl mx-auto relative">
+                    <div className="rounded-2xl p-4 md:p-8 shadow-premium border border-outline/50 relative overflow-hidden" style={{ background: '#eff4ff' }}>
+                      <div className="flex gap-2 mb-6">
+                        <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div className="w-3 h-3 rounded-full bg-accent"></div>
                       </div>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('web_landing_sandbox_cost')}</span>
-                        <strong style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>R$ {ESTADO_PROFILES[sandboxState] ? ESTADO_PROFILES[sandboxState].custoVidaClasseMedia.toLocaleString('pt-BR') : '2900'}</strong>
+
+                      <div className="flex justify-between items-center mb-8">
+                        <div className="flex gap-1 p-1 bg-white/50 rounded-lg">
+                          <button className="px-4 py-1.5 text-xs font-bold bg-secondary text-white rounded-md shadow-sm">Minha Vida (PF)</button>
+                          <button className="px-4 py-1.5 text-xs font-medium text-on-surface-variant hover:text-primary">Consultoria (PJ)</button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white p-6 rounded-xl border border-outline/20 shadow-sm">
+                          <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">Saldo Consolidado</span>
+                          <div className="text-2xl font-extrabold text-primary mt-1">R$ 17.290,00</div>
+                          <div className="text-xs font-semibold text-accent mt-2 flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-accent"></span> +12.4% este mês
+                          </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl border border-outline/20 shadow-sm">
+                          <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">Caixinha: Reserva</span>
+                          <div className="text-2xl font-extrabold text-primary mt-1">R$ 4.500,00</div>
+                          <div className="mt-4 h-1.5 w-full bg-surface-container-low rounded-full overflow-hidden">
+                            <div className="bg-secondary h-full w-[45%]"></div>
+                          </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl border border-outline/20 shadow-sm">
+                          <div className="flex justify-between items-start">
+                            <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">Wise USD</span>
+                            <span className="text-xs font-bold px-2 py-0.5 bg-blue-50 text-blue-600 rounded">$</span>
+                          </div>
+                          <div className="text-2xl font-extrabold text-primary mt-1">$ 350,00</div>
+                          <div className="text-[11px] text-on-surface-variant mt-2 font-medium">Eq. R$ 1.890,00</div>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div style={{ borderTop: '1px solid var(--card-border)', paddingTop: '12px', fontSize: '0.9rem' }}>
-                      {sandboxExpense > 0 ? (<>
-                      Seu gasto de <strong style={{ color: 'var(--text-primary)' }}>R$ {sandboxExpense.toLocaleString('pt-BR')}</strong> é{' '}
-                      <strong className={sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400) > 0 ? 'text-danger-mangos' : 'text-success-mangos'}>
-                        {Math.round(((sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) / (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) * 100) > 0 
-                          ? `+${Math.round(((sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) / (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) * 100)}%` 
-                          : `${Math.round(((sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) / (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) * 100)}%`}{' '}
-                      </strong>
-                      {sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400) > 0 ? t('web_landing_sandbox_higher') : t('web_landing_sandbox_lower')} {t('web_landing_sandbox_than_salary')}
-                      </>) : (
-                      <span style={{ color: 'var(--text-muted)' }}>Digite um valor acima para ver a comparação.</span>
-                      )}
+
+                    <div className="absolute -top-10 -right-20 w-64 h-64 bg-secondary/5 rounded-full blur-3xl -z-10"></div>
+                    <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-accent/5 rounded-full blur-3xl -z-10"></div>
+                  </div>
+                </section>
+
+                {/* FEATURES SECTION */}
+                <section className="py-24 px-6 bg-surface">
+                  <div className="max-w-6xl mx-auto">
+                    <div className="text-center mb-16">
+                      <h2 className="text-3xl md:text-4xl font-extrabold text-primary mb-4">{t('web_landing_features_title')}</h2>
+                      <div className="w-16 h-1 bg-secondary mx-auto rounded-full"></div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="bg-white p-8 rounded-2xl shadow-sm border border-outline/10 hover:shadow-md transition-shadow group">
+                        <div className="w-12 h-12 bg-blue-50 text-secondary rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                          <Briefcase size={24} color="currentColor" strokeWidth={1.5} />
+                        </div>
+                        <h3 className="text-xl font-bold text-primary mb-3">{t('web_landing_feature_title_pf_pj')}</h3>
+                        <p className="text-on-surface-variant leading-relaxed">{t('web_landing_feature_desc_pf_pj')}</p>
+                      </div>
+                      <div className="bg-white p-8 rounded-2xl shadow-sm border border-outline/10 hover:shadow-md transition-shadow group">
+                        <div className="w-12 h-12 bg-blue-50 text-secondary rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                          <Globe size={24} color="currentColor" strokeWidth={1.5} />
+                        </div>
+                        <h3 className="text-xl font-bold text-primary mb-3">{t('web_landing_feature_title_multicurrency')}</h3>
+                        <p className="text-on-surface-variant leading-relaxed">{t('web_landing_feature_desc_multicurrency')}</p>
+                      </div>
+                      <div className="bg-white p-8 rounded-2xl shadow-sm border border-outline/10 hover:shadow-md transition-shadow group">
+                        <div className="w-12 h-12 bg-blue-50 text-secondary rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                          <PiggyBank size={24} color="currentColor" strokeWidth={1.5} />
+                        </div>
+                        <h3 className="text-xl font-bold text-primary mb-3">{t('web_landing_feature_title_goals')}</h3>
+                        <p className="text-on-surface-variant leading-relaxed">{t('web_landing_feature_desc_goals')}</p>
+                      </div>
+                      <div className="bg-white p-8 rounded-2xl shadow-sm border border-outline/10 hover:shadow-md transition-shadow group">
+                        <div className="w-12 h-12 bg-blue-50 text-secondary rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                          <Compass size={24} color="currentColor" strokeWidth={1.5} />
+                        </div>
+                        <h3 className="text-xl font-bold text-primary mb-3">{t('web_landing_feature_title_explorer')}</h3>
+                        <p className="text-on-surface-variant leading-relaxed">{t('web_landing_feature_desc_explorer')}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </section>
 
-                {/* CALL TO ACTION BOTTOM */}
-                <div style={{ margin: '40px 0 60px 0' }}>
-                  <h2 style={{ fontSize: '2.2rem', fontWeight: 800, marginBottom: '16px', letterSpacing: '-0.5px' }}>
-                    {t('web_landing_cta_title')}
-                  </h2>
-                  <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '1.1rem' }}>
-                    {t('web_landing_cta_subtitle')}
-                  </p>
-                  <PrimaryButton 
-                    onClick={() => setShowLandingPage(false)}
-                    style={{ padding: '24px 36px', fontSize: '1.05rem', borderRadius: '14px'}}
-                  >
-                    {t('web_landing_create_free')}
-                  </PrimaryButton>
-                </div>
+                {/* AD BANNER */}
+                <section className="py-8 px-6">
+                  <div className="max-w-5xl mx-auto">
+                    <AdBanner adSlot="landing_home_mid" />
+                  </div>
+                </section>
+
+                {/* COST OF LIVING SANDBOX */}
+                <section className="py-24 px-6">
+                  <div className="max-w-5xl mx-auto rounded-3xl p-8 md:p-16 relative overflow-hidden shadow-premium" style={{ background: '#e0e9f8' }}>
+                    <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                      <div>
+                        <h2 className="text-3xl font-extrabold text-primary mb-6">{t('web_landing_sandbox_title')}</h2>
+                        <p className="text-on-surface-variant mb-8 leading-relaxed">
+                          Experimente o recurso premium de inteligência geográfica. Selecione um estado e digite seu gasto estimado para ver a comparação imediata.
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                          <div>
+                            <label className="block text-[10px] font-bold text-primary uppercase mb-2">{t('web_landing_sandbox_expense')}</label>
+                            <div className="relative">
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm font-semibold">R$</span>
+                              <input
+                                type="number"
+                                placeholder="Ex: 3500"
+                                min={0}
+                                className="w-full bg-white border-none rounded-eight py-3 pl-10 pr-4 text-primary font-bold focus:ring-2 focus:ring-secondary outline-none"
+                                value={sandboxExpense}
+                                onChange={(e) => setSandboxExpense(Number(e.target.value))}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-primary uppercase mb-2">{t('web_landing_sandbox_region')}</label>
+                            <select
+                              className="w-full bg-white border-none rounded-eight py-3 px-4 text-primary font-bold focus:ring-2 focus:ring-secondary appearance-none outline-none"
+                              value={sandboxState}
+                              onChange={(e) => setSandboxState(e.target.value)}
+                            >
+                              <option value="SP">São Paulo (SP)</option>
+                              <option value="RJ">Rio de Janeiro (RJ)</option>
+                              <option value="DF">Distrito Federal (DF)</option>
+                              <option value="SC">Santa Catarina (SC)</option>
+                              <option value="PR">Paraná (PR)</option>
+                              <option value="RS">Rio Grande do Sul (RS)</option>
+                              <option value="MG">Minas Gerais (MG)</option>
+                              <option value="BA">Bahia (BA)</option>
+                              <option value="PE">Pernambuco (PE)</option>
+                              <option value="CE">Ceará (CE)</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white/40 backdrop-blur-md rounded-2xl p-6 border border-white/50">
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                          <div>
+                            <div className="text-[10px] font-bold text-on-surface-variant/60 uppercase">{t('web_landing_sandbox_avg_salary')}</div>
+                            <div className="text-xl font-extrabold text-primary">R$ {ESTADO_PROFILES[sandboxState] ? ESTADO_PROFILES[sandboxState].salarioMedio.toLocaleString('pt-BR') : '2400'}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] font-bold text-on-surface-variant/60 uppercase">{t('web_landing_sandbox_cost')}</div>
+                            <div className="text-xl font-extrabold text-primary">R$ {ESTADO_PROFILES[sandboxState] ? ESTADO_PROFILES[sandboxState].custoVidaClasseMedia.toLocaleString('pt-BR') : '2900'}</div>
+                          </div>
+                        </div>
+
+                        <div className="p-4 bg-primary/5 rounded-lg border border-primary/10 text-sm">
+                          {sandboxExpense > 0 ? (<p className="text-primary font-medium text-center">
+                            Seu gasto de <strong>R$ {sandboxExpense.toLocaleString('pt-BR')}</strong> é{' '}
+                            <strong className={sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400) > 0 ? 'text-danger-mangos' : 'text-success-mangos'}>
+                              {Math.round(((sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) / (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) * 100) > 0
+                                ? `+${Math.round(((sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) / (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) * 100)}%`
+                                : `${Math.round(((sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) / (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400)) * 100)}%`}
+                            </strong>{' '}
+                            {sandboxExpense - (ESTADO_PROFILES[sandboxState]?.salarioMedio || 2400) > 0 ? t('web_landing_sandbox_higher') : t('web_landing_sandbox_lower')} {t('web_landing_sandbox_than_salary')}
+                          </p>) : (
+                            <p className="text-primary font-medium text-center italic">Digite um valor acima para ver a comparação em tempo real com o custo de vida local.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full -translate-y-1/2 translate-x-1/3"></div>
+                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-secondary/10 rounded-full translate-y-1/2 -translate-x-1/4"></div>
+                  </div>
+                </section>
+
+                {/* CTA BOTTOM */}
+                <section className="py-24 px-6 text-center">
+                  <div className="max-w-3xl mx-auto">
+                    <h2 className="text-3xl md:text-5xl font-extrabold text-primary mb-6 tracking-tight">
+                      {t('web_landing_cta_title')}
+                    </h2>
+                    <p className="text-on-surface-variant mb-10 text-lg">
+                      {t('web_landing_cta_subtitle')}
+                    </p>
+                    <PrimaryButton
+                      onClick={() => setShowLandingPage(false)}
+                      className="bg-primary text-white font-bold px-10 py-5 rounded-eight text-lg shadow-xl hover:opacity-90 active:scale-95 transition-all"
+                    >
+                      {t('web_landing_create_free')}
+                    </PrimaryButton>
+                  </div>
+                </section>
               </div>
             )}
 
             {/* VISTA EXPLORADOR DE CUSTO DE VIDA PÚBLICO */}
             {landingView === 'costExplorer' && (
-              <div style={{
-                maxWidth: '1200px',
-                margin: '0 auto',
-                padding: '60px 40px',
-                flex: 1,
-                width: '100%',
-                boxSizing: 'border-box'
-              }}>
-                <div style={{ marginBottom: '32px', textAlign: 'center' }}>
-                  <h2 style={{ fontSize: '2.5rem', fontWeight: '800', margin: '0 0 12px 0', letterSpacing: '-0.5px'}}>
+              <div className="max-w-7xl mx-auto px-6 py-16 flex-1 w-full box-border">
+                <div className="mb-8 text-center">
+                  <h2 className="text-3xl md:text-4xl font-extrabold mb-3 tracking-tight">
                     {t('web_cost_title')}
                   </h2>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '650px', margin: '0 auto 24px auto', lineHeight: '1.5'}}>
+                  <p className="text-[var(--text-secondary)] text-lg max-w-2xl mx-auto mb-6 leading-relaxed">
                     Pesquise dados oficiais de PIB e renda de qualquer município brasileiro no mapa interativo. Simule suas despesas locais personalizando o campo abaixo.
                   </p>
-                  
-                  {/* Sandbox input for public visitor to set average expense */}
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'center', 
-                    alignItems: 'center', 
-                    gap: '18px', 
-                    background: 'var(--card-bg)', 
-                    padding: '24px 24px', 
-                    borderRadius: '16px',
-                    border: '1px solid var(--card-border)',
-                    width: 'fit-content',
-                    margin: '0 auto 12px auto'
-                  }}>
-                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Sua Despesa Mensal Estimada:</span>
-                    <div style={{ position: 'relative', width: '150px' }}>
-                      <span style={{ position: 'absolute', left: '10px', top: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>R$</span>
-                      <input 
+
+                  <div className="flex justify-center items-center gap-4 bg-[var(--card-bg)] p-5 rounded-2xl border border-[var(--card-border)] w-fit mx-auto mb-3">
+                    <span className="text-sm text-[var(--text-secondary)] font-semibold">Sua Despesa Mensal Estimada:</span>
+                    <div className="relative w-40">
+                      <span className="absolute left-2.5 top-2.5 text-[var(--text-secondary)] text-xs">R$</span>
+                      <input
                         type="number"
-                        style={{
-                          background: 'var(--card-bg)',
-                          border: '1px solid var(--card-border)',
-                          borderRadius: '8px',
-                          color: 'var(--text-primary)',
-                          padding: '12px 8px 8px 30px',
-                          fontSize: '0.9rem',
-                          width: '100%',
-                          boxSizing: 'border-box',
-                          outline: 'none'
-                        }}
+                        className="w-full bg-[var(--card-bg)] border border-[var(--card-border)] rounded-lg text-[var(--text-primary)] py-2.5 pl-8 pr-2 text-sm outline-none focus:border-[var(--accent-blue)] transition-colors"
                         value={sandboxExpense}
                         onChange={(e) => setSandboxExpense(Number(e.target.value))}
                       />
@@ -2006,8 +2060,8 @@ export default function App() {
                   </div>
                 </div>
 
-                <CostExplorer 
-                  planoUsuario="premium" // Completely unlocked for landing page demo!
+                <CostExplorer
+                  planoUsuario="premium"
                   userAverageExpense={sandboxExpense}
                   moedaBase="BRL"
                   onUpgrade={() => setShowLandingPage(false)}
@@ -2017,23 +2071,16 @@ export default function App() {
 
             {/* VISTA BLOG / DICAS E EDUCAÇÃO FINANCEIRA PÚBLICA */}
             {landingView === 'blog' && (
-              <div style={{
-                maxWidth: '1200px',
-                margin: '0 auto',
-                padding: '60px 40px',
-                flex: 1,
-                width: '100%',
-                boxSizing: 'border-box'
-              }}>
+              <div className="max-w-7xl mx-auto px-6 py-16 flex-1 w-full box-border">
                 {activeArticle ? (
                   renderArticleReader(activeArticle, () => setActiveArticle(null))
                 ) : (
                   <>
-                    <div style={{ marginBottom: '40px', textAlign: 'center' }}>
-                      <h2 style={{ fontSize: '2.5rem', fontWeight: '800', margin: '0 0 12px 0', letterSpacing: '-0.5px'}}>
+                    <div className="mb-10 text-center">
+                      <h2 className="text-3xl md:text-4xl font-extrabold mb-3 tracking-tight">
                         {t('web_blog_title')}
                       </h2>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '650px', margin: '0 auto', lineHeight: '1.5'}}>
+                      <p className="text-[var(--text-secondary)] text-lg max-w-2xl mx-auto leading-relaxed">
                         Aprenda a planejar melhor seus orçamentos, investir de forma inteligente e gerenciar as finanças da sua empresa.
                       </p>
                     </div>
@@ -2044,112 +2091,99 @@ export default function App() {
               </div>
             )}
 
-                {/* LEAD CAPTURE */}
-                <div style={{
-                  margin: '0 0 40px 0',
-                  padding: '32px',
-                  background: 'linear-gradient(135deg, rgba(0, 210, 255, 0.06), rgba(99, 102, 241, 0.06))',
-                  borderRadius: '16px',
-                  border: '1px solid rgba(0, 210, 255, 0.15)',
-                  textAlign: 'center',
-                }}>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '8px' }}>
-                    {t('web_lead_title')}
-                  </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '20px', maxWidth: '500px', margin: '0 auto 20px auto' }}>
-                    {t('web_lead_subtitle')}
-                  </p>
-                  <form
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      const form = e.target as HTMLFormElement;
-                      const input = form.querySelector('input[type=email]') as HTMLInputElement;
-                      const checkbox = form.querySelector('input[type=checkbox]') as HTMLInputElement;
-                      if (!checkbox?.checked) {
-                        alert(t('web_lead_lgpd_required'));
-                        return;
-                      }
-                      if (input?.value) {
-                        try {
-                          await fetch(`${SUPABASE_URL}/functions/v1/lead-capture`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email: input.value, source: 'landing_page' }),
-                          });
-                        } catch {}
-                        input.value = '';
-                        checkbox.checked = false;
-                        alert(t('web_lead_thanks'));
-                      }
-                    }}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}
-                  >
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                      <input
-                        type="email"
-                        placeholder="seu@email.com"
-                        required
-                        style={{
-                          padding: '14px 18px', borderRadius: '12px',
-                          border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)',
-                          color: '#fff', fontSize: '0.9rem', width: '280px', outline: 'none',
-                        }}
-                      />
-                      <PrimaryButton type="submit" style={{ padding: '14px 24px', fontSize: '0.9rem' }}>
-                        {t('web_lead_submit')}
-                      </PrimaryButton>
-                    </div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                      <input type="checkbox" required style={{ width: 14, height: 14, accentColor: 'var(--accent-green)' }} />
-                      <span>
-                        {t('web_lead_lgpd_concordo')}{' '}
-                        <a href="/privacidade" style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>{t('web_lead_lgpd_privacy')}</a>
-                        {' '}{t('web_lead_lgpd_e')}{' '}
-                        <a href="/termos" style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>{t('web_lead_lgpd_terms')}</a>
-                      </span>
-                    </label>
-                  </form>
-                </div>
-
-                {/* FOOTER */}
-            <footer style={{
-              borderTop: '1px solid var(--card-border)',
-              padding: '48px 40px 36px',
-              fontSize: '0.85rem',
-              color: 'var(--text-muted)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '40px', marginBottom: '32px' }}>
-                <div style={{ minWidth: '200px' }}>
-                  <Logo size="md" />
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '10px', lineHeight: 1.5, maxWidth: '220px' }}>
-                    Controle financeiro inteligente para PF, PJ e multimoedas.
-                  </p>
-                </div>
-                <div style={{ display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
-                  <div style={{ minWidth: '120px' }}>
-                    <h4 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px', color: 'var(--text-secondary)' }}>Produto</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <Link to="/precos" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_pricing')}</Link>
-                      <a href="https://t.me/comreisbot" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_contact')}</a>
-                    </div>
+            {/* NEWSLETTER / LEAD CAPTURE */}
+            <section className="px-6 py-16 md:py-20" style={{ background: '#eef2ff' }}>
+              <div className="max-w-2xl mx-auto text-center">
+                <h3 className="text-xl md:text-2xl font-extrabold mb-3 tracking-tight text-[var(--text-primary)]">
+                  {t('web_lead_title')}
+                </h3>
+                <p className="text-[var(--text-secondary)] text-sm md:text-base mb-8 max-w-lg mx-auto">
+                  {t('web_lead_subtitle')}
+                </p>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const form = e.target as HTMLFormElement;
+                    const input = form.querySelector('input[type=email]') as HTMLInputElement;
+                    const checkbox = form.querySelector('input[type=checkbox]') as HTMLInputElement;
+                    if (!checkbox?.checked) {
+                      alert(t('web_lead_lgpd_required'));
+                      return;
+                    }
+                    if (input?.value) {
+                      try {
+                        await fetch(`${SUPABASE_URL}/functions/v1/lead-capture`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email: input.value, source: 'landing_page' }),
+                        });
+                      } catch {}
+                      input.value = '';
+                      checkbox.checked = false;
+                      alert(t('web_lead_thanks'));
+                    }
+                  }}
+                  className="flex flex-col items-center gap-4"
+                >
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    <input
+                      type="email"
+                      placeholder="seu@email.com"
+                      required
+                      className="px-5 py-3.5 rounded-xl border border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] text-[var(--text-primary)] text-sm w-72 outline-none focus:border-[var(--accent-blue)] transition-colors"
+                    />
+                    <PrimaryButton type="submit" className="px-6 py-3.5 text-sm font-bold">
+                      {t('web_lead_submit')}
+                    </PrimaryButton>
                   </div>
-                  <div style={{ minWidth: '120px' }}>
-                    <h4 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px', color: 'var(--text-secondary)' }}>Legal</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <Link to="/privacidade" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_privacy')}</Link>
-                      <Link to="/termos" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>{t('web_landing_footer_terms')}</Link>
-                    </div>
-                  </div>
-                </div>
+                  <label className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] cursor-pointer">
+                    <input type="checkbox" required className="w-3.5 h-3.5 accent-[var(--accent-green)]" />
+                    <span>
+                      {t('web_lead_lgpd_concordo')}{' '}
+                      <a href="/privacidade" className="text-[var(--accent-blue)] no-underline">{t('web_lead_lgpd_privacy')}</a>
+                      {' '}{t('web_lead_lgpd_e')}{' '}
+                      <a href="/termos" className="text-[var(--accent-blue)] no-underline">{t('web_lead_lgpd_terms')}</a>
+                    </span>
+                  </label>
+                </form>
               </div>
-              <div style={{ borderTop: '1px solid var(--card-border)', paddingTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                <div>&copy; 2026 {t('web_landing_footer_copyright')}</div>
-                <div style={{ fontSize: '0.7rem', opacity: 0.5 }}>
-                  Desenvolvido por <a href="https://pstec.pavilasantana.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>PSTec</a>
+            </section>
+
+            {/* FOOTER */}
+            <footer className="bg-surface-container-lowest border-t border-outline/30">
+              <div className="max-w-7xl mx-auto px-6 py-16">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                  <div className="col-span-1 md:col-span-2">
+                    <div className="text-3xl font-extrabold text-primary mb-4 flex items-center">
+                      com<span className="text-secondary">réis</span>
+                      <div className="w-2 h-2 rounded-full bg-secondary ml-1.5"></div>
+                    </div>
+                    <p className="text-sm text-on-surface-variant max-w-xs leading-relaxed">
+                      Controle financeiro inteligente para PF, PJ e multimoedas. Simplificando sua vida financeira desde 2024.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-6">Produto</h4>
+                    <ul className="space-y-4">
+                      <li><Link to="/precos" className="text-sm text-on-surface-variant hover:text-secondary hover:underline underline-offset-4 transition-all">{t('web_landing_footer_pricing')}</Link></li>
+                      <li><a href="https://t.me/comreisbot" target="_blank" rel="noopener noreferrer" className="text-sm text-on-surface-variant hover:text-secondary hover:underline underline-offset-4 transition-all">{t('web_landing_footer_contact')}</a></li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-6">Legal</h4>
+                    <ul className="space-y-4">
+                      <li><Link to="/privacidade" className="text-sm text-on-surface-variant hover:text-secondary hover:underline underline-offset-4 transition-all">{t('web_landing_footer_privacy')}</Link></li>
+                      <li><Link to="/termos" className="text-sm text-on-surface-variant hover:text-secondary hover:underline underline-offset-4 transition-all">{t('web_landing_footer_terms')}</Link></li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="pt-8 border-t border-outline/20 flex flex-col md:flex-row justify-between items-center gap-4">
+                  <p className="text-[11px] text-on-surface-variant">&copy; 2026 {t('web_landing_footer_copyright')}</p>
+                  <p className="text-[11px] text-on-surface-variant">Desenvolvido por <span className="font-bold text-primary">PSTec</span></p>
                 </div>
               </div>
             </footer>
-          </div>
+          </>
         ) : (
           /* TELA DE AUTENTICAÇÃO COM LINK DE VOLTAR */
           <div style={{
@@ -2183,7 +2217,10 @@ export default function App() {
             </div>
             <Card style={{ maxWidth: '500px', width: '100%', textAlign: 'left' }} className="fade-in">
             <div style={{ marginBottom: '24px' }}>
-              <Logo size="lg" />
+              <div className="text-3xl font-extrabold text-primary flex items-center">
+                com<span className="text-secondary">réis</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-secondary ml-1.5"></div>
+              </div>
             </div>
 
             {isSupabaseConfigured ? (
@@ -2490,6 +2527,70 @@ export default function App() {
                       <PrimaryButton type="submit" style={{ width: '100%' }} disabled={isAuthLoading || authLoading}>
                         {isAuthLoading ? t('web_auth_creating') : t('web_auth_create_start')} <ChevronRight size={18} />
                       </PrimaryButton>
+
+                      <div style={{ display: 'flex', alignItems: 'center', margin: '10px 0' }}>
+                        <div style={{ flex: 1, height: '1px', background: 'var(--card-border)' }} />
+                        <span style={{ margin: '0 10px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t('web_auth_or_continue')}</span>
+                        <div style={{ flex: 1, height: '1px', background: 'var(--card-border)' }} />
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                          type="button"
+                          onClick={() => signInWithProvider('google')}
+                          style={{
+                            flex: 1,
+                            padding: '12px',
+                            background: 'var(--card-bg)',
+                            border: '1px solid var(--card-border)',
+                            borderRadius: '8px',
+                            color: 'var(--text-primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            fontWeight: 600
+                          }}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                            <path d="M1 1h22v22H1z" fill="none"/>
+                          </svg>
+                          Google
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => signInWithProvider('azure')}
+                          style={{
+                            flex: 1,
+                            padding: '12px',
+                            background: 'var(--card-bg)',
+                            border: '1px solid var(--card-border)',
+                            borderRadius: '8px',
+                            color: 'var(--text-primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            fontWeight: 600
+                          }}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M10 0H0v10h10V0z" fill="#f25022"/>
+                            <path d="M21 0H11v10h10V0z" fill="#7fba00"/>
+                            <path d="M10 11H0v10h10V11z" fill="#00a4ef"/>
+                            <path d="M21 11H11v10h10V11z" fill="#ffb900"/>
+                          </svg>
+                          Microsoft
+                        </button>
+                      </div>
                     </div>
                   </form>
                 )}
@@ -2591,57 +2692,306 @@ export default function App() {
       )
     ) : (
         /* 2. DASHBOARD PRINCIPAL */
-        <div className="dashboard-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '36px'}}>
+        <div style={{ display: 'flex', minHeight: '100vh' }}>
           
-          {/* HEADER */}
-          <header className="app-header" style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            marginBottom: '32px',
-            flexWrap: 'wrap',
-            gap: '24px'
+          {/* MOBILE SIDEBAR OVERLAY */}
+          {showMobileSidebar && (
+            <>
+              <div
+                className="md:hidden"
+                onClick={() => setShowMobileSidebar(false)}
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  background: 'rgba(0,0,0,0.5)',
+                  zIndex: 40
+                }}
+              />
+              <aside className="md:hidden" style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '288px',
+                height: '100vh',
+                flexDirection: 'column',
+                background: 'var(--card-bg)',
+                borderRight: '1px solid var(--card-border)',
+                padding: '24px 12px',
+                boxSizing: 'border-box',
+                zIndex: 50,
+                overflowY: 'auto'
+              }}>
+                <div style={{ padding: '0 12px', marginBottom: '32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--accent-blue)' }}>account_balance_wallet</span>
+                    <span style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>comréis</span>
+                  </div>
+                  <button
+                    onClick={() => setShowMobileSidebar(false)}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                  {([
+                    { view: 'dashboard' as const, label: t('web_dashboard_panel'), icon: 'dashboard' },
+                    { view: 'costExplorer' as const, label: t('web_cost_title'), icon: 'explore' },
+                    { view: 'blog' as const, label: t('web_dashboard_blog'), icon: 'menu_book' },
+                    { view: 'investimentos' as const, label: t('web_dashboard_investments'), icon: 'show_chart' },
+                    { view: 'inventario' as const, label: t('web_dashboard_inventory'), icon: 'inventory_2' },
+                    { view: 'calendario' as const, label: t('web_dashboard_calendar'), icon: 'calendar_today' },
+                    { view: 'analiseGastos' as const, label: t('web_analise_nav'), icon: 'bar_chart' },
+                  ]).map(item => (
+                    <button
+                      key={item.view}
+                      onClick={() => { setActiveView(item.view); if (item.view === 'blog') setActiveArticle(null); setShowMobileSidebar(false); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: activeView === item.view ? 700 : 500,
+                        fontSize: '0.9rem',
+                        transition: 'all 0.2s',
+                        textAlign: 'left',
+                        width: '100%',
+                        background: activeView === item.view ? 'var(--accent-blue)' : 'transparent',
+                        color: activeView === item.view ? '#fff' : 'var(--text-secondary)'
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>{item.icon}</span>
+                      {item.label}
+                    </button>
+                  ))}
+                  {activeSpace?.tipo === 'PJ' && (
+                    <button
+                      onClick={() => { setActiveView('fluxopj'); setShowMobileSidebar(false); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: activeView === 'fluxopj' ? 700 : 500,
+                        fontSize: '0.9rem',
+                        transition: 'all 0.2s',
+                        textAlign: 'left',
+                        width: '100%',
+                        background: activeView === 'fluxopj' ? 'var(--accent-blue)' : 'transparent',
+                        color: activeView === 'fluxopj' ? '#fff' : 'var(--text-secondary)'
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>account_balance</span>
+                      {t('web_dashboard_fluxopj')}
+                    </button>
+                  )}
+                </nav>
+                <button
+                  onClick={() => { setShowAddAccountModal(true); setShowMobileSidebar(false); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'var(--accent-blue)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    marginTop: '16px'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
+                  Nova Conta
+                </button>
+              </aside>
+            </>
+          )}
+
+          {/* DESKTOP SIDEBAR */}
+          <aside className="hidden md:flex side-nav" style={{
+            width: '288px',
+            minWidth: '288px',
+            flexDirection: 'column',
+            position: 'sticky',
+            top: 0,
+            height: '100vh',
+            overflowY: 'auto',
+            borderRight: '1px solid var(--card-border)',
+            background: 'var(--card-bg)',
+            padding: '24px 12px',
+            boxSizing: 'border-box'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '24px'}}>
-              <div 
+            <div style={{ padding: '0 12px', marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--accent-blue)' }}>account_balance_wallet</span>
+              <span style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>comréis</span>
+            </div>
+
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+              {([
+                { view: 'dashboard' as const, label: t('web_dashboard_panel'), icon: 'dashboard' },
+                { view: 'costExplorer' as const, label: t('web_cost_title'), icon: 'explore' },
+                { view: 'blog' as const, label: t('web_dashboard_blog'), icon: 'menu_book' },
+                { view: 'investimentos' as const, label: t('web_dashboard_investments'), icon: 'show_chart' },
+                { view: 'inventario' as const, label: t('web_dashboard_inventory'), icon: 'inventory_2' },
+                { view: 'calendario' as const, label: t('web_dashboard_calendar'), icon: 'calendar_today' },
+                { view: 'analiseGastos' as const, label: t('web_analise_nav'), icon: 'bar_chart' },
+              ]).map(item => (
+                <button
+                  key={item.view}
+                  onClick={() => { setActiveView(item.view); if (item.view === 'blog') setActiveArticle(null); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: activeView === item.view ? 700 : 500,
+                    fontSize: '0.9rem',
+                    transition: 'all 0.2s',
+                    textAlign: 'left',
+                    width: '100%',
+                    background: activeView === item.view ? 'var(--accent-blue)' : 'transparent',
+                    color: activeView === item.view ? '#fff' : 'var(--text-secondary)'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>{item.icon}</span>
+                  {item.label}
+                </button>
+              ))}
+              {activeSpace?.tipo === 'PJ' && (
+                <button
+                  onClick={() => setActiveView('fluxopj')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: activeView === 'fluxopj' ? 700 : 500,
+                    fontSize: '0.9rem',
+                    transition: 'all 0.2s',
+                    textAlign: 'left',
+                    width: '100%',
+                    background: activeView === 'fluxopj' ? 'var(--accent-blue)' : 'transparent',
+                    color: activeView === 'fluxopj' ? '#fff' : 'var(--text-secondary)'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>account_balance</span>
+                  {t('web_dashboard_fluxopj')}
+                </button>
+              )}
+            </nav>
+
+            <button
+              onClick={() => setShowAddAccountModal(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '14px',
+                borderRadius: '12px',
+                border: 'none',
+                background: 'var(--accent-blue)',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                marginTop: '16px',
+                transition: 'opacity 0.2s'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
+              Nova Conta
+            </button>
+          </aside>
+
+          {/* MAIN CONTENT AREA */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            
+            {/* TOP NAV BAR */}
+            <header className="app-header" style={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 30,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '0 36px',
+              height: '80px',
+              background: 'var(--card-bg)',
+              borderBottom: '1px solid var(--card-border)',
+              backdropFilter: 'blur(10px)',
+              flexWrap: 'wrap',
+              gap: '16px'
+            }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+              <button
+                className="md:hidden"
+                onClick={() => setShowMobileSidebar(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  padding: '4px'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>menu</span>
+              </button>
+              <div
                 onClick={handleOpenProfileModal}
-                style={{ 
-                  width: '40px', 
-                  height: '40px', 
-                  borderRadius: '50%', 
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
                   background: 'linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-green) 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
                   overflow: 'hidden',
-                  transition: 'transform 0.2s'
+                  transition: 'transform 0.2s',
+                  flexShrink: 0
                 }}
                 onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                 onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
                 title="Editar Perfil"
               >
-                {avatar_url ? (
-                  avatar_url.startsWith('http') ? (
-                    <img src={avatar_url} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                {(avatar_url && avatar_url.startsWith('http') && !avatarLoadError) ? (
+                    <img
+                      src={avatar_url}
+                      alt="Avatar"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={() => setAvatarLoadError(true)}
+                    />
                   ) : (
-                    <span style={{ fontSize: '22px' }}>{avatar_url}</span>
-                  )
-                ) : (
                   <span className="text-dark-mangos" style={{ fontSize: '20px', fontWeight: 'bold' }}>
                     {(nome_usuario || 'M').charAt(0).toUpperCase()}
                   </span>
                 )}
               </div>
               <div>
-                <div style={{ marginBottom: '4px' }}>
-                  <Logo size="md" withLeaf />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '2px'}}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Olá, {nome_usuario}</span>
-                  <span style={{ 
-                    fontSize: '0.7rem', 
-                    background: plano_usuario === 'premium' ? 'var(--accent-green-glow)' : 'var(--card-border)', 
+                  <span style={{
+                    fontSize: '0.7rem',
+                    background: plano_usuario === 'premium' ? 'var(--accent-green-glow)' : 'var(--card-border)',
                     color: plano_usuario === 'premium' ? 'var(--accent-green)' : 'var(--text-secondary)',
                     padding: '3px 8px',
                     borderRadius: '8px',
@@ -2651,11 +3001,195 @@ export default function App() {
                   </span>
                 </div>
               </div>
+
+              {/* USER MENU DROPDOWN TRIGGER */}
+              <div ref={userMenuRef} style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  style={{
+                    background: showUserMenu ? 'var(--card-border)' : 'transparent',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--card-border)',
+                    padding: '8px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    transition: 'all 0.2s'
+                  }}
+                  title={t('web_user_menu_edit_profile')}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>more_vert</span>
+                </button>
+
+                {/* USER MENU DROPDOWN */}
+                {showUserMenu && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--card-border)',
+                    borderRadius: '16px',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
+                    minWidth: '260px',
+                    zIndex: 50,
+                    overflow: 'hidden',
+                    animation: 'fadeIn 0.15s ease-out'
+                  }}>
+                    {/* User Info Header */}
+                    <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{nome_usuario}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{email_usuario}</div>
+                      <span style={{
+                        display: 'inline-block',
+                        fontSize: '0.65rem',
+                        background: plano_usuario === 'premium' ? 'var(--accent-green-glow)' : 'var(--card-border)',
+                        color: plano_usuario === 'premium' ? 'var(--accent-green)' : 'var(--text-secondary)',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        marginTop: '6px'
+                      }}>
+                        {plano_usuario.toUpperCase()}
+                      </span>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div style={{ padding: '8px' }}>
+                      <button
+                        onClick={handleOpenProfileModal}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '10px 12px',
+                          background: 'transparent',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          color: 'var(--text-primary)',
+                          textAlign: 'left',
+                          transition: 'background 0.15s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-border)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>edit</span>
+                        {t('web_user_menu_edit_profile')}
+                      </button>
+
+                      <button
+                        onClick={handleOpenPasswordModal}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '10px 12px',
+                          background: 'transparent',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          color: 'var(--text-primary)',
+                          textAlign: 'left',
+                          transition: 'background 0.15s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-border)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>key</span>
+                        {t('web_user_menu_change_password')}
+                      </button>
+
+                      <button
+                        onClick={handleCopyUserId}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '10px 12px',
+                          background: 'transparent',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          color: 'var(--text-primary)',
+                          textAlign: 'left',
+                          transition: 'background 0.15s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-border)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>tag</span>
+                        <span style={{ flex: 1 }}>{t('web_user_menu_user_id')}</span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                          {id_usuario.slice(0, 8)}...{id_usuario.slice(-4)}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Danger Zone */}
+                    <div style={{ padding: '8px', borderTop: '1px solid var(--card-border)' }}>
+                      <button
+                        onClick={handleLogoutClick}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '10px 12px',
+                          background: 'transparent',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          color: 'var(--text-primary)',
+                          textAlign: 'left',
+                          transition: 'background 0.15s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-border)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>logout</span>
+                        {t('web_logout_confirm')}
+                      </button>
+
+                      <button
+                        onClick={handleOpenDeleteAccount}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '10px 12px',
+                          background: 'transparent',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          color: 'var(--color-danger)',
+                          textAlign: 'left',
+                          transition: 'background 0.15s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete_forever</span>
+                        {t('web_user_menu_delete_account')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* CONTROLES / INTERRUPTOR DE WORKSPACE */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '24px'}}>
-              <div style={{ display: 'flex', background: 'var(--card-bg)', padding: '6px', borderRadius: '12px'}}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', background: 'var(--card-bg)', padding: '4px', borderRadius: '10px', border: '1px solid var(--card-border)' }}>
                 {espacos.map(space => (
                   <button
                     key={space.id}
@@ -2664,28 +3198,28 @@ export default function App() {
                       background: id_espaco_ativo === space.id ? 'var(--accent-blue)' : 'transparent',
                       color: id_espaco_ativo === space.id ? '#000' : 'var(--text-secondary)',
                       border: 'none',
-                      padding: '12px 16px',
+                      padding: '8px 14px',
                       borderRadius: '8px',
                       cursor: 'pointer',
                       fontWeight: 700,
                       transition: 'all 0.2s',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '9px'
+                      gap: '8px',
+                      fontSize: '0.8rem'
                     }}
                   >
                     {space.tipo === 'PF' ? <User size={14} /> : <Briefcase size={14} />}
                     {space.nome}
                   </button>
                 ))}
-                
                 <button
                   onClick={() => setShowAddSpaceModal(true)}
                   style={{
                     background: 'transparent',
                     color: 'var(--accent-blue)',
                     border: 'none',
-                    padding: '12px 12px',
+                    padding: '8px 10px',
                     borderRadius: '8px',
                     cursor: 'pointer',
                     fontWeight: 700,
@@ -2697,41 +3231,48 @@ export default function App() {
                 </button>
               </div>
 
-              {/* SELETOR DE MOEDA BASE */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px'}}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Visualizar em:</span>
-                <select 
-                  className="select-input" 
-                  style={{ padding: '9px 12px', width: 'auto', borderRadius: '10px'}}
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {t('web_dashboard_view_in')} 
+                <select
                   value={moeda_base}
                   onChange={(e) => setMoedaBase(e.target.value)}
+                  style={{
+                    background: 'var(--accent-blue)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '2px 6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    outline: 'none',
+                  }}
                 >
-                  <option value="BRL">BRL (R$)</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                  <option value="GBP">GBP (£)</option>
-                  <option value="JPY">JPY (¥)</option>
-                  <option value="CAD">CAD ($)</option>
-                  <option value="CHF">CHF (CHF)</option>
-                  <option value="AUD">AUD ($)</option>
-                  <option value="CNY">CNY (¥)</option>
-                  <option value="MXN">MXN ($)</option>
-                  <option value="ARS">ARS ($)</option>
+                  <option value="BRL">R$ BRL</option>
+                  <option value="USD">$ USD</option>
+                  <option value="EUR">€ EUR</option>
+                  <option value="GBP">£ GBP</option>
+                  <option value="ARS">$ ARS</option>
+                  <option value="JPY">¥ JPY</option>
+                  <option value="CAD">$ CAD</option>
+                  <option value="AUD">$ AUD</option>
+                  <option value="CHF">CHF</option>
+                  <option value="CNY">¥ CNY</option>
+                  <option value="MXN">$ MXN</option>
+                  <option value="AED">AED</option>
                 </select>
-              </div>
+              </span>
 
-              {/* SELETOR DE IDIOMA */}
               <LanguageSelector />
 
-              {/* MODO PRIVACIDADE (Phase 4.1) */}
               <button
                 onClick={() => setPrivacyMode(p => !p)}
                 style={{
                   background: privacyMode ? 'rgba(0, 229, 255, 0.12)' : 'rgba(255,255,255,0.04)',
                   color: privacyMode ? 'var(--accent-blue)' : 'var(--text-secondary)',
                   border: privacyMode ? '1px solid rgba(0, 229, 255, 0.3)' : '1px solid var(--card-border)',
-                  padding: '12px',
-                  borderRadius: '12px',
+                  padding: '10px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -2742,15 +3283,14 @@ export default function App() {
                 {privacyMode ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
 
-              {/* FAQ (Phase 1) */}
               <button
                 onClick={() => setShowFAQModal(true)}
                 style={{
                   background: 'rgba(255,255,255,0.04)',
                   color: 'var(--text-secondary)',
                   border: '1px solid var(--card-border)',
-                  padding: '12px',
-                  borderRadius: '12px',
+                  padding: '10px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -2761,40 +3301,20 @@ export default function App() {
                 <HelpCircle size={16} />
               </button>
 
-              {/* TERMOS LGPD (Phase 1) */}
               <button
-                onClick={() => setShowTermosModal(true)}
+                onClick={handleLogout}
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--card-border)',
-                  padding: '12px',
-                  borderRadius: '12px',
+                  background: 'rgba(255, 74, 90, 0.1)',
+                  color: 'var(--color-danger)',
+                  border: 'none',
+                  padding: '10px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   transition: 'all 0.2s'
                 }}
-                title="Privacidade & LGPD"
-              >
-                <Shield size={16} />
-              </button>
-
-              {/* RESET DE DADOS */}
-              <button 
-                onClick={handleLogout} 
-                style={{ 
-                  background: 'rgba(255, 74, 90, 0.1)', 
-                  color: 'var(--color-danger)', 
-                  border: 'none', 
-                  padding: '12px 12px', 
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '9px'
-                }}
-                title="Sair / Resetar"
+                title="Sair"
               >
                 <LogOut size={16} />
               </button>
@@ -2802,153 +3322,8 @@ export default function App() {
           </header>
 
 
-          {/* TAB NAVIGATION */}
-          <div className="tab-nav" style={{ 
-            display: 'flex', 
-            gap: '18px', 
-            marginBottom: '24px', 
-            background: 'var(--card-bg)', 
-            padding: '9px', 
-            borderRadius: '16px', 
-            border: '1px solid var(--card-border)',
-            width: 'fit-content'
-          }}>
-            <button
-              onClick={() => setActiveView('dashboard')}
-              className={activeView === 'dashboard' ? 'btn-tab-active' : 'btn-tab-inactive'}
-              style={{
-                fontWeight: 700,
-                border: 'none',
-                padding: '15px 20px',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                fontSize: '0.9rem'
-              }}
-            >
-              <Wallet size={16} />
-              {t('web_dashboard_panel')}
-            </button>
-            <button
-              onClick={() => setActiveView('costExplorer')}
-              className={activeView === 'costExplorer' ? 'btn-tab-active' : 'btn-tab-inactive'}
-              style={{
-                fontWeight: 700,
-                border: 'none',
-                padding: '15px 20px',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                fontSize: '0.9rem'
-              }}
-            >
-              <MapPin size={16} />
-              {t('web_cost_title')}
-            </button>
-            <button
-              onClick={() => { setActiveView('blog'); setActiveArticle(null); }}
-              className={activeView === 'blog' ? 'btn-tab-active' : 'btn-tab-inactive'}
-              style={{
-                fontWeight: 700,
-                border: 'none',
-                padding: '15px 20px',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                fontSize: '0.9rem'
-              }}
-            >
-              <BookOpen size={16} />
-              {t('web_dashboard_blog')}
-            </button>
-            <button
-              onClick={() => setActiveView('investimentos')}
-              className={activeView === 'investimentos' ? 'btn-tab-active' : 'btn-tab-inactive'}
-              style={{
-                fontWeight: 700,
-                border: 'none',
-                padding: '15px 20px',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                fontSize: '0.9rem'
-              }}
-            >
-              <TrendingUp size={16} />
-              {t('web_dashboard_investments')}
-            </button>
-            {activeSpace?.tipo === 'PJ' && (
-            <button
-              onClick={() => setActiveView('fluxopj')}
-              className={activeView === 'fluxopj' ? 'btn-tab-active' : 'btn-tab-inactive'}
-              style={{
-                fontWeight: 700,
-                border: 'none',
-                padding: '15px 20px',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                fontSize: '0.9rem'
-              }}
-            >
-              <Briefcase size={16} />
-              {t('web_dashboard_fluxopj')}
-            </button>
-            )}
-            <button
-              onClick={() => setActiveView('inventario')}
-              className={activeView === 'inventario' ? 'btn-tab-active' : 'btn-tab-inactive'}
-              style={{
-                fontWeight: 700,
-                border: 'none',
-                padding: '15px 20px',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                fontSize: '0.9rem'
-              }}
-            >
-              <PiggyBank size={16} />
-              {t('web_dashboard_inventory')}
-            </button>
-            <button
-              onClick={() => setActiveView('calendario')}
-              className={activeView === 'calendario' ? 'btn-tab-active' : 'btn-tab-inactive'}
-              style={{
-                fontWeight: 700,
-                border: 'none',
-                padding: '15px 20px',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                fontSize: '0.9rem'
-              }}
-            >
-              <CalendarDays size={16} />
-              {t('web_dashboard_calendar')}
-            </button>
-          </div>
+            {/* PAGE CONTENT */}
+            <main style={{ flex: 1, padding: '36px', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
 
           {activeView === 'dashboard' && (
             <>
@@ -3326,7 +3701,7 @@ export default function App() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px'}}>
                   {activeCaixinhas.length === 0 ? (
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Nenhuma caixinha cadastrada.</p>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('web_dashboard_no_jars')}</p>
                   ) : (
                     activeCaixinhas.map(goal => {
                       const pct = Math.min(Math.round((goal.saldo_guardado / goal.valor_alvo) * 100), 100);
@@ -3422,21 +3797,26 @@ export default function App() {
                 </div>
               </Card>
 
-            </div>
+              <AdBanner adSlot="sidebar_dashboard" />
 
-            {/* AdBanner for Free Users */}
-            <AdBanner adSlot="sidebar_dashboard" />
+            </div>
 
             {/* RIGHT: GRÁFICOS E TRANSAÇÕES */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '36px'}}>
               
               {/* RECHARTS PIE CHART (Expense breakdown) */}
-              <Card style={{ display: 'flex', flexDirection: 'column', height: '315px' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '12px' }}>Divisão de Despesas por Categoria</h3>
+              <Card 
+                style={{ display: 'flex', flexDirection: 'column', height: '315px', cursor: 'pointer' }}
+                onClick={() => setActiveView('analiseGastos')}
+              >
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {t('web_dashboard_expense_division')}
+                  <span style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', fontWeight: 500 }}>→ {t('web_analise_nav')}</span>
+                </h3>
                 
                 {chartData.length === 0 ? (
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                    Cadastre despesas para gerar o gráfico.
+                    {t('web_dashboard_register_expenses')}
                   </div>
                 ) : (
                   <div style={{ flex: 1, display: 'flex', height: '100%' }}>
@@ -3466,7 +3846,7 @@ export default function App() {
                     <div style={{ width: '50%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '12px', overflowY: 'auto'}}>
                       {chartData.map((item, _idx) => (
                         <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.85rem'}}>
-                          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'COLORS[idx % COLORS.length]'}}></div>
+                          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: COLORS[_idx % COLORS.length]}}></div>
                           <span style={{ color: 'var(--text-secondary)' }}>{item.name}:</span>
                           <span style={{ fontWeight: 700 }}>{formatCurrency(item.value, moeda_base)}</span>
                         </div>
@@ -3504,7 +3884,7 @@ export default function App() {
                       value={importAccountSelect}
                       onChange={(e) => setImportAccountSelect(e.target.value)}
                     >
-                      <option value="">Selecione a Conta de Destino</option>
+                        <option value="">{t('web_dashboard_select_destination')}</option>
                       {activeAccounts.map(a => (
                         <option key={a.id} value={a.id}>{a.nome_instituicao} ({a.moeda_conta})</option>
                       ))}
@@ -3569,7 +3949,7 @@ export default function App() {
                       transition: 'all 0.15s',
                     }}
                   >
-                    <CalendarDays size={15} /> Fechamento Mensal
+                    <CalendarDays size={15} /> {t('monthly_closing_tab')}
                   </button>
                 </div>
 
@@ -3603,7 +3983,7 @@ export default function App() {
                             display: 'flex', alignItems: 'center', gap: '6px',
                           }}
                         >
-                          <Trash2 size={13} /> Excluir ({selectedTxIds.size})
+                          <Trash2 size={13} /> {t('delete')} ({selectedTxIds.size})
                         </button>
                       </>
                     )}
@@ -3870,28 +4250,28 @@ export default function App() {
                     <div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '24px', marginBottom: '24px' }}>
                         <div style={{ background: 'var(--card-border)', padding: '24px', borderRadius: '16px' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Receitas PJ</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>{t('web_dashboard_pj_revenue')}</span>
                           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-green)', marginTop: '8px' }}>
                             {formatCurrency(receitasPJ, moeda_base)}
                           </div>
                         </div>
                         <div style={{ background: 'var(--card-border)', padding: '24px', borderRadius: '16px' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Despesas PJ</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>{t('web_dashboard_pj_expenses')}</span>
                           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#FF5252', marginTop: '8px' }}>
                             {formatCurrency(despesasPJ, moeda_base)}
                           </div>
                         </div>
                         <div style={{ background: 'var(--card-border)', padding: '24px', borderRadius: '16px', border: `1px solid ${lucroLiquido >= 0 ? 'rgba(0,230,118,0.3)' : 'rgba(255,82,82,0.3)'}` }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Lucro Líquido</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>{t('web_dashboard_pj_net_profit')}</span>
                           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: lucroLiquido >= 0 ? 'var(--accent-green)' : '#FF5252', marginTop: '8px' }}>
                             {formatCurrency(Math.abs(lucroLiquido), moeda_base)}
                             <span style={{ fontSize: '0.85rem', marginLeft: '8px' }}>
-                              {lucroLiquido >= 0 ? '(positivo)' : '(negativo)'}
+                              {lucroLiquido >= 0 ? `(${t('web_dashboard_pj_positive')})` : `(${t('web_dashboard_pj_negative')})`}
                             </span>
                           </div>
                         </div>
                         <div style={{ background: 'var(--card-border)', padding: '24px', borderRadius: '16px' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Margem Líquida</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>{t('web_dashboard_pj_margin')}</span>
                           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-blue)', marginTop: '8px' }}>
                             {margem}%
                           </div>
@@ -3899,7 +4279,7 @@ export default function App() {
                       </div>
 
                       <div style={{ marginTop: '24px' }}>
-                        <h3 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '12px' }}>Transações PJ Recentes</h3>
+                        <h3 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '12px' }}>{t('web_dashboard_pj_recent')}</h3>
                         {transacoes.filter(t => {
                           const c = contas.find(c => c.id === t.id_conta);
                           return c && espacos.find(e => e.id === c.id_espaco)?.tipo === 'PJ';
@@ -3940,7 +4320,20 @@ export default function App() {
               <AdBanner adSlot="topo_calendario" />
               <CalendarioFinanceiro
                 transacoes={activeTransactions}
+                contas={activeAccounts}
                 moedaBase={moeda_base}
+                rates={rates}
+              />
+            </div>
+          )}
+
+          {activeView === 'analiseGastos' && (
+            <div style={{ padding: '0 0 40px 0' }}>
+              <AnaliseGastos
+                transacoes={activeTransactions}
+                contas={activeAccounts}
+                moedaBase={moeda_base}
+                rates={rates}
               />
             </div>
           )}
@@ -3979,6 +4372,8 @@ export default function App() {
           >
             <Plus size={28} />
           </FloatingActionButton>
+            </main>
+          </div>
         </div>
       )}
 
@@ -4158,6 +4553,176 @@ export default function App() {
         contaId={activeAccounts[0]?.id || ''}
       />
 
+      {/* MODAL ALTERAR SENHA */}
+      {showPasswordModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(18, 26, 47, 0.85)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '36px'
+        }}>
+          <div style={{
+            background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+            borderRadius: '24px', padding: '48px', maxWidth: '420px', width: '100%',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)', boxSizing: 'border-box'
+          }} className="fade-in">
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 8px', letterSpacing: '-0.5px' }}>
+              {t('web_user_menu_password_title')}
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '0 0 24px' }}>
+              {email_usuario}
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                  {t('web_user_menu_password_new')}
+                </label>
+                <TextInput type="password" placeholder="••••••••" value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                  {t('web_user_menu_password_confirm')}
+                </label>
+                <TextInput type="password" placeholder="••••••••" value={passwordConfirmInput}
+                  onChange={(e) => setPasswordConfirmInput(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '18px', marginTop: '12px' }}>
+                <button type="button" onClick={() => { setShowPasswordModal(false); setPasswordInput(''); setPasswordConfirmInput(''); }}
+                  style={{ flex: 1, background: 'var(--card-border)', border: '1px solid var(--card-border)',
+                    color: 'var(--text-primary)', padding: '14px', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                  {t('web_logout_cancel')}
+                </button>
+                <PrimaryButton onClick={handleChangePassword} style={{ flex: 1, borderRadius: '12px' }}>
+                  {t('web_user_menu_change_password')}
+                </PrimaryButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EXCLUIR CONTA — STEP 1 */}
+      {showDeleteAccountModal && deleteAccountStep === 1 && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(18, 26, 47, 0.85)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '36px'
+        }}>
+          <div style={{
+            background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+            borderRadius: '24px', padding: '48px', maxWidth: '480px', width: '100%',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)', boxSizing: 'border-box'
+          }} className="fade-in">
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--color-danger)' }}>warning</span>
+              </div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 8px' }}>
+                {t('web_user_menu_delete_step1_title')}
+              </h2>
+              <p style={{ color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 600, margin: '0 0 12px' }}>
+                {t('web_user_menu_delete_step1_desc')}
+              </p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.6, margin: 0 }}>
+                {t('web_user_menu_delete_step1_info')}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '18px' }}>
+              <button type="button" onClick={() => { setShowDeleteAccountModal(false); setDeleteAccountStep(1); setDeleteConfirmInput(''); }}
+                style={{ flex: 1, background: 'var(--card-border)', border: '1px solid var(--card-border)',
+                  color: 'var(--text-primary)', padding: '14px', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                {t('web_logout_cancel')}
+              </button>
+              <button type="button" onClick={() => setDeleteAccountStep(2)}
+                style={{ flex: 1, background: 'var(--color-danger)', border: 'none',
+                  color: '#fff', padding: '14px', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}>
+                {t('web_user_menu_delete_step1_continue')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EXCLUIR CONTA — STEP 2 */}
+      {showDeleteAccountModal && deleteAccountStep === 2 && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(18, 26, 47, 0.85)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '36px'
+        }}>
+          <div style={{
+            background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+            borderRadius: '24px', padding: '48px', maxWidth: '420px', width: '100%',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)', boxSizing: 'border-box'
+          }} className="fade-in">
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 8px' }}>
+              {t('web_user_menu_delete_step2_title')}
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '0 0 24px' }}>
+              {t('web_user_menu_delete_step2_desc')}
+            </p>
+            <div style={{ marginBottom: '24px' }}>
+              <TextInput type="text" placeholder={t('web_user_menu_delete_step2_input_placeholder')}
+                value={deleteConfirmInput} onChange={(e) => setDeleteConfirmInput(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', gap: '18px' }}>
+              <button type="button" onClick={() => { setDeleteAccountStep(1); setDeleteConfirmInput(''); }}
+                style={{ flex: 1, background: 'var(--card-border)', border: '1px solid var(--card-border)',
+                  color: 'var(--text-primary)', padding: '14px', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                {t('web_logout_cancel')}
+              </button>
+              <button type="button" onClick={handleRequestDeleteAccount}
+                disabled={deleteConfirmInput !== 'EXCLUIR'}
+                style={{ flex: 1, background: deleteConfirmInput === 'EXCLUIR' ? 'var(--color-danger)' : 'var(--card-border)',
+                  border: 'none', color: deleteConfirmInput === 'EXCLUIR' ? '#fff' : 'var(--text-muted)',
+                  padding: '14px', borderRadius: '12px', fontWeight: 700, cursor: deleteConfirmInput === 'EXCLUIR' ? 'pointer' : 'not-allowed',
+                  fontSize: '0.9rem', transition: 'all 0.2s' }}>
+                {t('web_user_menu_delete_step2_button')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL LOGOUT */}
+      {showLogoutModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(18, 26, 47, 0.85)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '36px'
+        }}>
+          <div style={{
+            background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+            borderRadius: '24px', padding: '48px', maxWidth: '400px', width: '100%',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)', boxSizing: 'border-box', textAlign: 'center'
+          }} className="fade-in">
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(255, 74, 90, 0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--color-danger)' }}>logout</span>
+            </div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 8px' }}>
+              {t('web_logout_title')}
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0 0 32px', lineHeight: 1.5 }}>
+              {t('web_logout_desc')}
+            </p>
+            <div style={{ display: 'flex', gap: '18px' }}>
+              <button type="button" onClick={() => setShowLogoutModal(false)}
+                style={{ flex: 1, background: 'var(--card-border)', border: '1px solid var(--card-border)',
+                  color: 'var(--text-primary)', padding: '14px', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                {t('web_logout_cancel')}
+              </button>
+              <button type="button" onClick={confirmLogout}
+                style={{ flex: 1, background: 'var(--color-danger)', border: 'none',
+                  color: '#fff', padding: '14px', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}>
+                {t('web_logout_confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL DE PERFIL E SELETOR DE AVATAR */}
       {showProfileModal && (
         <div style={{
@@ -4324,32 +4889,3 @@ export default function App() {
     </Routes>
   );
 }
-
-const styles = {
-  landingCard: {
-    background: 'var(--card-bg)',
-    border: '1px solid var(--card-border)',
-    borderRadius: '20px',
-    padding: '42px',
-    textAlign: 'left' as const,
-    boxSizing: 'border-box' as const,
-    transition: 'all 0.2s'
-  },
-  landingCardIcon: {
-    marginBottom: '16px',
-    display: 'flex',
-    alignItems: 'center',
-  },
-  landingCardTitle: {
-    fontSize: '1.2rem',
-    fontWeight: 700,
-    margin: '0 0 10px 0',
-    color: 'var(--text-primary)'
-  },
-  landingCardText: {
-    fontSize: '0.9rem',
-    color: 'var(--text-secondary)',
-    lineHeight: 1.5,
-    margin: 0
-  }
-};

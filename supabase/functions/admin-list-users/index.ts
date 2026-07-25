@@ -5,7 +5,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "https://comreis.com",
+      "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
       "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     },
@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: {
-        "Access-Control-Allow-Origin": "https://comreis.com",
+        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
       },

@@ -567,5 +567,19 @@
   "faq_q5": "Puis-je l'utiliser sur plus d'un appareil ?",
   "faq_a5": "Oui ! Connectez-vous avec les mêmes identifiants sur n'importe quel appareil. Les données se synchronisent automatiquement.",
   "faq_q6": "Comment changer la devise par défaut ?",
-  "faq_a6": "Allez dans Menu > Devises et sélectionnez votre devise de base. L'app supporte BRL, USD, EUR, ARS et plus."
+  "faq_a6": "Allez dans Menu > Devises et sélectionnez votre devise de base. L'app supporte BRL, USD, EUR, ARS et plus.",
+  "expense_analysis": "Analyse des Dépenses",
+  "monthly": "Mensuel",
+  "weekly": "Hebdomadaire",
+  "yearly": "Annuel",
+  "this_week": "Cette Semaine",
+  "total_expenses": "Total des Dépenses",
+  "transactions": "transactions",
+  "filter_by_tag": "Filtrer par Étiquette",
+  "by_category": "Par Catégorie",
+  "by_tag": "Par Étiquette",
+  "no_tag": "Sans Étiquette",
+  "more_items": "de plus",
+  "shared_items": "éléments partagés",
+  "menu_expense_analysis": "Analyse des Dépenses"
 }
