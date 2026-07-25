@@ -37,6 +37,7 @@ import { FechamentoMensalModal } from './components/FechamentoMensalModal';
 import { InventarioView } from './components/InventarioView';
 import { CalendarioFinanceiro } from './components/CalendarioFinanceiro';
 import { AnaliseGastos } from './components/AnaliseGastos';
+import { GastosCompartilhados } from './components/GastosCompartilhados';
 import { FAQModal, TermosModal } from './components/FAQTermos';
 import { useExchangeRates } from './hooks/useExchangeRates';
 import { usePremium } from './hooks/usePremium';
@@ -110,6 +111,7 @@ export default function App() {
     contas,
     transacoes,
     cartoes,
+    tagsBancarias,
     setUsuario,
     setPlanoUsuario,
     setIdEspacoAtivo,
@@ -159,7 +161,7 @@ export default function App() {
   const [depositGoal, setDepositGoal] = useState<{ id: string; nome: string; saved: number; target: number } | null>(null);
 
   // Local UI States
-  const [activeView, setActiveView] = useState<'dashboard' | 'costExplorer' | 'blog' | 'investimentos' | 'fluxopj' | 'inventario' | 'calendario' | 'analiseGastos'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'costExplorer' | 'blog' | 'investimentos' | 'fluxopj' | 'inventario' | 'calendario' | 'analiseGastos' | 'compartilhados'>('dashboard');
   const [landingView, setLandingView] = useState<'home' | 'costExplorer' | 'blog'>('home');
   const [activeArticle, setActiveArticle] = useState<Article | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
@@ -533,6 +535,7 @@ export default function App() {
   const [txDate, setTxDate] = useState(new Date().toISOString().split('T')[0]);
   const [txMoeda, setTxMoeda] = useState('');
   const [txCartaoId, setTxCartaoId] = useState('');
+  const [txTagBancariaId, setTxTagBancariaId] = useState<string | null>(null);
 
   // Account Form State
   const [acName, setAcName] = useState('');
@@ -862,7 +865,9 @@ export default function App() {
       categoria: txCat,
       data_transacao: txDate,
       taxa_cambio_dia: taxaCambio,
-      descricao: descricaoFinal
+      descricao: descricaoFinal,
+      moeda_transacao: txMoeda || moeda_base,
+      id_tag_bancaria: txTagBancariaId || null,
     };
 
     addTransacao(newTx);
@@ -883,6 +888,7 @@ export default function App() {
     setTxDesc('');
     setTxVal('');
     setTxCartaoId('');
+    setTxTagBancariaId(null);
 
     // Analytics
     trackTransactionCreated({ type: txTipo, category: txCat, currency: contaToUse.moeda_conta || moeda_base });
@@ -2742,6 +2748,7 @@ export default function App() {
                     { view: 'inventario' as const, label: t('web_dashboard_inventory'), icon: 'inventory_2' },
                     { view: 'calendario' as const, label: t('web_dashboard_calendar'), icon: 'calendar_today' },
                     { view: 'analiseGastos' as const, label: t('web_analise_nav'), icon: 'bar_chart' },
+                    { view: 'compartilhados' as const, label: t('gastos_compartilhados_title'), icon: 'group' },
                   ]).map(item => (
                     <button
                       key={item.view}
@@ -2845,6 +2852,7 @@ export default function App() {
                 { view: 'inventario' as const, label: t('web_dashboard_inventory'), icon: 'inventory_2' },
                 { view: 'calendario' as const, label: t('web_dashboard_calendar'), icon: 'calendar_today' },
                 { view: 'analiseGastos' as const, label: t('web_analise_nav'), icon: 'bar_chart' },
+                { view: 'compartilhados' as const, label: t('gastos_compartilhados_title'), icon: 'group' },
               ]).map(item => (
                 <button
                   key={item.view}
@@ -4334,6 +4342,26 @@ export default function App() {
                 contas={activeAccounts}
                 moedaBase={moeda_base}
                 rates={rates}
+                onEditTx={(tx) => {
+                  setEditingTxId(tx.id);
+                  setEditTxDescricao(tx.descricao || tx.categoria);
+                  setEditTxValor(String(tx.valor));
+                  setEditTxData(tx.data_transacao);
+                  setActiveView('dashboard');
+                }}
+                onDeleteTx={handleDeleteTransacao}
+              />
+            </div>
+          )}
+
+          {activeView === 'compartilhados' && (
+            <div style={{ padding: '0 0 40px 0' }}>
+              <GastosCompartilhados
+                transacoes={activeTransactions}
+                contas={activeAccounts}
+                moedaBase={moeda_base}
+                rates={rates}
+                onDeleteTx={handleDeleteTransacao}
               />
             </div>
           )}
@@ -4385,6 +4413,7 @@ export default function App() {
       <TransactionModal
         isOpen={showAddTransactionModal}
         onClose={() => setShowAddTransactionModal(false)}
+        editingTxId={editingTxId}
         txDesc={txDesc}
         setTxDesc={setTxDesc}
         txVal={txVal}
@@ -4399,8 +4428,11 @@ export default function App() {
         setTxMoeda={setTxMoeda}
         txCat={txCat}
         setTxCat={setTxCat}
+        txTagBancariaId={txTagBancariaId}
+        setTxTagBancariaId={setTxTagBancariaId}
         activeAccounts={activeAccounts}
         activeCartoes={activeCartoes}
+        tagsBancarias={tagsBancarias}
         txCartaoId={txCartaoId}
         setTxCartaoId={setTxCartaoId}
         onSubmit={handleAddTransactionSubmit}

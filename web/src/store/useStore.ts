@@ -26,6 +26,11 @@ export interface Transacao {
   data_transacao: string;
   taxa_cambio_dia: number;
   descricao?: string;
+  moeda_transacao?: string;
+  id_tag_bancaria?: string | null;
+  is_compartilhada?: boolean;
+  participante_email?: string;
+  id_transacao_pai?: string | null;
 }
 
 export interface Caixinha {
@@ -42,6 +47,13 @@ export interface Cartao {
   nome: string;
   limite: number;
   fatura_atual: number;
+}
+
+export interface TagBancaria {
+  id: string;
+  id_usuario: string;
+  nome: string;
+  cor: string;
 }
 
 interface AppState {
@@ -64,6 +76,7 @@ interface AppState {
   transacoes: Transacao[];
   caixinhas: Caixinha[];
   cartoes: Cartao[];
+  tagsBancarias: TagBancaria[];
 
   // Actions
   setUsuario: (id: string | null, email: string | null, nome: string | null, plano?: 'free' | 'premium', moeda_base?: string, avatar_url?: string | null) => void;
@@ -79,6 +92,7 @@ interface AppState {
   setTransacoes: (transacoes: Transacao[]) => void;
   setCaixinhas: (caixinhas: Caixinha[]) => void;
   setCartoes: (cartoes: Cartao[]) => void;
+  setTagsBancarias: (tags: TagBancaria[]) => void;
 
   addEspaco: (espaco: Espaco) => void;
   addConta: (conta: Conta) => void;
@@ -93,6 +107,9 @@ interface AppState {
   removeTransacao: (id: string) => void;
   removeCaixinha: (id: string) => void;
   removeCartao: (id: string) => void;
+  addTagBancaria: (tag: TagBancaria) => void;
+  updateTagBancaria: (id: string, nome: string, cor: string) => void;
+  removeTagBancaria: (id: string) => void;
 
   // Derived Getters
   getSaldoTotal: (cotacoes?: Record<string, number>) => number;
@@ -123,6 +140,7 @@ const INITIAL_STATE = {
   transacoes: [],
   caixinhas: [],
   cartoes: [],
+  tagsBancarias: [],
   isAuthLoading: true,
 };
 
@@ -183,6 +201,15 @@ export const useStore = create<AppState>()(
       setCartoes: (cartoes) => set({ cartoes }),
       addCartao: (cartao) => set((state) => ({ cartoes: [...state.cartoes, cartao] })),
 
+      setTagsBancarias: (tags) => set({ tagsBancarias: tags }),
+      addTagBancaria: (tag) => set((state) => ({ tagsBancarias: [...state.tagsBancarias, tag] })),
+      updateTagBancaria: (id, nome, cor) => set((state) => ({
+        tagsBancarias: state.tagsBancarias.map(t => t.id === id ? { ...t, nome, cor } : t),
+      })),
+      removeTagBancaria: (id) => set((state) => ({
+        tagsBancarias: state.tagsBancarias.filter(t => t.id !== id),
+      })),
+
       // Limpa a sessão sem apagar o estado persistido do localStorage
       clearSession: () => set({ ...INITIAL_STATE, isAuthLoading: false }),
 
@@ -199,7 +226,7 @@ export const useStore = create<AppState>()(
 
         activeAccounts.forEach((conta) => {
           let accountBalance = conta.saldo_inicial;
-          const accountTrans = state.transacoes.filter((t) => t.id_conta === conta.id && !t.descricao?.startsWith('[Cartão:'));
+          const accountTrans = state.transacoes.filter((t) => t.id_conta === conta.id && !t.descricao?.startsWith('[Cartao:'));
 
           accountTrans.forEach((t) => {
             accountBalance = t.tipo === 'receita'
@@ -207,10 +234,12 @@ export const useStore = create<AppState>()(
               : subtractMoney(accountBalance, t.valor);
           });
 
-          if (conta.moeda_conta === baseCurrency) {
+          // Use moeda_transacao if available, fallback to conta.moeda_conta
+          const moedaConta = conta.moeda_conta;
+          if (moedaConta === baseCurrency) {
             total = addMoney(total, accountBalance);
           } else {
-            const rateToBRL = cotacoes[conta.moeda_conta] || 1.0;
+            const rateToBRL = cotacoes[moedaConta] || 1.0;
             const rateFromBRL = cotacoes[baseCurrency] || 1.0;
             const balanceInBRL = accountBalance * rateToBRL;
             const balanceInBase = balanceInBRL / rateFromBRL;

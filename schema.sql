@@ -68,6 +68,8 @@ CREATE TABLE public.transacoes (
     valor NUMERIC(15, 2) NOT NULL,
     categoria TEXT NOT NULL,
     id_tag UUID REFERENCES public.tags(id) ON DELETE SET NULL,
+    moeda_transacao TEXT DEFAULT 'BRL' NOT NULL,
+    id_tag_bancaria UUID REFERENCES public.tags_bancarias(id) ON DELETE SET NULL,
     data_transacao DATE DEFAULT CURRENT_DATE NOT NULL,
     taxa_cambio_dia NUMERIC(15, 6) DEFAULT 1.000000 NOT NULL,
     descricao TEXT,
@@ -192,6 +194,8 @@ CREATE INDEX IF NOT EXISTS idx_transacoes_deleted_at ON public.transacoes(delete
 CREATE INDEX IF NOT EXISTS idx_caixinhas_historico_caixinha_data ON public.caixinhas_historico(id_caixinha, data_movimento DESC);
 CREATE INDEX IF NOT EXISTS idx_caixinhas_deleted_at ON public.caixinhas(deleted_at) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_bens_patrimonio_deleted_at ON public.bens_patrimonio(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_transacoes_tag_bancaria ON public.transacoes(id_tag_bancaria) WHERE id_tag_bancaria IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_transacoes_moeda ON public.transacoes(moeda_transacao);
 
 -- =========================================================================
 -- ROW LEVEL SECURITY (RLS) - SEGURANÇA
@@ -417,6 +421,14 @@ BEGIN
         ON CONFLICT DO NOTHING;
     END IF;
 
+    -- Tags bancárias padrão
+    IF NOT EXISTS (SELECT 1 FROM public.tags_bancarias WHERE id_usuario = new.id LIMIT 1) THEN
+        INSERT INTO public.tags_bancarias (id_usuario, nome, cor) VALUES
+        (new.id, 'Investimentos', '#10B981'),
+        (new.id, 'Salário', '#3B82F6')
+        ON CONFLICT DO NOTHING;
+    END IF;
+
     -- Vincula retroativamente transações compartilhadas criadas antes do cadastro
     UPDATE public.transacoes_participantes
     SET id_usuario_participante = new.id
@@ -551,6 +563,25 @@ ALTER TABLE public.tags ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Usuários podem gerenciar suas próprias tags"
     ON public.tags FOR ALL
+    USING (id_usuario = auth.uid());
+
+-- =========================================================================
+-- 8.1. TABELA TAGS BANCÁRIAS (Labels de Conta Bancária)
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.tags_bancarias (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_usuario UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    cor TEXT DEFAULT '#6B7280' NOT NULL,
+    data_criacao TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_tags_bancarias_usuario ON public.tags_bancarias(id_usuario);
+
+ALTER TABLE public.tags_bancarias ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Usuarios podem gerenciar suas tags bancarias"
+    ON public.tags_bancarias FOR ALL
     USING (id_usuario = auth.uid());
 
 -- =========================================================================

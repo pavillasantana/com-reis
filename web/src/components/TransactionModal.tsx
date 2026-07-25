@@ -7,6 +7,7 @@ import { useI18n } from '../i18n';
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  editingTxId?: string | null;
   txDesc: string;
   setTxDesc: (v: string) => void;
   txVal: string;
@@ -21,8 +22,11 @@ interface TransactionModalProps {
   setTxMoeda: (v: string) => void;
   txCat: string;
   setTxCat: (v: string) => void;
+  txTagBancariaId?: string | null;
+  setTxTagBancariaId?: (v: string | null) => void;
   activeAccounts: any[];
   activeCartoes: any[];
+  tagsBancarias?: any[];
   txCartaoId: string;
   setTxCartaoId: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -31,6 +35,7 @@ interface TransactionModalProps {
 export const TransactionModal: React.FC<TransactionModalProps> = ({
   isOpen,
   onClose,
+  editingTxId,
   txDesc,
   setTxDesc,
   txVal,
@@ -45,8 +50,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   setTxMoeda,
   txCat,
   setTxCat,
+  txTagBancariaId,
+  setTxTagBancariaId,
   activeAccounts,
   activeCartoes,
+  tagsBancarias = [],
   txCartaoId,
   setTxCartaoId,
   onSubmit
@@ -64,7 +72,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px',
     }}>
       <Card style={{ maxWidth: '450px', width: '100%' }} className="fade-in">
-        <h3 style={{ marginBottom: '20px', fontSize: '1.2rem' }}>{t('web_tx_modal_title')}</h3>
+        <h3 style={{ marginBottom: '20px', fontSize: '1.2rem' }}>{editingTxId ? t('web_tx_edit_title') : t('web_tx_modal_title')}</h3>
         
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px'}}>
           <div>
@@ -147,6 +155,24 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             </div>
           )}
 
+          {tagsBancarias.length > 0 && (
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                {t('web_tx_bank_tag_label')}
+              </label>
+              <select
+                className="select-input"
+                value={txTagBancariaId || ''}
+                onChange={e => setTxTagBancariaId?.(e.target.value || null)}
+              >
+                <option value="">{t('web_tx_no_bank_tag')}</option>
+                {tagsBancarias.map(tag => (
+                  <option key={tag.id} value={tag.id}>{tag.nome}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="rg-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px'}}>
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_tx_account_label')}</label>
@@ -199,7 +225,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               {t('cancel')}
             </button>
             <PrimaryButton type="submit" style={{ flex: 1 }}>
-              {t('save')}
+              {editingTxId ? t('web_tx_update_button') : t('save')}
             </PrimaryButton>
           </div>
         </form>

@@ -13,6 +13,8 @@ interface AnaliseGastosProps {
   contas: Conta[];
   moedaBase: string;
   rates: Record<string, number>;
+  onEditTx?: (tx: Transacao) => void;
+  onDeleteTx?: (txId: string) => void;
 }
 
 const COLORS = [
@@ -23,7 +25,7 @@ const COLORS = [
 
 type PeriodType = 'month' | 'week' | 'year';
 
-export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates }: AnaliseGastosProps) => {
+export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, onDeleteTx }: AnaliseGastosProps) => {
   const { t } = useI18n();
   const [periodType, setPeriodType] = useState<PeriodType>('month');
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
@@ -348,6 +350,28 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates }: AnaliseG
                         <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--negative, #EF4444)' }}>
                           -{formatCurrency(converterValor(tx), moedaBase)}
                         </span>
+                        {(onEditTx || onDeleteTx) && (
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            {onEditTx && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onEditTx(tx); }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: 'var(--accent-blue)', padding: '2px 4px' }}
+                                title={t('edit')}
+                              >
+                                ✏️
+                              </button>
+                            )}
+                            {onDeleteTx && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); if (confirm(t('web_analise_confirm_delete'))) onDeleteTx(tx.id); }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: 'var(--color-danger)', padding: '2px 4px' }}
+                                title={t('delete')}
+                              >
+                                🗑️
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                     {categoriaDrillDown.length > 15 && (

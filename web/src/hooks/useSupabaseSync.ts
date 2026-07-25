@@ -16,6 +16,7 @@ import { useStore } from '../store/useStore';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
   fetchEspacos, fetchContas, fetchTransacoes, fetchCaixinhas, fetchCartoes,
+  fetchTagsBancarias, createTagBancaria, updateTagBancariaRemote, deleteTagBancaria,
   createEspaco, createConta, createTransacao, createTransacoesBatch,
   createCaixinha, updateCaixinhaSaldoRemote, updateCaixinhaRemote, updatePerfil,
   createCartao, updateCartaoRemote, deleteCartao,
@@ -25,7 +26,7 @@ import {
   updateCaixinhaMovimento, deleteCaixinhaMovimento,
   criarAssinatura,
 } from '../services/supabaseService';
-import type { Espaco, Conta, Transacao, Caixinha, Cartao } from '../store/useStore';
+import type { Espaco, Conta, Transacao, Caixinha, Cartao, TagBancaria } from '../store/useStore';
 import type { MovimentoCaixinha } from '../components/CaixinhaHistoricoModal';
 import { captureError } from '../lib/sentry';
 
@@ -33,19 +34,22 @@ export function useSupabaseSync() {
   const {
     id_usuario,
     isAuthLoading,
-    setEspacos, setContas, setTransacoes, setCaixinhas, setCartoes,
+    setEspacos, setContas, setTransacoes, setCaixinhas, setCartoes, setTagsBancarias,
     addEspaco: storeAddEspaco,
     addConta: storeAddConta,
     addTransacao: storeAddTransacao,
     addCaixinha: storeAddCaixinha,
     addCartao: storeAddCartao,
+    addTagBancaria: storeAddTagBancaria,
     updateCaixinhaSaldo: storeUpdateCaixinhaSaldo,
     updateCaixinha: storeUpdateCaixinha,
     updateCartao: storeUpdateCartao,
+    updateTagBancaria: storeUpdateTagBancaria,
     removeConta: storeRemoveConta,
     removeTransacao: storeRemoveTransacao,
     removeCaixinha: storeRemoveCaixinha,
     removeCartao: storeRemoveCartao,
+    removeTagBancaria: storeRemoveTagBancaria,
     updateTransacaoConta: storeUpdateTransacaoConta,
     setPlanoUsuario,
   } = useStore();
@@ -60,12 +64,13 @@ export function useSupabaseSync() {
     const loadAll = async () => {
       hasSynced.current = true;
 
-      const [espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes] = await Promise.all([
+      const [espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes, tagsBancariasRes] = await Promise.all([
         fetchEspacos(),
         fetchContas(),
         fetchTransacoes(),
         fetchCaixinhas(),
         fetchCartoes(),
+        fetchTagsBancarias(),
       ]);
 
       // O plano do usuário é definido pelo syncUserToStore (lê do DB).
@@ -76,15 +81,16 @@ export function useSupabaseSync() {
       if (transacoesRes.data && transacoesRes.data.length > 0) setTransacoes(transacoesRes.data);
       if (caixinhasRes.data && caixinhasRes.data.length > 0)  setCaixinhas(caixinhasRes.data);
       if (cartoesRes.data && cartoesRes.data.length > 0)    setCartoes(cartoesRes.data);
+      if (tagsBancariasRes.data && tagsBancariasRes.data.length > 0) setTagsBancarias(tagsBancariasRes.data);
 
       // Log erros no Sentry mas não bloqueia a UI
-      [espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes].forEach(({ error }) => {
+      [espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes, tagsBancariasRes].forEach(({ error }) => {
         if (error) captureError(new Error(error), { action: 'loadAll' });
       });
     };
 
     loadAll();
-  }, [id_usuario, isAuthLoading, setEspacos, setContas, setTransacoes, setCaixinhas, setCartoes]);
+  }, [id_usuario, isAuthLoading, setEspacos, setContas, setTransacoes, setCaixinhas, setCartoes, setTagsBancarias]);
 
   // Reset hasSynced quando o usuário muda (logout/login)
   useEffect(() => {
@@ -332,6 +338,49 @@ export function useSupabaseSync() {
     }
   }, [id_usuario, storeRemoveCartao]);
 
+  // ─── TAGS BANCÁRIAS ────────────────────────────────────────────────────
+
+  const addTagBancaria = useCallback(async (
+    tag: Omit<TagBancaria, 'id'>
+  ): Promise<string | null> => {
+    if (!isSupabaseConfigured || !id_usuario) {
+      const localId = 'local-tag-' + Math.random().toString(36).substr(2, 9);
+      storeAddTagBancaria({ ...tag, id: localId });
+      return localId;
+    }
+
+    const { data, error } = await createTagBancaria(tag);
+    if (error || !data) {
+      captureError(new Error(error ?? 'createTagBancaria failed'));
+      const localId = 'local-tag-' + Math.random().toString(36).substr(2, 9);
+      storeAddTagBancaria({ ...tag, id: localId });
+      return localId;
+    }
+
+    storeAddTagBancaria(data);
+    return data.id;
+  }, [id_usuario, storeAddTagBancaria]);
+
+  const updateTagBancaria = useCallback(async (
+    id: string,
+    nome: string,
+    cor: string
+  ): Promise<void> => {
+    storeUpdateTagBancaria(id, nome, cor);
+    if (isSupabaseConfigured && id_usuario && !id.startsWith('local-')) {
+      const { error } = await updateTagBancariaRemote(id, nome, cor);
+      if (error) captureError(new Error(error), { action: 'updateTagBancaria', id });
+    }
+  }, [id_usuario, storeUpdateTagBancaria]);
+
+  const removeTagBancaria = useCallback(async (id: string): Promise<void> => {
+    storeRemoveTagBancaria(id);
+    if (isSupabaseConfigured && id_usuario && !id.startsWith('local-')) {
+      const { error } = await deleteTagBancaria(id);
+      if (error) captureError(new Error(error), { action: 'removeTagBancaria', id });
+    }
+  }, [id_usuario, storeRemoveTagBancaria]);
+
   // ─── CAIXINHAS HISTÓRICO ──────────────────────────────────────────────────
 
   const addCaixinhaMovimento = useCallback(async (
@@ -371,26 +420,30 @@ export function useSupabaseSync() {
     }
   }, [id_usuario]);
 
-  return {
-    // Write-through actions (usam store + Supabase)
-    addEspaco,
-    addConta,
-    addTransacao,
-    addTransacoesBatch,
-    addCaixinha,
-    updateCaixinhaSaldo,
-    updateCaixinha,
-    upgradeToPremium,
-    removeConta,
-    removeTransacao,
-    removeCaixinha,
-    moveTransacaoToConta,
-    addCartao,
-    updateCartao,
-    removeCartao,
-    // Caixinhas Historico
-    addCaixinhaMovimento,
-    editCaixinhaMovimento,
-    removeCaixinhaMovimento,
-  };
+    return {
+      // Write-through actions (usam store + Supabase)
+      addEspaco,
+      addConta,
+      addTransacao,
+      addTransacoesBatch,
+      addCaixinha,
+      updateCaixinhaSaldo,
+      updateCaixinha,
+      upgradeToPremium,
+      removeConta,
+      removeTransacao,
+      removeCaixinha,
+      moveTransacaoToConta,
+      addCartao,
+      updateCartao,
+      removeCartao,
+      // Tags Bancárias
+      addTagBancaria,
+      updateTagBancaria,
+      removeTagBancaria,
+      // Caixinhas Historico
+      addCaixinhaMovimento,
+      editCaixinhaMovimento,
+      removeCaixinhaMovimento,
+    };
 }

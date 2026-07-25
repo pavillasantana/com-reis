@@ -1179,5 +1179,21 @@
   "web_dashboard_pj_margin": "Margem Líquida",
   "web_dashboard_pj_recent": "Transações PJ Recentes",
   "web_dashboard_pj_positive": "positivo",
-  "web_dashboard_pj_negative": "negativo"
+  "web_dashboard_pj_negative": "negativo",
+  "web_tx_edit_title": "Editar Transação",
+  "web_tx_update_button": "Atualizar",
+  "web_tx_bank_tag_label": "Tag Bancária (Opcional)",
+  "web_tx_no_bank_tag": "Nenhuma",
+  "web_analise_confirm_delete": "Tem certeza que deseja excluir esta transação?",
+  "edit": "Editar",
+  "delete": "Excluir",
+  "gastos_compartilhados_title": "Gastos Compartilhados",
+  "gastos_compartilhados_empty": "Nenhum gasto compartilhado encontrado",
+  "gastos_compartilhados_pago": "Pago",
+  "gastos_compartilhados_pendente": "Pendente",
+  "gastos_compartilhados_marcar_pago": "Marcar como Pago",
+  "gastos_compartilhados_total": "Total Compartilhado",
+  "gastos_compartilhados_saldo": "Saldo",
+  "gastos_compartilhados_quem_deve": "Quem deve",
+  "gastos_compartilhados_adicionar": "Adicionar Gasto Compartilhado"
 }

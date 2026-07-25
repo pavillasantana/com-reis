@@ -1179,5 +1179,21 @@
   "web_dashboard_pj_margin": "Net Margin",
   "web_dashboard_pj_recent": "Recent PJ Transactions",
   "web_dashboard_pj_positive": "positive",
-  "web_dashboard_pj_negative": "negative"
+  "web_dashboard_pj_negative": "negative",
+  "web_tx_edit_title": "Edit Transaction",
+  "web_tx_update_button": "Update",
+  "web_tx_bank_tag_label": "Bank Tag (Optional)",
+  "web_tx_no_bank_tag": "None",
+  "web_analise_confirm_delete": "Are you sure you want to delete this transaction?",
+  "edit": "Edit",
+  "delete": "Delete",
+  "gastos_compartilhados_title": "Shared Expenses",
+  "gastos_compartilhados_empty": "No shared expenses found",
+  "gastos_compartilhados_pago": "Paid",
+  "gastos_compartilhados_pendente": "Pending",
+  "gastos_compartilhados_marcar_pago": "Mark as Paid",
+  "gastos_compartilhados_total": "Total Shared",
+  "gastos_compartilhados_saldo": "Balance",
+  "gastos_compartilhados_quem_deve": "Who owes",
+  "gastos_compartilhados_adicionar": "Add Shared Expense"
 }

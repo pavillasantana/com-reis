@@ -652,5 +652,21 @@
   "web_dashboard_pj_margin": "Margine Netto",
   "web_dashboard_pj_recent": "Transazioni PJ Recenti",
   "web_dashboard_pj_positive": "positivo",
-  "web_dashboard_pj_negative": "negativo"
+  "web_dashboard_pj_negative": "negativo",
+  "web_tx_edit_title": "Modifica Transazione",
+  "web_tx_update_button": "Aggiorna",
+  "web_tx_bank_tag_label": "Tag Bancario (Opzionale)",
+  "web_tx_no_bank_tag": "Nessuno",
+  "web_analise_confirm_delete": "Sei sicuro di voler eliminare questa transazione?",
+  "edit": "Modifica",
+  "delete": "Elimina",
+  "gastos_compartilhados_title": "Spese Condivise",
+  "gastos_compartilhados_empty": "Nessuna spesa condivisa trovata",
+  "gastos_compartilhados_pago": "Pagato",
+  "gastos_compartilhados_pendente": "In sospeso",
+  "gastos_compartilhados_marcar_pago": "Segna come Pagato",
+  "gastos_compartilhados_total": "Totale Condiviso",
+  "gastos_compartilhados_saldo": "Saldo",
+  "gastos_compartilhados_quem_deve": "Chi deve",
+  "gastos_compartilhados_adicionar": "Aggiungi Spesa Condivisa"
 }

@@ -9,7 +9,7 @@
  */
 
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import type { Espaco, Conta, Transacao, Caixinha, Cartao } from '../store/useStore';
+import type { Espaco, Conta, Transacao, Caixinha, Cartao, TagBancaria } from '../store/useStore';
 import { captureError } from '../lib/sentry';
 
 // Helpers internos
@@ -192,7 +192,7 @@ export async function fetchTransacoes(limit = 500): ServiceResult<Transacao[]> {
   try {
     const { data, error } = await supabase
       .from('transacoes')
-      .select('id, id_conta, tipo, valor, categoria, data_transacao, taxa_cambio_dia, descricao')
+      .select('id, id_conta, tipo, valor, categoria, data_transacao, taxa_cambio_dia, descricao, moeda_transacao, id_tag_bancaria, is_compartilhada, participante_email, id_transacao_pai')
       .is('deleted_at', null)
       .order('data_criacao', { ascending: false })
       .limit(limit);
@@ -229,8 +229,10 @@ export async function createTransacao(
         data_transacao: tx.data_transacao,
         taxa_cambio_dia: tx.taxa_cambio_dia,
         descricao: tx.descricao || null,
+        moeda_transacao: tx.moeda_transacao || 'BRL',
+        id_tag_bancaria: tx.id_tag_bancaria || null,
       })
-      .select('id, id_conta, tipo, valor, categoria, data_transacao, taxa_cambio_dia, descricao')
+      .select('id, id_conta, tipo, valor, categoria, data_transacao, taxa_cambio_dia, descricao, moeda_transacao, id_tag_bancaria')
       .single();
     if (error) return { data: null, error: error.message };
     const raw = data as Transacao;
@@ -260,6 +262,8 @@ export async function createTransacoesBatch(
       data_transacao: tx.data_transacao,
       taxa_cambio_dia: tx.taxa_cambio_dia,
       descricao: tx.descricao || null,
+      moeda_transacao: tx.moeda_transacao || 'BRL',
+      id_tag_bancaria: tx.id_tag_bancaria || null,
     }));
     const { error, count } = await supabase
       .from('transacoes')
@@ -277,7 +281,7 @@ export async function createTransacoesBatch(
  */
 export async function updateTransacao(
   id: string,
-  updates: { id_conta?: string; descricao?: string; valor?: number; data_transacao?: string; categoria?: string }
+  updates: { id_conta?: string; descricao?: string; valor?: number; data_transacao?: string; categoria?: string; moeda_transacao?: string; id_tag_bancaria?: string | null }
 ): ServiceResult<void> {
   if (!isSupabaseConfigured) return notConfigured();
   try {
@@ -521,6 +525,88 @@ export async function deleteCartao(id: string): ServiceResult<void> {
   } catch (e) {
     captureError(e, { action: 'deleteCartao' });
     return { data: null, error: 'Erro ao deletar cartão.' };
+  }
+}
+
+// ─── TAGS BANCÁRIAS ────────────────────────────────────────────────────
+
+/**
+ * Busca todas as tags bancárias do usuário.
+ */
+export async function fetchTagsBancarias(): ServiceResult<TagBancaria[]> {
+  if (!isSupabaseConfigured) return notConfigured();
+  try {
+    const { data, error } = await supabase
+      .from('tags_bancarias')
+      .select('id, id_usuario, nome, cor')
+      .order('data_criacao', { ascending: true });
+    if (error) return { data: null, error: error.message };
+    return { data: data as TagBancaria[], error: null };
+  } catch (e) {
+    captureError(e, { action: 'fetchTagsBancarias' });
+    return { data: null, error: 'Erro ao buscar tags bancárias.' };
+  }
+}
+
+/**
+ * Cria uma nova tag bancária.
+ */
+export async function createTagBancaria(
+  tag: Omit<TagBancaria, 'id'>
+): ServiceResult<TagBancaria> {
+  if (!isSupabaseConfigured) return notConfigured();
+  try {
+    const { data, error } = await supabase
+      .from('tags_bancarias')
+      .insert({
+        id_usuario: tag.id_usuario,
+        nome: tag.nome,
+        cor: tag.cor,
+      })
+      .select('id, id_usuario, nome, cor')
+      .single();
+    if (error) return { data: null, error: error.message };
+    return { data: data as TagBancaria, error: null };
+  } catch (e) {
+    captureError(e, { action: 'createTagBancaria' });
+    return { data: null, error: 'Erro ao criar tag bancária.' };
+  }
+}
+
+/**
+ * Atualiza uma tag bancária existente.
+ */
+export async function updateTagBancariaRemote(
+  id: string,
+  nome: string,
+  cor: string
+): ServiceResult<void> {
+  if (!isSupabaseConfigured) return notConfigured();
+  try {
+    const { error } = await supabase
+      .from('tags_bancarias')
+      .update({ nome, cor })
+      .eq('id', id);
+    if (error) return { data: null, error: error.message };
+    return { data: null, error: null };
+  } catch (e) {
+    captureError(e, { action: 'updateTagBancariaRemote', id });
+    return { data: null, error: 'Erro ao atualizar tag bancária.' };
+  }
+}
+
+/**
+ * Exclui uma tag bancária.
+ */
+export async function deleteTagBancaria(id: string): ServiceResult<void> {
+  if (!isSupabaseConfigured) return notConfigured();
+  try {
+    const { error } = await supabase.from('tags_bancarias').delete().eq('id', id);
+    if (error) return { data: null, error: error.message };
+    return { data: undefined, error: null };
+  } catch (e) {
+    captureError(e, { action: 'deleteTagBancaria' });
+    return { data: null, error: 'Erro ao deletar tag bancária.' };
   }
 }
 
