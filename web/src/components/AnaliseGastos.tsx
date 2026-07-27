@@ -24,10 +24,12 @@ const COLORS = [
 ];
 
 type PeriodType = 'month' | 'week' | 'year';
+type TipoFilter = 'despesa' | 'receita' | 'todas';
 
 export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, onDeleteTx }: AnaliseGastosProps) => {
   const { t } = useI18n();
   const [periodType, setPeriodType] = useState<PeriodType>('month');
+  const [tipoFilter, setTipoFilter] = useState<TipoFilter>('despesa');
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [drillDown, setDrillDown] = useState<string | null>(null);
 
@@ -60,13 +62,13 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
 
   const filteredTransactions = useMemo(() => {
     return transacoes.filter((t) => {
-      if (t.tipo !== 'despesa') return false;
+      if (tipoFilter !== 'todas' && t.tipo !== tipoFilter) return false;
       const d = t.data_transacao;
       if (!d) return false;
       const dateStr = d.includes('/') ? `${d.slice(6, 10)}-${d.slice(3, 5)}-${d.slice(0, 2)}` : d;
       return dateStr >= dateRange.start && dateStr <= dateRange.end;
     });
-  }, [transacoes, dateRange]);
+  }, [transacoes, dateRange, tipoFilter]);
 
   const totalDespesas = useMemo(
     () => filteredTransactions.reduce((acc, t) => acc + converterValor(t), 0),
@@ -137,10 +139,13 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
     setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   };
 
+  const tipoLabel = tipoFilter === 'despesa' ? t('web_dashboard_despesas') : tipoFilter === 'receita' ? t('web_dashboard_receitas') : t('web_import_group_all');
+  const tipoColor = tipoFilter === 'receita' ? 'var(--accent-green, #10B981)' : 'var(--negative, #EF4444)';
+
   const shareReport = async () => {
     let text = `📊 *${t('web_analise_title')}*\n`;
     text += `📅 ${getPeriodLabel()}\n`;
-    text += `💰 ${t('web_dashboard_despesas')}: ${formatCurrency(totalDespesas, moedaBase)}\n\n`;
+    text += `💰 ${tipoLabel}: ${formatCurrency(totalDespesas, moedaBase)}\n\n`;
     text += `*${t('web_analise_by_category')}*\n`;
     porCategoria.forEach((c) => {
       text += `• ${c.categoria}: ${formatCurrency(c.valor, moedaBase)} (${c.percentual.toFixed(1)}%)\n`;
@@ -214,14 +219,36 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
         boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
       }}>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
-          {t('web_dashboard_despesas')}
+          {tipoLabel}
         </p>
-        <p style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--negative, #EF4444)', margin: '8px 0 4px 0' }}>
+        <p style={{ fontSize: '2rem', fontWeight: 900, color: tipoColor, margin: '8px 0 4px 0' }}>
           {formatCurrency(totalDespesas, moedaBase)}
         </p>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>
           {filteredTransactions.length} {t('web_analise_transactions')}
         </p>
+      </div>
+
+      {/* Type Filter */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        {([
+          { key: 'despesa' as const, label: t('web_dashboard_despesas') },
+          { key: 'receita' as const, label: t('web_dashboard_receitas') },
+          { key: 'todas' as const, label: t('web_import_group_all') },
+        ]).map(opt => (
+          <button
+            key={opt.key}
+            onClick={() => { setTipoFilter(opt.key); setDrillDown(null); }}
+            style={{
+              flex: 1, padding: '10px', borderRadius: '12px', border: 'none', cursor: 'pointer',
+              fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s',
+              background: tipoFilter === opt.key ? (opt.key === 'receita' ? 'var(--accent-green, #10B981)' : opt.key === 'despesa' ? 'var(--negative, #EF4444)' : 'var(--accent-blue)') : 'var(--bg-secondary, #f1f5f9)',
+              color: tipoFilter === opt.key ? '#fff' : 'var(--text-secondary)',
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
@@ -347,8 +374,8 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
                           {tx.descricao || tx.categoria}
                         </span>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{tx.data_transacao}</span>
-                        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--negative, #EF4444)' }}>
-                          -{formatCurrency(converterValor(tx), moedaBase)}
+                        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: tx.tipo === 'receita' ? 'var(--accent-green, #10B981)' : 'var(--negative, #EF4444)' }}>
+                          {tx.tipo === 'receita' ? '+' : '-'}{formatCurrency(converterValor(tx), moedaBase)}
                         </span>
                         {(onEditTx || onDeleteTx) && (
                           <div style={{ display: 'flex', gap: '4px' }}>
