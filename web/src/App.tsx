@@ -13,7 +13,7 @@ import { useAuth } from './hooks/useAuth';
 import { useSupabaseSync } from './hooks/useSupabaseSync';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { SUPABASE_URL } from './constants/config';
-import { updatePerfil } from './services/supabaseService';
+import { updatePerfil, createTransacaoAtivo } from './services/supabaseService';
 import { formatCurrency, addMoney, subtractMoney, multiplyMoney, convertCurrency } from './utils/currency';
 import { parseCSV, parseOFX, parseXLSX, parsePDF } from './utils/importer';
 import { Card } from './components/Card';
@@ -424,7 +424,7 @@ export default function App() {
         setAccumulatedTips([]);
         setTipsPage(1);
         toast.warning(t('web_session_expired'), t('web_session_expired_desc'));
-      }, 300000); // 5 minutos
+      }, 900000); // 15 minutos
     };
 
     const events = ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'];
@@ -1241,19 +1241,42 @@ export default function App() {
   const handleConfirmImport = async (selected: PendingTransaction[]) => {
     if (selected.length === 0) return;
     try {
-      await addTransacoesBatch(selected.map(tx => ({
-        id_conta: tx.id_conta,
-        tipo: tx.tipo,
-        valor: tx.valor,
-        categoria: tx.categoria,
-        data_transacao: tx.data_transacao,
-        taxa_cambio_dia: tx.taxa_cambio_dia,
-        descricao: tx.descricao,
-      })));
+      const investimentos = selected.filter(tx => tx.categoria === 'Investimentos');
+      const outros = selected.filter(tx => tx.categoria !== 'Investimentos');
+
+      if (outros.length > 0) {
+        await addTransacoesBatch(outros.map(tx => ({
+          id_conta: tx.id_conta,
+          tipo: tx.tipo,
+          valor: tx.valor,
+          categoria: tx.categoria,
+          data_transacao: tx.data_transacao,
+          taxa_cambio_dia: tx.taxa_cambio_dia,
+          descricao: tx.descricao,
+        })));
+      }
+
+      for (const tx of investimentos) {
+        const descUpper = (tx.descricao || '').toUpperCase();
+        const tickerMatch = descUpper.match(/([A-Z]{4}\d{1,2}|PETR|VALE|ITUB|BBDC|MGLU|WEGE|RENT)/);
+        const ticker = tickerMatch ? tickerMatch[0] : 'INV-' + Date.now().toString(36).slice(-4).toUpperCase();
+        await createTransacaoAtivo({
+          id_usuario: id_usuario || '',
+          ticker,
+          tipo: 'compra',
+          quantidade: 1,
+          preco_unitario: tx.valor,
+          data_transacao: tx.data_transacao,
+          categoria: 'investimento',
+        });
+      }
+
       trackImportCompleted(selected.length, importFormat);
       toast.success(
         `${selected.length} ${t('web_import_transactions_imported')}`,
-        `${t('web_import_statement_saved')}`
+        investimentos.length > 0
+          ? `${investimentos.length} investimento(s) registrados na aba Investimentos.`
+          : `${t('web_import_statement_saved')}`
       );
     } catch (err: any) {
       toast.error(t('error_saving'), err.message || 'Falha ao persistir as transações.');

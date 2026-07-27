@@ -247,7 +247,17 @@ export const useStore = create<AppState>()(
       })),
 
       // Limpa a sessão sem apagar o estado persistido do localStorage
-      clearSession: () => set({ ...INITIAL_STATE, isAuthLoading: false }),
+      clearSession: () => set({
+        id_usuario: null,
+        email_usuario: null,
+        nome_usuario: null,
+        plano_usuario: 'free' as const,
+        moeda_base: 'BRL',
+        avatar_url: null,
+        id_espaco_ativo: null,
+        isCheckoutModalVisible: false,
+        isAuthLoading: true,
+      }),
 
       // ─── GETTERS DERIVADOS ───────────────────────────────────────────────────
 
