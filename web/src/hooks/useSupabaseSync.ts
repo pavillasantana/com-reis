@@ -79,18 +79,28 @@ export function useSupabaseSync() {
         fetchTransacoesRecorrentes(),
       ]);
 
-      // O plano do usuário é definido pelo syncUserToStore (lê do DB).
-      // NÃO sobrescrevemos aqui — o DB é a fonte de verdade.
+      // Log diagnóstico para debug
+      console.debug('[sync] loadAll resultados:', {
+        espacos: espacosRes.data?.length ?? 0,
+        contas: contasRes.data?.length ?? 0,
+        transacoes: transacoesRes.data?.length ?? 0,
+        caixinhas: caixinhasRes.data?.length ?? 0,
+        cartoes: cartoesRes.data?.length ?? 0,
+        tags: tagsBancariasRes.data?.length ?? 0,
+        recorrentes: recorrentesRes.data?.length ?? 0,
+        erros: [espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes, tagsBancariasRes, recorrentesRes]
+          .filter(r => r.error).map(r => r.error),
+      });
 
-      // Supabase is source of truth when connected
-      // Only overwrite if Supabase returns actual data (non-empty) to protect offline localStorage data
-      if (espacosRes.data && espacosRes.data.length > 0)    setEspacos(espacosRes.data);
-      if (contasRes.data && contasRes.data.length > 0)     setContas(contasRes.data);
-      if (transacoesRes.data && transacoesRes.data.length > 0) setTransacoes(transacoesRes.data);
-      if (caixinhasRes.data && caixinhasRes.data.length > 0)  setCaixinhas(caixinhasRes.data);
-      if (cartoesRes.data && cartoesRes.data.length > 0)    setCartoes(cartoesRes.data);
-      if (tagsBancariasRes.data && tagsBancariasRes.data.length > 0) setTagsBancarias(tagsBancariasRes.data);
-      if (recorrentesRes.data && recorrentesRes.data.length > 0) setTransacoesRecorrentes(recorrentesRes.data);
+      // Supabase é a fonte de verdade quando conectado.
+      // Sempre sobrescreve com dados do Supabase (mesmo vazio) — evita dados stale do localStorage.
+      if (espacosRes.data)    setEspacos(espacosRes.data);
+      if (contasRes.data)     setContas(contasRes.data);
+      if (transacoesRes.data) setTransacoes(transacoesRes.data);
+      if (caixinhasRes.data)  setCaixinhas(caixinhasRes.data);
+      if (cartoesRes.data)    setCartoes(cartoesRes.data);
+      if (tagsBancariasRes.data) setTagsBancarias(tagsBancariasRes.data);
+      if (recorrentesRes.data) setTransacoesRecorrentes(recorrentesRes.data);
 
       // Log erros no Sentry mas não bloqueia a UI
       [espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes, tagsBancariasRes, recorrentesRes].forEach(({ error }) => {

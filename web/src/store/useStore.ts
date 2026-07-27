@@ -182,10 +182,16 @@ export const useStore = create<AppState>()(
       setAuthLoading: (loading) => set({ isAuthLoading: loading }),
       toggleCheckoutModal: (visible) => set({ isCheckoutModalVisible: visible }),
 
-      setEspacos: (espacos) => set({
-        espacos,
-        id_espaco_ativo: espacos.length > 0 && !get().id_espaco_ativo ? espacos[0].id : get().id_espaco_ativo,
-      }),
+      setEspacos: (espacos) => {
+        const current = get().id_espaco_ativo;
+        const isValid = current && espacos.some((e) => e.id === current);
+        set({
+          espacos,
+          id_espaco_ativo: espacos.length > 0
+            ? (isValid ? current : espacos[0].id)
+            : null,
+        });
+      },
       setContas: (contas) => set({ contas }),
       setTransacoes: (transacoes) => set({ transacoes }),
       setCaixinhas: (caixinhas) => set({ caixinhas }),
