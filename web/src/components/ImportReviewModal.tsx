@@ -344,9 +344,27 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
                   <div style={{ position: 'relative' }}>
                     {isInvest ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Briefcase size={10} /> Investimentos
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                            <Briefcase size={10} /> Investimentos
+                          </span>
+                          <button
+                            ref={(el) => { catBtnRefs.current[row._key] = el; }}
+                            onClick={() => {
+                              if (!isEditingCat) measureCatDrop(row._key);
+                              setEditingCategory(isEditingCat ? null : row._key);
+                            }}
+                            style={{
+                              background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+                              borderRadius: '5px', padding: '1px 5px', fontSize: '0.62rem',
+                              color: 'var(--text-muted)', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: '2px',
+                            }}
+                            title="Mover para outra categoria"
+                          >
+                            <ChevronDown size={9} />
+                          </button>
+                        </div>
                         <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
                           {SUBTIPOS_INVEST.map(st => (
                             <button key={st.key} onClick={() => updateRow(row._key, { _subtipoInvestimento: st.key })} style={{
@@ -361,6 +379,29 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
                             </button>
                           ))}
                         </div>
+                        {isEditingCat && (
+                          <div style={{
+                            position: 'absolute', left: 0, top: '100%', zIndex: 50,
+                            background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+                            borderRadius: '10px', padding: '6px', minWidth: '150px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.5)', maxHeight: '220px', overflowY: 'auto',
+                          }}>
+                            {CATEGORIAS_GASTOS.map(cat => (
+                              <button
+                                key={cat}
+                                onClick={() => { updateRow(row._key, { categoria: cat, _subtipoInvestimento: undefined }); setEditingCategory(null); }}
+                                style={{
+                                  display: 'block', width: '100%', textAlign: 'left',
+                                  padding: '7px 10px', background: 'transparent',
+                                  border: 'none', color: 'var(--text-secondary)',
+                                  cursor: 'pointer', borderRadius: '6px', fontSize: '0.8rem',
+                                }}
+                              >
+                                {cat}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <>
