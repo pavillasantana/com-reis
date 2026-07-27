@@ -410,19 +410,22 @@ export default function App() {
     setShowLogoutModal(true);
   };
 
-  // 5-Minute Inactivity Timeout
+  // 15-Minute Inactivity Timeout
+  const toastRef = React.useRef(toast);
+  toastRef.current = toast;
+
   React.useEffect(() => {
     if (!id_usuario) return;
 
-    let inactivityTimer: number;
+    const timerRef = { current: 0 as number };
 
     const resetTimer = () => {
-      window.clearTimeout(inactivityTimer);
-      inactivityTimer = window.setTimeout(() => {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = window.setTimeout(() => {
         signOut();
         setAccumulatedTips([]);
         setTipsPage(1);
-        toast.warning(t('web_session_expired'), t('web_session_expired_desc'));
+        toastRef.current.warning(t('web_session_expired'), t('web_session_expired_desc'));
       }, 900000); // 15 minutos
     };
 
@@ -432,10 +435,11 @@ export default function App() {
     resetTimer();
 
     return () => {
-      window.clearTimeout(inactivityTimer);
+      window.clearTimeout(timerRef.current);
       events.forEach(evt => window.removeEventListener(evt, resetTimer));
     };
-  }, [id_usuario, signOut, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id_usuario]);
 
 
 
@@ -593,9 +597,10 @@ export default function App() {
   const activeAccounts = getContasEspacoAtivo();
   const activeCaixinhas = getCaixinhasEspacoAtivo();
   const activeCartoes = getCartoesEspacoAtivo();
-  // ─── Mês atual: transações do mês corrente ──────────────────────────────────
+  // ─── Mês atual: transações do mês corrente (exclui transferências entre contas) ──
   const mesAtualKey = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-  const transacoesMesAtual = activeTransactions.filter(t => t.data_transacao.startsWith(mesAtualKey));
+  const isTransferencia = (t: { categoria?: string }) => t.categoria === 'Transferência';
+  const transacoesMesAtual = activeTransactions.filter(t => t.data_transacao.startsWith(mesAtualKey) && !isTransferencia(t));
   const receitasMesAtual = transacoesMesAtual
     .filter(t => t.tipo === 'receita')
     .reduce((acc, t) => {
@@ -650,7 +655,7 @@ export default function App() {
 
   // Calculate monthly average expense for CostExplorer comparison
   const despesasVal = activeTransactions
-    .filter(t => t.tipo === 'despesa')
+    .filter(t => t.tipo === 'despesa' && !isTransferencia(t))
     .reduce((acc, t) => {
       const conta = activeAccounts.find(c => c.id === t.id_conta);
       const moedaTx = conta?.moeda_conta || moeda_base;
