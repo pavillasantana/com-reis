@@ -2428,7 +2428,7 @@ export default function App() {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px'}}>
                       <PrimaryButton type="submit" style={{ width: '100%' }} disabled={isAuthLoading || authLoading}>
-                        {isAuthLoading ? t('web_auth_accessing') : t('web_auth_access_account')} <ChevronRight size={18} />
+                        {isAuthLoading ? t('web_auth_accessing') : t('login')} <ChevronRight size={18} />
                       </PrimaryButton>
 
                       <div style={{ display: 'flex', alignItems: 'center', margin: '10px 0' }}>

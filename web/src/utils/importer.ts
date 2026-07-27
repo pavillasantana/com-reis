@@ -6,6 +6,12 @@ import * as XLSX from 'xlsx';
  */
 export function autoCategorize(description: string): string {
   const desc = description.toLowerCase();
+  if (desc.includes('transferencia') || desc.includes('transferência') || desc.includes('transfer') || desc.includes('ted entre') || desc.includes('pix entre') || desc.includes('entre contas')) {
+    return 'Transferência';
+  }
+  if (desc.includes('investimento') || desc.includes('invest') || desc.includes('aplicacao') || desc.includes('aplicação') || desc.includes('rendimento fixa') || desc.includes('cdb') || desc.includes('lci') || desc.includes('lca') || desc.includes('tesouro') || desc.includes('fundos') || desc.includes('bolsa') || desc.includes('acao') || desc.includes('ação') || desc.includes('cripto') || desc.includes('bitcoin') || desc.includes('etf')) {
+    return 'Investimentos';
+  }
   if (desc.includes('uber') || desc.includes('99app') || desc.includes('posto') || desc.includes('combustivel')) {
     return 'Transporte';
   }

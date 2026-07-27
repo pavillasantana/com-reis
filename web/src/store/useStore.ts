@@ -368,6 +368,12 @@ export const useStore = create<AppState>()(
         avatar_url: state.avatar_url,
         id_espaco_ativo: state.id_espaco_ativo,
         espacos: state.espacos,
+        contas: state.contas,
+        transacoes: state.transacoes,
+        caixinhas: state.caixinhas,
+        cartoes: state.cartoes,
+        tagsBancarias: state.tagsBancarias,
+        transacoesRecorrentes: state.transacoesRecorrentes,
       }),
     }
   )

@@ -25,6 +25,7 @@ const CATEGORIAS = [
   'Saúde',
   'Educação',
   'Investimentos',
+  'Transferência',
   'Outros',
 ];
 

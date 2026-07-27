@@ -177,6 +177,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_tx_account_label')}</label>
               <select className="select-input" value={txContaId} onChange={e => setTxContaId(e.target.value)}>
+                {activeAccounts.length === 0 && (
+                  <option value="">{t('web_tx_account_auto_create') || 'Conta Principal (automática)'}</option>
+                )}
                 {activeAccounts.map(a => (
                   <option key={a.id} value={a.id}>{a.nome_instituicao}</option>
                 ))}
@@ -192,6 +195,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 <option value="Salário">{t('income_label')}</option>
                 <option value="Freelance">Freelance</option>
                 <option value="Assinaturas">{t('cat_assinaturas')}</option>
+                <option value="Saúde">{t('cat_saude')}</option>
+                <option value="Educação">{t('cat_educacao')}</option>
+                <option value="Investimentos">{t('cat_investimentos')}</option>
+                <option value="Transferência">{t('cat_transferencia')}</option>
                 <option value="Outros">{t('cat_outros')}</option>
               </select>
             </div>
