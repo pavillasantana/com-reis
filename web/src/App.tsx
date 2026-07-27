@@ -137,7 +137,6 @@ export default function App() {
     setPlanoUsuario,
     setIdEspacoAtivo,
     setMoedaBase,
-    getSaldoTotal,
     getTransacoesEspacoAtivo,
     getContasEspacoAtivo,
     getCaixinhasEspacoAtivo,
@@ -594,7 +593,24 @@ export default function App() {
   const activeAccounts = getContasEspacoAtivo();
   const activeCaixinhas = getCaixinhasEspacoAtivo();
   const activeCartoes = getCartoesEspacoAtivo();
-  const totalBalance = getSaldoTotal(rates);
+  // ─── Mês atual: transações do mês corrente ──────────────────────────────────
+  const mesAtualKey = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+  const transacoesMesAtual = activeTransactions.filter(t => t.data_transacao.startsWith(mesAtualKey));
+  const receitasMesAtual = transacoesMesAtual
+    .filter(t => t.tipo === 'receita')
+    .reduce((acc, t) => {
+      const conta = activeAccounts.find(c => c.id === t.id_conta);
+      const moedaTx = conta?.moeda_conta || moeda_base;
+      return acc + convertCurrency(t.valor, moedaTx, moeda_base, rates);
+    }, 0);
+  const despesasMesAtual = transacoesMesAtual
+    .filter(t => t.tipo === 'despesa')
+    .reduce((acc, t) => {
+      const conta = activeAccounts.find(c => c.id === t.id_conta);
+      const moedaTx = conta?.moeda_conta || moeda_base;
+      return acc + convertCurrency(t.valor, moedaTx, moeda_base, rates);
+    }, 0);
+  const saldoMesAtual = receitasMesAtual - despesasMesAtual;
 
   const openAddTransactionModal = () => {
     if (activeAccounts.length > 0) {
@@ -611,7 +627,6 @@ export default function App() {
 
   // ─── Phase 4.1 & 3: privacy blur e checkout guard aplicados via JSX inline ──
   // privacyMode → filter: privacyMode ? 'blur(Xpx)' : 'none' nos spans/h2
-  // totalBalance → usado no badge de saldo negativo abaixo
 
 
   // ─── Phase 3: Salvar edição de transação ────────────────────────────────────
@@ -644,21 +659,14 @@ export default function App() {
   const uniqueMonths = new Set(activeTransactions.map(t => t.data_transacao.substring(0, 7)));
   const userAverageExpense = uniqueMonths.size > 0 ? despesasVal / uniqueMonths.size : despesasVal;
 
-  // ─── Phase 4: Regra 50/30/20 ─────────────────────────────────────────────────
-  const receitaTotal = activeTransactions
-    .filter(t => t.tipo === 'receita')
-    .reduce((acc, t) => {
-      const conta = activeAccounts.find(c => c.id === t.id_conta);
-      const moedaTx = conta?.moeda_conta || moeda_base;
-      return acc + convertCurrency(t.valor, moedaTx, moeda_base, rates);
-    }, 0);
-  const regra502030 = receitaTotal > 0
+  // ─── Phase 4: Regra 50/30/20 (mês atual) ────────────────────────────────────
+  const regra502030 = receitasMesAtual > 0
     ? {
-        necessidades: multiplyMoney(receitaTotal, 0.5),
-        desejos:      multiplyMoney(receitaTotal, 0.3),
-        investimentos: multiplyMoney(receitaTotal, 0.2),
-        despesasReais: despesasVal,
-        pctGasto:      Math.min(Math.round((despesasVal / receitaTotal) * 100), 100)
+        necessidades: multiplyMoney(receitasMesAtual, 0.5),
+        desejos:      multiplyMoney(receitasMesAtual, 0.3),
+        investimentos: multiplyMoney(receitasMesAtual, 0.2),
+        despesasReais: despesasMesAtual,
+        pctGasto:      Math.min(Math.round((despesasMesAtual / receitasMesAtual) * 100), 100)
       }
     : null;
 
@@ -1465,8 +1473,8 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handleOutside);
   }, [showSpaceDropdown, showCurrencyDropdown]);
 
-  // Calculate Chart Data (Expense Category Breakdown) — converte para moeda_base
-  const expenseData = activeTransactions
+  // Calculate Chart Data (Expense Category Breakdown) — mês atual, converte para moeda_base
+  const expenseData = transacoesMesAtual
     .filter(t => t.tipo === 'despesa')
     .reduce((acc: Record<string, number>, curr) => {
       const conta = activeAccounts.find(c => c.id === curr.id_conta);
@@ -3564,9 +3572,14 @@ export default function App() {
                 }} className="bg-accent-glow-mangos"></div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span className="text-gray-mangos" style={{ fontSize: '0.85rem' }}>
-                    {t('web_dashboard_balance_title')} ({activeSpace?.nome})
-                  </span>
+                  <div>
+                    <span className="text-gray-mangos" style={{ fontSize: '0.85rem' }}>
+                      {t('web_dashboard_balance_title')} ({activeSpace?.nome})
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginLeft: '8px', fontWeight: 600 }}>
+                      Este mês
+                    </span>
+                  </div>
                   {plano_usuario === 'premium' ? (
                     <span className="text-accent-mangos" style={{ 
                       fontSize: '0.7rem', 
@@ -3594,9 +3607,9 @@ export default function App() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px'}}>
                   <h2 className="text-white-mangos" style={{ fontSize: '2.5rem', fontWeight: 800, margin: 0, letterSpacing: '-1px', transition: 'filter 0.3s', filter: privacyMode ? 'blur(8px)' : 'none' }}>
-                    {formatCurrency(totalBalance, moeda_base)}
+                    {formatCurrency(saldoMesAtual, moeda_base)}
                   </h2>
-                  {totalBalance < 0 && !privacyMode && (
+                  {saldoMesAtual < 0 && !privacyMode && (
                     <span className="badge-danger-mangos" style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: '8px', fontWeight: 700 }}>
                       ⚠ {t('web_dashboard_negative')}
                     </span>
@@ -3607,27 +3620,13 @@ export default function App() {
                   <div className="text-success-mangos" style={{ display: 'flex', alignItems: 'center', gap: '9px'}}>
                     <TrendingUp size={16} />
                     <span style={{ fontSize: '0.85rem', filter: privacyMode ? 'blur(6px)' : 'none', transition: 'filter 0.3s' }}>
-                      {t('web_dashboard_receitas')}: {formatCurrency(
-                        activeTransactions.filter(t => t.tipo === 'receita').reduce((sum, t) => {
-                          const conta = activeAccounts.find(c => c.id === t.id_conta);
-                          const moedaTx = conta?.moeda_conta || moeda_base;
-                          return sum + convertCurrency(t.valor, moedaTx, moeda_base, rates);
-                        }, 0),
-                        moeda_base
-                      )}
+                      {t('web_dashboard_receitas')}: {formatCurrency(receitasMesAtual, moeda_base)}
                     </span>
                   </div>
                   <div className="text-danger-mangos" style={{ display: 'flex', alignItems: 'center', gap: '9px'}}>
                     <TrendingDown size={16} />
                     <span style={{ fontSize: '0.85rem', filter: privacyMode ? 'blur(6px)' : 'none', transition: 'filter 0.3s' }}>
-                      {t('web_dashboard_despesas')}: {formatCurrency(
-                        activeTransactions.filter(t => t.tipo === 'despesa').reduce((sum, t) => {
-                          const conta = activeAccounts.find(c => c.id === t.id_conta);
-                          const moedaTx = conta?.moeda_conta || moeda_base;
-                          return sum + convertCurrency(t.valor, moedaTx, moeda_base, rates);
-                        }, 0),
-                        moeda_base
-                      )}
+                      {t('web_dashboard_despesas')}: {formatCurrency(despesasMesAtual, moeda_base)}
                     </span>
                   </div>
                 </div>
@@ -3639,6 +3638,7 @@ export default function App() {
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '1rem', marginBottom: '16px' }}>
                     <TrendingUp size={18} color="var(--accent-green)" />
                     {t('web_dashboard_health_title')}
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accent-green)', fontWeight: 600, opacity: 0.6 }}>Este mês</span>
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {[
@@ -4029,6 +4029,7 @@ export default function App() {
               >
                 <h3 style={{ fontSize: '1.1rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {t('web_dashboard_expense_division')}
+                  <span style={{ fontSize: '0.7rem', color: 'var(--accent-blue)', fontWeight: 600, opacity: 0.6 }}>Este mês</span>
                   <span style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', fontWeight: 500 }}>→ {t('web_analise_nav')}</span>
                 </h3>
                 
