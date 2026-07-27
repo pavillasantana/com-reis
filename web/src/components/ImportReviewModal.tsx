@@ -9,42 +9,53 @@ import {
   CheckSquare,
   Square,
   AlertTriangle,
+  Users,
+  User,
+  Briefcase,
+  ShoppingCart,
+  BadgeDollarSign,
 } from 'lucide-react';
 import type { Transacao } from '../store/useStore';
 import { PrimaryButton } from './PrimaryButton';
 import { useI18n } from '../i18n';
+import type { InvestimentoSubtipo } from '../utils/importer';
 
-const CATEGORIAS = [
-  'Alimentação',
-  'Moradia',
-  'Transporte',
-  'Lazer',
-  'Salário',
-  'Freelance',
-  'Assinaturas',
-  'Saúde',
-  'Educação',
-  'Investimentos',
-  'Transferência',
-  'Outros',
+const CATEGORIAS_GASTOS = [
+  'Alimentação', 'Moradia', 'Transporte', 'Lazer',
+  'Salário', 'Freelance', 'Assinaturas', 'Saúde',
+  'Educação', 'Transferência', 'Outros',
 ];
 
-export type PendingTransaction = Omit<Transacao, 'id'> & { _key: string };
+const SUBTIPOS_INVEST: { key: InvestimentoSubtipo; label: string; icon: React.ReactNode }[] = [
+  { key: 'compra', label: 'Compra', icon: <ShoppingCart size={11} /> },
+  { key: 'venda', label: 'Venda', icon: <TrendingUp size={11} /> },
+  { key: 'proventos', label: 'Proventos', icon: <BadgeDollarSign size={11} /> },
+  { key: 'juros', label: 'Juros', icon: <BadgeDollarSign size={11} /> },
+];
+
+export type PendingTransaction = Omit<Transacao, 'id'> & {
+  _key: string;
+  _subtipoInvestimento?: InvestimentoSubtipo;
+};
 
 interface ImportReviewModalProps {
   isOpen: boolean;
   transactions: PendingTransaction[];
   accountName: string;
   format: string;
+  isLoading?: boolean;
   onConfirm: (selected: PendingTransaction[]) => void;
   onClose: () => void;
 }
+
+type GroupFilter = 'todos' | 'investimentos' | 'gastos';
 
 export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
   isOpen,
   transactions,
   accountName,
   format,
+  isLoading = false,
   onConfirm,
   onClose,
 }) => {
@@ -53,6 +64,7 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
   const [selected, setSelected] = useState<Set<string>>(() => new Set(transactions.map(t => t._key)));
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [catDropDirection, setCatDropDirection] = useState<Record<string, 'up' | 'down'>>({});
+  const [groupFilter, setGroupFilter] = useState<GroupFilter>('todos');
   const catBtnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const measureCatDrop = useCallback((key: string) => {
@@ -64,11 +76,11 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
     setCatDropDirection(prev => ({ ...prev, [key]: spaceBelow < dropdownHeight ? 'up' : 'down' }));
   }, []);
 
-  // Reset when new transactions come in
   React.useEffect(() => {
     setRows(transactions);
     setSelected(new Set(transactions.map(t => t._key)));
     setEditingCategory(null);
+    setGroupFilter('todos');
   }, [transactions]);
 
   const toggleSelected = (key: string) => {
@@ -81,10 +93,11 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
   };
 
   const toggleAll = () => {
-    if (selected.size === rows.length) {
-      setSelected(new Set());
+    const visibleKeys = filteredRows.map(r => r._key);
+    if (visibleKeys.every(k => selected.has(k))) {
+      setSelected(prev => { const n = new Set(prev); visibleKeys.forEach(k => n.delete(k)); return n; });
     } else {
-      setSelected(new Set(rows.map(r => r._key)));
+      setSelected(prev => { const n = new Set(prev); visibleKeys.forEach(k => n.add(k)); return n; });
     }
   };
 
@@ -96,6 +109,25 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
     setRows(prev => prev.filter(r => r._key !== key));
     setSelected(prev => { const n = new Set(prev); n.delete(key); return n; });
   };
+
+  const getGroup = (row: PendingTransaction): 'investimentos' | 'gastos' =>
+    row.categoria === 'Investimentos' ? 'investimentos' : 'gastos';
+
+  const filteredRows = useMemo(() => {
+    if (groupFilter === 'todos') return rows;
+    return rows.filter(r => getGroup(r) === groupFilter);
+  }, [rows, groupFilter]);
+
+  const counts = useMemo(() => {
+    const inv = rows.filter(r => r.categoria === 'Investimentos');
+    const gas = rows.filter(r => r.categoria !== 'Investimentos');
+    const invSel = inv.filter(r => selected.has(r._key));
+    const gasSel = gas.filter(r => selected.has(r._key));
+    return {
+      investimentos: { total: inv.length, sel: invSel.length },
+      gastos: { total: gas.length, sel: gasSel.length },
+    };
+  }, [rows, selected]);
 
   const summary = useMemo(() => {
     const sel = rows.filter(r => selected.has(r._key));
@@ -109,7 +141,7 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
   const formatVal = (v: number) =>
     v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const allSelected = selected.size === rows.length && rows.length > 0;
+  const allVisibleSelected = filteredRows.length > 0 && filteredRows.every(r => selected.has(r._key));
 
   return (
     <div style={{
@@ -123,8 +155,8 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
         background: 'var(--modal-bg)',
         border: '1px solid var(--card-border)',
         borderRadius: '20px',
-        width: '100%', maxWidth: '820px',
-        maxHeight: '90vh',
+        width: '100%', maxWidth: '860px',
+        maxHeight: '92vh',
         display: 'flex', flexDirection: 'column',
         boxShadow: 'var(--shadow-glass)',
         overflow: 'hidden',
@@ -133,7 +165,6 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
         <div style={{
           padding: '24px 28px 20px',
           borderBottom: '1px solid var(--card-border)',
-          background: 'transparent',
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
             <div>
@@ -146,22 +177,17 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
                 &nbsp;·&nbsp;{rows.length} {t('web_import_review_detected')}
               </p>
             </div>
-            <button
-              onClick={onClose}
-              style={{
+            <button onClick={onClose} style={{
               background: 'var(--card-bg)', border: '1px solid var(--card-border)',
-                    color: 'var(--text-secondary)', borderRadius: '10px', padding: '6px 12px',
-                cursor: 'pointer', fontSize: '0.82rem', flexShrink: 0,
-              }}
-            >
+              color: 'var(--text-secondary)', borderRadius: '10px', padding: '6px 12px',
+              cursor: 'pointer', fontSize: '0.82rem', flexShrink: 0,
+            }}>
               {t('cancel')}
             </button>
           </div>
 
           {/* Summary bar */}
-          <div style={{
-            display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap',
-          }}>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
             <div style={{
               display: 'flex', alignItems: 'center', gap: '8px',
               background: 'rgba(0,229,255,0.07)', border: '1px solid rgba(0,229,255,0.15)',
@@ -186,38 +212,57 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
               <TrendingDown size={14} color="var(--color-danger)" />
               <span style={{ color: 'var(--color-danger)' }}>- R$ {formatVal(summary.despesas)}</span>
             </div>
-            {rows.length === 0 && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                background: 'rgba(255,180,0,0.07)', border: '1px solid rgba(255,180,0,0.15)',
-                borderRadius: '10px', padding: '8px 14px', fontSize: '0.82rem',
-              }}>
-                <AlertTriangle size={14} color="#FFB400" />
-                <span style={{ color: '#FFB400' }}>{t('web_import_review_no_remaining')}</span>
-              </div>
-            )}
           </div>
+        </div>
+
+        {/* ── GROUP TABS ── */}
+        <div style={{
+          display: 'flex', gap: '6px', padding: '12px 28px',
+          borderBottom: '1px solid var(--card-border)',
+        }}>
+          {([
+            { key: 'todos' as const, label: t('web_import_group_all'), count: rows.length },
+            { key: 'investimentos' as const, label: 'Investimentos', count: counts.investimentos.total, selCount: counts.investimentos.sel },
+            { key: 'gastos' as const, label: t('web_import_group_expenses'), count: counts.gastos.total, selCount: counts.gastos.sel },
+          ]).map(tab => (
+            <button key={tab.key} onClick={() => setGroupFilter(tab.key)} style={{
+              padding: '8px 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700,
+              cursor: 'pointer', transition: 'all 0.15s',
+              background: groupFilter === tab.key ? 'var(--accent-blue)' : 'transparent',
+              color: groupFilter === tab.key ? '#fff' : 'var(--text-secondary)',
+              border: groupFilter === tab.key ? 'none' : '1px solid var(--card-border)',
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}>
+              {tab.key === 'investimentos' && <Briefcase size={13} />}
+              {tab.key === 'gastos' && <ShoppingCart size={13} />}
+              {tab.label}
+              <span style={{
+                fontSize: '0.72rem', padding: '2px 7px', borderRadius: '12px',
+                background: groupFilter === tab.key ? 'rgba(255,255,255,0.2)' : 'var(--bg-color)',
+                color: groupFilter === tab.key ? '#fff' : 'var(--text-muted)',
+              }}>
+                {tab.selCount !== undefined ? `${tab.selCount}/${tab.count}` : tab.count}
+              </span>
+            </button>
+          ))}
         </div>
 
         {/* ── TABLE HEADER ── */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '36px 90px 1fr 130px 100px 80px 36px',
+          gridTemplateColumns: '36px 85px 1fr 120px 100px 80px 70px 36px',
           gap: '0 8px',
           padding: '10px 20px',
           background: 'var(--bg-color)',
           borderBottom: '1px solid var(--card-border)',
-          fontSize: '0.72rem',
+          fontSize: '0.70rem',
           fontWeight: 700,
           color: 'var(--text-muted)',
           letterSpacing: '0.05em',
           textTransform: 'uppercase',
         }}>
-          <button
-            onClick={toggleAll}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            {allSelected
+          <button onClick={toggleAll} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {allVisibleSelected
               ? <CheckSquare size={16} color="var(--accent-cyan)" />
               : <Square size={16} color="var(--text-muted)" />
             }
@@ -227,26 +272,28 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
           <span>{t('web_import_review_category')}</span>
           <span style={{ textAlign: 'right' }}>{t('web_import_review_value')}</span>
           <span style={{ textAlign: 'center' }}>{t('web_import_review_type')}</span>
+          <span style={{ textAlign: 'center' }}>{t('web_import_review_shared')}</span>
           <span />
         </div>
 
         {/* ── ROWS ── */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
-          {rows.length === 0 ? (
+          {filteredRows.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>
               <AlertTriangle size={32} style={{ opacity: 0.4, marginBottom: '12px' }} />
-              <p style={{ margin: 0 }}>{t('web_import_review_all_removed')}</p>
+              <p style={{ margin: 0 }}>{groupFilter === 'todos' ? t('web_import_review_all_removed') : t('web_import_review_no_remaining')}</p>
             </div>
           ) : (
-            rows.map(row => {
+            filteredRows.map(row => {
               const isChecked = selected.has(row._key);
               const isEditingCat = editingCategory === row._key;
+              const isInvest = row.categoria === 'Investimentos';
               return (
                 <div
                   key={row._key}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '36px 90px 1fr 130px 100px 80px 36px',
+                    gridTemplateColumns: '36px 85px 1fr 120px 100px 80px 70px 36px',
                     gap: '0 8px',
                     alignItems: 'center',
                     padding: '9px 8px',
@@ -256,15 +303,12 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
                     opacity: isChecked ? 1 : 0.45,
                     transition: 'background 0.15s, opacity 0.15s',
                     borderLeft: `3px solid ${isChecked
-                      ? (row.tipo === 'receita' ? 'rgba(0,230,118,0.5)' : 'rgba(255,82,82,0.5)')
+                      ? (isInvest ? 'rgba(100,120,255,0.5)' : row.tipo === 'receita' ? 'rgba(0,230,118,0.5)' : 'rgba(255,82,82,0.5)')
                       : 'transparent'}`,
                   }}
                 >
                   {/* Checkbox */}
-                  <button
-                    onClick={() => toggleSelected(row._key)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
+                  <button onClick={() => toggleSelected(row._key)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {isChecked
                       ? <CheckCircle2 size={18} color="var(--accent-cyan)" />
                       : <Circle size={18} color="var(--text-muted)" />
@@ -296,51 +340,88 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
                     }}
                   />
 
-                  {/* Category */}
+                  {/* Category + Subtype */}
                   <div style={{ position: 'relative' }}>
-                    <button
-                      ref={(el) => { catBtnRefs.current[row._key] = el; }}
-                      onClick={() => {
-                        if (!isEditingCat) measureCatDrop(row._key);
-                        setEditingCategory(isEditingCat ? null : row._key);
-                      }}
-                      style={{
-                        width: '100%', background: 'var(--card-bg)',
-                        border: '1px solid var(--card-border)',
-                        borderRadius: '7px', padding: '5px 8px',
-                        color: 'var(--text-secondary)', fontSize: '0.78rem',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center',
-                        justifyContent: 'space-between', gap: '4px',
-                        whiteSpace: 'nowrap', overflow: 'hidden',
-                      }}
-                    >
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.categoria}</span>
-                      <ChevronDown size={12} style={{ flexShrink: 0 }} />
-                    </button>
-                    {isEditingCat && (
-                      <div style={{
-                        position: 'absolute', left: 0, zIndex: 50,
-                        ...(catDropDirection[row._key] === 'up' ? { bottom: '110%' } : { top: '110%' }),
-                        background: 'var(--card-bg)', border: '1px solid var(--card-border)',
-                        borderRadius: '10px', padding: '6px', minWidth: '150px',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.5)', maxHeight: '220px', overflowY: 'auto',
-                      }}>
-                        {CATEGORIAS.map(cat => (
-                          <button
-                            key={cat}
-                            onClick={() => { updateRow(row._key, { categoria: cat }); setEditingCategory(null); }}
-                            style={{
-                              display: 'block', width: '100%', textAlign: 'left',
-                              padding: '7px 10px', background: row.categoria === cat ? 'rgba(0,229,255,0.12)' : 'transparent',
-                              border: 'none', color: row.categoria === cat ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                              cursor: 'pointer', borderRadius: '6px', fontSize: '0.8rem',
-                              fontWeight: row.categoria === cat ? 700 : 400,
-                            }}
-                          >
-                            {cat}
-                          </button>
-                        ))}
+                    {isInvest ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Briefcase size={10} /> Investimentos
+                        </span>
+                        <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                          {SUBTIPOS_INVEST.map(st => (
+                            <button key={st.key} onClick={() => updateRow(row._key, { _subtipoInvestimento: st.key })} style={{
+                              display: 'flex', alignItems: 'center', gap: '3px',
+                              padding: '2px 6px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 700,
+                              cursor: 'pointer', transition: 'all 0.12s',
+                              background: (row._subtipoInvestimento || 'compra') === st.key ? 'rgba(100,120,255,0.15)' : 'transparent',
+                              color: (row._subtipoInvestimento || 'compra') === st.key ? 'var(--accent-blue)' : 'var(--text-muted)',
+                              border: (row._subtipoInvestimento || 'compra') === st.key ? '1px solid rgba(100,120,255,0.3)' : '1px solid transparent',
+                            }}>
+                              {st.icon} {st.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
+                    ) : (
+                      <>
+                        <button
+                          ref={(el) => { catBtnRefs.current[row._key] = el; }}
+                          onClick={() => {
+                            if (!isEditingCat) measureCatDrop(row._key);
+                            setEditingCategory(isEditingCat ? null : row._key);
+                          }}
+                          style={{
+                            width: '100%', background: 'var(--card-bg)',
+                            border: '1px solid var(--card-border)',
+                            borderRadius: '7px', padding: '5px 8px',
+                            color: 'var(--text-secondary)', fontSize: '0.78rem',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center',
+                            justifyContent: 'space-between', gap: '4px',
+                            whiteSpace: 'nowrap', overflow: 'hidden',
+                          }}
+                        >
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.categoria}</span>
+                          <ChevronDown size={12} style={{ flexShrink: 0 }} />
+                        </button>
+                        {isEditingCat && (
+                          <div style={{
+                            position: 'absolute', left: 0, zIndex: 50,
+                            ...(catDropDirection[row._key] === 'up' ? { bottom: '110%' } : { top: '110%' }),
+                            background: 'var(--card-bg)', border: '1px solid var(--card-border)',
+                            borderRadius: '10px', padding: '6px', minWidth: '150px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.5)', maxHeight: '220px', overflowY: 'auto',
+                          }}>
+                            {CATEGORIAS_GASTOS.map(cat => (
+                              <button
+                                key={cat}
+                                onClick={() => { updateRow(row._key, { categoria: cat }); setEditingCategory(null); }}
+                                style={{
+                                  display: 'block', width: '100%', textAlign: 'left',
+                                  padding: '7px 10px', background: row.categoria === cat ? 'rgba(0,229,255,0.12)' : 'transparent',
+                                  border: 'none', color: row.categoria === cat ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+                                  cursor: 'pointer', borderRadius: '6px', fontSize: '0.8rem',
+                                  fontWeight: row.categoria === cat ? 700 : 400,
+                                }}
+                              >
+                                {cat}
+                              </button>
+                            ))}
+                            <div style={{ borderTop: '1px solid var(--card-border)', margin: '4px 0' }} />
+                            <button
+                              onClick={() => { updateRow(row._key, { categoria: 'Investimentos', _subtipoInvestimento: 'compra' }); setEditingCategory(null); }}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                width: '100%', textAlign: 'left',
+                                padding: '7px 10px', background: 'transparent',
+                                border: 'none', color: 'var(--accent-blue)',
+                                cursor: 'pointer', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700,
+                              }}
+                            >
+                              <Briefcase size={12} /> Investimentos
+                            </button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -354,7 +435,7 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
                     style={{
                       background: 'var(--card-bg)', border: '1px solid var(--card-border)',
                       borderRadius: '7px', padding: '5px 8px',
-                      color: row.tipo === 'receita' ? 'var(--accent-green)' : 'var(--color-danger)',
+                      color: isInvest ? 'var(--accent-blue)' : row.tipo === 'receita' ? 'var(--accent-green)' : 'var(--color-danger)',
                       fontWeight: 700, fontSize: '0.82rem', width: '100%', textAlign: 'right',
                     }}
                   />
@@ -375,6 +456,22 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
                       ? <><TrendingUp size={12} /> + </>
                       : <><TrendingDown size={12} /> - </>
                     }
+                  </button>
+
+                  {/* Shared toggle */}
+                  <button
+                    onClick={() => updateRow(row._key, { is_compartilhada: !row.is_compartilhada })}
+                    style={{
+                      background: row.is_compartilhada ? 'rgba(255,180,0,0.1)' : 'transparent',
+                      border: `1px solid ${row.is_compartilhada ? 'rgba(255,180,0,0.3)' : 'var(--card-border)'}`,
+                      borderRadius: '7px', padding: '5px 0', cursor: 'pointer',
+                      color: row.is_compartilhada ? '#FFB400' : 'var(--text-muted)',
+                      fontSize: '0.65rem', fontWeight: 700, width: '100%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px',
+                    }}
+                    title={row.is_compartilhada ? t('web_import_shared') : t('web_import_personal')}
+                  >
+                    {row.is_compartilhada ? <Users size={12} /> : <User size={12} />}
                   </button>
 
                   {/* Remove */}
@@ -399,7 +496,6 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
         <div style={{
           padding: '16px 24px',
           borderTop: '1px solid var(--card-border)',
-          background: 'transparent',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px',
         }}>
           <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -421,9 +517,9 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
             </button>
             <PrimaryButton
               onClick={() => onConfirm(rows.filter(r => selected.has(r._key)))}
-              disabled={summary.count === 0}
+              disabled={summary.count === 0 || isLoading}
             >
-              Importar {summary.count > 0 ? t('web_import_review_import', { count: String(summary.count) }) : t('web_import_review_import_empty')}
+              {isLoading ? t('saving') : `Importar ${summary.count > 0 ? t('web_import_review_import', { count: String(summary.count) }) : t('web_import_review_import_empty')}`}
             </PrimaryButton>
           </div>
         </div>

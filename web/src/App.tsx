@@ -15,7 +15,7 @@ import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { SUPABASE_URL } from './constants/config';
 import { updatePerfil, createTransacaoAtivo } from './services/supabaseService';
 import { formatCurrency, addMoney, subtractMoney, multiplyMoney, convertCurrency } from './utils/currency';
-import { parseCSV, parseOFX, parseXLSX, parsePDF } from './utils/importer';
+import { parseCSV, parseOFX, parseXLSX, parsePDF, detectInvestmentSubtype } from './utils/importer';
 import { Card } from './components/Card';
 import { PrimaryButton } from './components/PrimaryButton';
 import { FloatingActionButton } from './components/FloatingActionButton';
@@ -1224,6 +1224,7 @@ export default function App() {
       const pending: PendingTransaction[] = parsedTxs.map((tx, i) => ({
         ...tx,
         _key: `import_${Date.now()}_${i}`,
+        _subtipoInvestimento: tx.categoria === 'Investimentos' ? detectInvestmentSubtype(tx.descricao || '') : undefined,
       }));
       setImportPending(pending);
       setImportFormat(format);
@@ -1239,7 +1240,8 @@ export default function App() {
 
   // Called when user confirms the reviewed import
   const handleConfirmImport = async (selected: PendingTransaction[]) => {
-    if (selected.length === 0) return;
+    if (selected.length === 0 || importLoading) return;
+    setImportLoading(true);
     try {
       const investimentos = selected.filter(tx => tx.categoria === 'Investimentos');
       const outros = selected.filter(tx => tx.categoria !== 'Investimentos');
@@ -1253,21 +1255,25 @@ export default function App() {
           data_transacao: tx.data_transacao,
           taxa_cambio_dia: tx.taxa_cambio_dia,
           descricao: tx.descricao,
+          is_compartilhada: tx.is_compartilhada,
         })));
       }
 
       for (const tx of investimentos) {
         const descUpper = (tx.descricao || '').toUpperCase();
-        const tickerMatch = descUpper.match(/([A-Z]{4}\d{1,2}|PETR|VALE|ITUB|BBDC|MGLU|WEGE|RENT)/);
-        const ticker = tickerMatch ? tickerMatch[0] : 'INV-' + Date.now().toString(36).slice(-4).toUpperCase();
+        const tickerMatch = descUpper.match(/([A-Z]{4}\d{1,2}|PETR|VALE|ITUB|BBDC|MGLU|WEGE|RENT|BOVA|IBOV)/i);
+        const ticker = tickerMatch ? tickerMatch[0].toUpperCase() : 'INV-' + Date.now().toString(36).slice(-4).toUpperCase();
+        const subtipo = tx._subtipoInvestimento || 'compra';
+        const tipoMap: Record<string, 'compra' | 'venda'> = { compra: 'compra', venda: 'venda', proventos: 'compra', juros: 'compra' };
         await createTransacaoAtivo({
           id_usuario: id_usuario || '',
           ticker,
-          tipo: 'compra',
+          tipo: tipoMap[subtipo] || 'compra',
           quantidade: 1,
           preco_unitario: tx.valor,
           data_transacao: tx.data_transacao,
-          categoria: 'investimento',
+          categoria: subtipo === 'proventos' ? 'proventos' : subtipo === 'juros' ? 'renda-fixa' : 'investimento',
+          subcategoria: subtipo,
         });
       }
 
@@ -1275,12 +1281,13 @@ export default function App() {
       toast.success(
         `${selected.length} ${t('web_import_transactions_imported')}`,
         investimentos.length > 0
-          ? `${investimentos.length} investimento(s) registrados na aba Investimentos.`
+          ? `${investimentos.length} investimento(s) na aba Investimentos.`
           : `${t('web_import_statement_saved')}`
       );
     } catch (err: any) {
       toast.error(t('error_saving'), err.message || 'Falha ao persistir as transações.');
     } finally {
+      setImportLoading(false);
       setImportReviewOpen(false);
       setImportPending([]);
     }
@@ -4662,6 +4669,7 @@ export default function App() {
         transactions={importPending}
         accountName={activeAccounts.find(a => a.id === importAccountSelect)?.nome_instituicao ?? 'Conta'}
         format={importFormat}
+        isLoading={importLoading}
         onConfirm={handleConfirmImport}
         onClose={() => { setImportReviewOpen(false); setImportPending([]); }}
       />

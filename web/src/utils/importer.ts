@@ -30,6 +30,16 @@ export function autoCategorize(description: string): string {
   return 'Outros';
 }
 
+export type InvestimentoSubtipo = 'compra' | 'venda' | 'proventos' | 'juros';
+
+export function detectInvestmentSubtype(description: string): InvestimentoSubtipo {
+  const desc = description.toLowerCase();
+  if (desc.includes('vend') || desc.includes('sale') || desc.includes('resgate') || desc.includes('resgat')) return 'venda';
+  if (desc.includes('dividendo') || desc.includes('provento') || desc.includes('jcp') || desc.includes('renda') || desc.includes('fii')) return 'proventos';
+  if (desc.includes('juros') || desc.includes('correcao') || desc.includes('correção') || desc.includes('selic') || desc.includes('rendimentos')) return 'juros';
+  return 'compra';
+}
+
 /**
  * Interpreta arquivos CSV e extrai transações.
  * Suporta formatos:
