@@ -254,9 +254,9 @@ export const useStore = create<AppState>()(
         plano_usuario: 'free' as const,
         moeda_base: 'BRL',
         avatar_url: null,
-        id_espaco_ativo: null,
         isCheckoutModalVisible: false,
         isAuthLoading: true,
+        // NÃO reseta id_espaco_ativo nem dados — preserva estado do localStorage
       }),
 
       // ─── GETTERS DERIVADOS ───────────────────────────────────────────────────

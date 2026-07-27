@@ -43,6 +43,8 @@ export function useAuth(): UseAuthReturn {
       return;
     }
 
+    let initialSessionResolved = false;
+
     // Verifica sessão existente (caso o usuário já estava logado)
     supabase.auth.getSession().then(async ({ data }: { data: { session: Session | null } }) => {
       const session = data?.session;
@@ -51,10 +53,12 @@ export function useAuth(): UseAuthReturn {
       } else {
         setAuthLoading(false);
       }
+      initialSessionResolved = true;
       setIsLoading(false);
     }).catch((err: any) => {
       console.warn('Erro ao obter sessão em useAuth:', err);
       setAuthLoading(false);
+      initialSessionResolved = true;
       setIsLoading(false);
     });
 
@@ -64,6 +68,9 @@ export function useAuth(): UseAuthReturn {
         if (event === 'SIGNED_IN' && session?.user) {
           await syncUserToStore(session.user.id, session.user.email ?? '');
         } else if (event === 'SIGNED_OUT') {
+          // Ignora SIGNED_OUT durante a resolução inicial da sessão
+          // (Supabase pode disparar SIGNED_OUT momentaneamente no carregamento)
+          if (!initialSessionResolved) return;
           clearSession();
           setAuthLoading(false);
         }
@@ -71,7 +78,8 @@ export function useAuth(): UseAuthReturn {
     );
 
     return () => subscription.unsubscribe();
-  }, [clearSession, setAuthLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Carrega dados do perfil (plano, moeda, nome) do banco e popula o store
   const syncUserToStore = async (userId: string, email: string) => {
