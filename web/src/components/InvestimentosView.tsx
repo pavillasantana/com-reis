@@ -3,6 +3,7 @@ import {
   TrendingUp, TrendingDown, Plus, Trash2, Pencil,
   Search, Filter, BarChart3, DollarSign, Calendar,
   X, Check, RefreshCw, ChevronDown, ChevronRight,
+  CheckSquare, Square,
 } from 'lucide-react';
 import { formatCurrency } from '../utils/currency';
 import {
@@ -13,6 +14,7 @@ import {
 import type { TransacaoAtivo } from '../services/supabaseService';
 import type { Conta, Transacao } from '../store/useStore';
 import { Logo } from './Logo';
+import { useToast } from './Toast';
 import {
   CATEGORIAS_INVESTIMENTO, getCategoriaByTicker,
   getNomeSubcategoria,
@@ -41,6 +43,7 @@ const ACCENT_CYAN = '#0EA5E9';
 
 export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase, id_usuario, contas, addTransacao }) => {
   const { t } = useI18n();
+  const toast = useToast();
 
   const [txs, setTxs] = useState<TransacaoAtivo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +66,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   const [sugestoes, setSugestoes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [fContaDestino, setFContaDestino] = useState('');
 
   const carregarTransacoes = useCallback(async () => {
@@ -172,6 +176,47 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
     }
     setTxs(prev => prev.filter(t => t.id !== id));
     setDeleteConfirm(null);
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllSelection = () => {
+    setSelectedIds(prev => {
+      if (prev.size === filtered.length) {
+        return new Set();
+      } else {
+        return new Set(filtered.map(tx => tx.id));
+      }
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    const confirmMessage = t('bulk_delete_confirm', { count: selectedIds.size }) || 
+      `Tem certeza que deseja excluir permanentemente ${selectedIds.size} transação(ões)?`;
+    
+    if (!window.confirm(confirmMessage)) return;
+    
+    for (const id of selectedIds) {
+      if (!id.startsWith('local-')) {
+        await deleteTransacaoAtivo(id);
+      }
+    }
+    
+    setTxs(prev => prev.filter(t => !selectedIds.has(t.id)));
+    setSelectedIds(new Set());
+    toast.success(t('bulk_delete_success', { count: selectedIds.size }) || `${selectedIds.size} transação(ões) excluída(s) com sucesso!`);
   };
 
   const filtered = useMemo(() =>
@@ -511,9 +556,57 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
+              {/* Bulk delete toolbar */}
+              {selectedIds.size > 0 && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '12px 16px', marginBottom: '12px',
+                  background: 'rgba(239,68,68,0.05)', borderRadius: '12px',
+                  border: '1px solid rgba(239,68,68,0.2)',
+                }}>
+                  <span style={{ fontSize: '0.85rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 600 }}>
+                    {selectedIds.size} selecionada(s)
+                  </span>
+                  <button
+                    onClick={handleBulkDelete}
+                    style={{
+                      background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                      borderRadius: '8px', padding: '8px 16px', cursor: 'pointer',
+                      color: ACCENT_RED, fontWeight: 700, fontSize: '0.8rem',
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    Excluir ({selectedIds.size})
+                  </button>
+                  <button
+                    onClick={() => setSelectedIds(new Set())}
+                    style={{
+                      background: 'transparent', border: `1px solid ${CLEAN_BORDER}`,
+                      borderRadius: '8px', padding: '8px 12px', cursor: 'pointer',
+                      color: CLEAN_TEXT_SECONDARY, fontSize: '0.8rem',
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
+              
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ background: '#F8FAFC' }}>
+                    <th style={{ padding: '12px 16px', width: '40px' }}>
+                      <button
+                        onClick={toggleAllSelection}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                      >
+                        {selectedIds.size === filtered.length && filtered.length > 0 ? (
+                          <CheckSquare size={16} color={ACCENT_BLUE} />
+                        ) : (
+                          <Square size={16} color={CLEAN_TEXT_MUTED} />
+                        )}
+                      </button>
+                    </th>
                     {['Tipo', t('web_invest_ticker'), t('web_invest_category'), t('quantity_label'), t('unit_price_label'), 'Total', 'Data', ''].map(h => (
                       <th key={h} style={{
                         padding: '12px 16px', textAlign: h === 'Total' || h === t('unit_price_label') ? 'right' : 'left',
@@ -533,6 +626,18 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                         onMouseEnter={e => (e.currentTarget.style.background = '#F8FAFC')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
+                        <td style={{ padding: '14px 16px', width: '40px' }}>
+                          <button
+                            onClick={() => toggleSelection(tx.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          >
+                            {selectedIds.has(tx.id) ? (
+                              <CheckSquare size={16} color={ACCENT_BLUE} />
+                            ) : (
+                              <Square size={16} color={CLEAN_TEXT_MUTED} />
+                            )}
+                          </button>
+                        </td>
                         <td style={{ padding: '14px 16px' }}>
                           <span style={{
                             display: 'inline-flex', alignItems: 'center', gap: '6px',

@@ -16,6 +16,7 @@ import { SUPABASE_URL } from './constants/config';
 import { updatePerfil, createTransacaoAtivo } from './services/supabaseService';
 import { formatCurrency, addMoney, subtractMoney, multiplyMoney, convertCurrency } from './utils/currency';
 import { parseCSV, parseOFX, parseXLSX, parsePDF, detectInvestmentSubtype } from './utils/importer';
+import { getCategoriaByTicker } from './utils/investmentCategories';
 import { Card } from './components/Card';
 import { PrimaryButton } from './components/PrimaryButton';
 import { FloatingActionButton } from './components/FloatingActionButton';
@@ -1274,10 +1275,30 @@ export default function App() {
 
       for (const tx of investimentos) {
         const descUpper = (tx.descricao || '').toUpperCase();
-        const tickerMatch = descUpper.match(/([A-Z]{4}\d{1,2}|PETR|VALE|ITUB|BBDC|MGLU|WEGE|RENT|BOVA|IBOV)/i);
-        const ticker = tickerMatch ? tickerMatch[0].toUpperCase() : 'INV-' + Date.now().toString(36).slice(-4).toUpperCase();
+        // Melhorar extração de ticker: tickers brasileiros (4 letras + dígito), internacionais (3-5 letras), crypto
+        const tickerMatch = descUpper.match(/([A-Z]{4}\d{1,2}|PETR|VALE|ITUB|BBDC|MGLU|WEGE|RENT|BOVA|IBOV|BTC|ETH|TESOURO[ A-Z]*|AAPL|MSFT|GOOGL|VOO|VTI)/i);
+        let ticker = tickerMatch ? tickerMatch[0].toUpperCase() : 'INV-' + Date.now().toString(36).slice(-4).toUpperCase();
+        
+        // Se não encontrou ticker na regex, tentar detectar por palavras-chave
+        if (ticker.startsWith('INV-')) {
+          const desc = (tx.descricao || '').toLowerCase();
+          if (desc.includes('tesouro') || desc.includes('cdb') || desc.includes('lci') || desc.includes('lca')) {
+            ticker = 'TESOURO IPCA+'; // Default para renda fixa
+          } else if (desc.includes('cripto') || desc.includes('bitcoin') || desc.includes('btc')) {
+            ticker = 'BTC';
+          } else if (desc.includes('ethereum') || desc.includes('eth')) {
+            ticker = 'ETH';
+          }
+        }
+        
         const subtipo = tx._subtipoInvestimento || 'compra';
         const tipoMap: Record<string, 'compra' | 'venda'> = { compra: 'compra', venda: 'venda', proventos: 'compra', juros: 'compra' };
+        
+        // Usar getCategoriaByTicker para categorização correta
+        const catInfo = getCategoriaByTicker(ticker);
+        const categoria = catInfo?.categoria || 'renda_fixa_br'; // Default para renda fixa se não encontrar
+        const subcategoria = catInfo?.subcategoria || (subtipo === 'proventos' ? 'proventos' : subtipo === 'juros' ? 'renda_fixa_br' : 'investimento');
+        
         await createTransacaoAtivo({
           id_usuario: id_usuario || '',
           ticker,
@@ -1285,8 +1306,8 @@ export default function App() {
           quantidade: 1,
           preco_unitario: tx.valor,
           data_transacao: tx.data_transacao,
-          categoria: subtipo === 'proventos' ? 'proventos' : subtipo === 'juros' ? 'renda-fixa' : 'investimento',
-          subcategoria: subtipo,
+          categoria,
+          subcategoria,
         });
       }
 

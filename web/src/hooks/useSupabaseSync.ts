@@ -27,6 +27,7 @@ import {
   criarAssinatura,
   fetchTransacoesRecorrentes, createTransacaoRecorrente,
   updateTransacaoRecorrente as updateTransacaoRecorrenteService, deleteTransacaoRecorrente,
+  gerarTransacoesDoMes,
 } from '../services/supabaseService';
 import type { Espaco, Conta, Transacao, Caixinha, Cartao, TagBancaria, TransacaoRecorrente } from '../store/useStore';
 import type { MovimentoCaixinha } from '../components/CaixinhaHistoricoModal';
@@ -101,6 +102,18 @@ export function useSupabaseSync() {
       if (cartoesRes.data)    setCartoes(cartoesRes.data);
       if (tagsBancariasRes.data) setTagsBancarias(tagsBancariasRes.data);
       if (recorrentesRes.data) setTransacoesRecorrentes(recorrentesRes.data);
+
+      // Gerar transações do mês atual a partir de recorrências ativas
+      if (recorrentesRes.data && recorrentesRes.data.length > 0) {
+        const mesAtual = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+        const resultado = await gerarTransacoesDoMes(recorrentesRes.data, mesAtual);
+        if (resultado.geradas > 0) {
+          console.debug(`[sync] Geradas ${resultado.geradas} transações do mês ${mesAtual}`);
+          // Recarregar transações para incluir as geradas
+          const { data: novasTransacoes } = await fetchTransacoes();
+          if (novasTransacoes) setTransacoes(novasTransacoes);
+        }
+      }
 
       // Log erros no Sentry mas não bloqueia a UI
       [espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes, tagsBancariasRes, recorrentesRes].forEach(({ error }) => {

@@ -3,6 +3,7 @@ import { Repeat, Plus, Pencil, Trash2, X, Check, ChevronDown, TrendingUp, Trendi
 import { useI18n } from '../i18n';
 import { useStore } from '../store/useStore';
 import { useSupabaseSync } from '../hooks/useSupabaseSync';
+import { gerarTransacoesDoMes } from '../services/supabaseService';
 import { useToast } from './Toast';
 import type { TransacaoRecorrente } from '../store/useStore';
 
@@ -126,11 +127,11 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (!form.valor || form.valor <= 0) e.valor = 'Valor deve ser maior que 0';
-    if (!form.categoria) e.categoria = 'Categoria obrigatória';
-    if (!form.id_conta) e.id_conta = 'Selecione uma conta';
-    if (form.dia_vencimento < 1 || form.dia_vencimento > 31) e.dia_vencimento = 'Dia deve ser entre 1 e 31';
-    if (!form.data_inicio) e.data_inicio = 'Data de início obrigatória';
+    if (!form.valor || form.valor <= 0) e.valor = t('web_recurring_validate_value') || 'Valor deve ser maior que 0';
+    if (!form.categoria) e.categoria = t('web_recurring_validate_category') || 'Categoria obrigatória';
+    if (!form.id_conta) e.id_conta = t('web_recurring_validate_account') || 'Selecione uma conta';
+    if (form.dia_vencimento < 1 || form.dia_vencimento > 31) e.dia_vencimento = t('web_recurring_validate_day') || 'Dia deve ser entre 1 e 31';
+    if (!form.data_inicio) e.data_inicio = t('web_recurring_validate_start_date') || 'Data de início obrigatória';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -157,11 +158,23 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
 
   const handleDelete = async (id: string) => {
     await removeTransacaoRecorrente(id);
-    toast.success(t('web_recurring_delete'));
+    toast.success(t('web_recurring_delete') || 'Recorrência excluída com sucesso!');
   };
 
   const toggleAtivo = async (rec: TransacaoRecorrente) => {
     await updateTransacaoRecorrente(rec.id, { ativo: !rec.ativo });
+  };
+
+  const handleGerarMesAtual = async () => {
+    const mesAtual = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+    const resultado = await gerarTransacoesDoMes(transacoesRecorrentes, mesAtual);
+    if (resultado.geradas > 0) {
+      toast.success(t('web_recurring_generated') || `${resultado.geradas} transações geradas com sucesso!`);
+    } else if (resultado.erros > 0) {
+      toast.error(`Erro ao gerar ${resultado.erros} transações`);
+    } else {
+      toast.info('Nenhuma nova transação a gerar para este mês');
+    }
   };
 
   const setField = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
@@ -245,7 +258,19 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
           {/* ── LIST MODE ── */}
           {mode === 'list' && (
             <>
-              <div style={{ padding: '16px 28px', display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ padding: '16px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button
+                  onClick={handleGerarMesAtual}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    background: 'rgba(0,230,118,0.1)', border: '1px solid rgba(0,230,118,0.25)',
+                    color: 'var(--accent-green)', borderRadius: '10px',
+                    padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem',
+                  }}
+                >
+                  <Repeat size={16} />
+                  {t('web_recurring_generate_month') || 'Gerar do mês atual'}
+                </button>
                 <button
                   onClick={openCreate}
                   style={{
@@ -283,9 +308,9 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
                   }}>
                     <span />
                     <span>{t('web_import_review_category') || 'Categoria'}</span>
-                    <span style={{ textAlign: 'right' }}>Valor</span>
-                    <span style={{ textAlign: 'center' }}>Frequência</span>
-                    <span style={{ textAlign: 'center' }}>Dia</span>
+                    <span style={{ textAlign: 'right' }}>{t('web_recurring_value') || 'Valor'}</span>
+                    <span style={{ textAlign: 'center' }}>{t('web_recurring_frequency') || 'Frequência'}</span>
+                    <span style={{ textAlign: 'center' }}>{t('web_recurring_day') || 'Dia'}</span>
                     <span />
                   </div>
 
@@ -373,7 +398,7 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
                             borderRadius: '8px', padding: '4px 8px', cursor: 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                           }}
-                          title={rec.ativo ? 'Ativo' : 'Inativo'}
+                          title={rec.ativo ? (t('web_recurring_active') || 'Ativo') : (t('web_recurring_inactive') || 'Inativo')}
                         >
                           <Check size={12} color={rec.ativo ? 'var(--accent-green)' : 'var(--text-muted)'} />
                         </button>
@@ -466,7 +491,7 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
                   {errors.valor && <p style={errorStyle}>{errors.valor}</p>}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={labelStyle}>Moeda</label>
+                  <label style={labelStyle}>{t('web_recurring_currency') || 'Moeda'}</label>
                   <input
                     type="text"
                     value={form.moeda_transacao}
@@ -504,7 +529,7 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
                   value={form.descricao ?? ''}
                   onChange={e => setField('descricao', e.target.value)}
                   maxLength={80}
-                  placeholder="Ex: Aluguel, Netflix..."
+                  placeholder={t('web_recurring_placeholder') || 'Ex: Aluguel, Netflix...'}
                   style={inputStyle}
                 />
               </div>
@@ -560,7 +585,7 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
                       borderColor: errors.id_conta ? 'var(--color-danger)' : undefined,
                     }}
                   >
-                    <option value="">Selecione...</option>
+                    <option value="">{t('web_recurring_select') || 'Selecione...'}</option>
                     {contasEspacoAtivo.map(c => (
                       <option key={c.id} value={c.id}>{c.nome_instituicao} ({c.moeda_conta})</option>
                     ))}
@@ -614,7 +639,7 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
                   }}
                 >
                   {form.ativo ? <Check size={14} /> : <X size={14} />}
-                  {form.ativo ? 'Ativo' : 'Inativo'}
+                  {form.ativo ? (t('web_recurring_active') || 'Ativo') : (t('web_recurring_inactive') || 'Inativo')}
                 </button>
               </div>
             </div>

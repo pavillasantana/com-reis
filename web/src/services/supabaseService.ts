@@ -1124,3 +1124,68 @@ export async function deleteTransacaoRecorrente(id: string): ServiceResult<null>
     return { data: null, error: 'Erro ao excluir despesa recorrente.' };
   }
 }
+
+/**
+ * Gera transações a partir de recorrências ativas para um determinado mês.
+ * Evita duplicatas verificando se já existe transação com a mesma descrição e data.
+ */
+export async function gerarTransacoesDoMes(
+  recorrentes: TransacaoRecorrente[],
+  mesAno: string // formato: 'YYYY-MM'
+): Promise<{ geradas: number; erros: number }> {
+  if (!isSupabaseConfigured) return { geradas: 0, erros: 0 };
+  
+  let geradas = 0;
+  let erros = 0;
+  
+  for (const rec of recorrentes) {
+    // Verificar se a recorrência está ativa
+    if (!rec.ativo) continue;
+    
+    // Verificar se a data de início é anterior ou igual ao mês
+    if (rec.data_inicio > mesAno + '-31') continue;
+    
+    // Verificar se a data de fim é posterior ao mês (se definida)
+    if (rec.data_fim && rec.data_fim < mesAno + '-01') continue;
+    
+    // Calcular a data da transação
+    const dia = Math.min(rec.dia_vencimento, 28); // Usar 28 para evitar problemas com meses diferentes
+    const dataTransacao = `${mesAno}-${String(dia).padStart(2, '0')}`;
+    
+    // Verificar se já existe transação para esta recorrência neste mês
+    const { data: existente } = await supabase
+      .from('transacoes')
+      .select('id')
+      .eq('id_conta', rec.id_conta)
+      .eq('data_transacao', dataTransacao)
+      .eq('descricao', `[Recorrente] ${rec.categoria}`)
+      .limit(1);
+    
+    if (existente && existente.length > 0) {
+      // Já existe transação para esta recorrência neste mês
+      continue;
+    }
+    
+    // Criar a transação
+    const { error } = await supabase
+      .from('transacoes')
+      .insert({
+        id_conta: rec.id_conta,
+        tipo: rec.tipo,
+        valor: rec.valor,
+        categoria: rec.categoria,
+        data_transacao: dataTransacao,
+        descricao: `[Recorrente] ${rec.categoria}`,
+        moeda_transacao: rec.moeda_transacao,
+      });
+    
+    if (error) {
+      erros++;
+      console.error(`Erro ao gerar transação para recorrência ${rec.id}:`, error);
+    } else {
+      geradas++;
+    }
+  }
+  
+  return { geradas, erros };
+}

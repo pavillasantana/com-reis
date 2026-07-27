@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Package, Plus, Trash2, X, Check, Search
+  Package, Plus, Trash2, X, Check, Search,
+  CheckSquare, Square,
 } from 'lucide-react';
 import { Card } from './Card';
 import { formatCurrency } from '../utils/currency';
@@ -8,6 +9,7 @@ import {
   fetchBensPatrimonio, createBemPatrimonio, deleteBemPatrimonio
 } from '../services/supabaseService';
 import { useI18n } from '../i18n';
+import { useToast } from './Toast';
 
 interface Bem {
   id: string;
@@ -28,12 +30,14 @@ const CATEGORIAS = ['Eletrônicos', 'Móveis', 'Veículos', 'Imóveis', 'Equipam
 
 export const InventarioView: React.FC<Props> = ({ moedaBase, idEspaco }) => {
   const { t } = useI18n();
+  const toast = useToast();
 
   const [bens, setBens] = useState<Bem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const [fNome, setFNome] = useState('');
   const [fValor, setFValor] = useState('');
@@ -81,6 +85,45 @@ export const InventarioView: React.FC<Props> = ({ moedaBase, idEspaco }) => {
     setDeleteConfirm(null);
   };
 
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllSelection = () => {
+    setSelectedIds(prev => {
+      if (prev.size === filtered.length) {
+        return new Set();
+      } else {
+        return new Set(filtered.map(b => b.id));
+      }
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    const confirmMessage = t('bulk_delete_confirm', { count: selectedIds.size }) || 
+      `Tem certeza que deseja excluir permanentemente ${selectedIds.size} item(ns)?`;
+    
+    if (!window.confirm(confirmMessage)) return;
+    
+    for (const id of selectedIds) {
+      await deleteBemPatrimonio(id);
+    }
+    
+    setBens(prev => prev.filter(b => !selectedIds.has(b.id)));
+    setSelectedIds(new Set());
+    toast.success(t('bulk_delete_success', { count: selectedIds.size }) || `${selectedIds.size} item(ns) excluído(s) com sucesso!`);
+  };
+
   const inputSt: React.CSSProperties = {
     background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
     borderRadius: '10px', padding: '10px 14px', color: 'var(--text-primary)',
@@ -123,34 +166,103 @@ export const InventarioView: React.FC<Props> = ({ moedaBase, idEspaco }) => {
             <p>{t('web_inventory_no_items')}<br />{t('web_inventory_add_first')}</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
-            {filtered.map(bem => (
-              <div key={bem.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '18px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{bem.nome}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      {bem.categoria} | {bem.data_aquisicao}
+          <>
+            {/* Bulk delete toolbar */}
+            {selectedIds.size > 0 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '12px 16px', marginBottom: '16px',
+                background: 'rgba(239,68,68,0.05)', borderRadius: '12px',
+                border: '1px solid rgba(239,68,68,0.2)',
+              }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  {selectedIds.size} selecionado(s)
+                </span>
+                <button
+                  onClick={handleBulkDelete}
+                  style={{
+                    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                    borderRadius: '8px', padding: '8px 16px', cursor: 'pointer',
+                    color: '#FF5252', fontWeight: 700, fontSize: '0.8rem',
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                  }}
+                >
+                  <Trash2 size={14} />
+                  Excluir ({selectedIds.size})
+                </button>
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  style={{
+                    background: 'transparent', border: '1px solid var(--card-border)',
+                    borderRadius: '8px', padding: '8px 12px', cursor: 'pointer',
+                    color: 'var(--text-secondary)', fontSize: '0.8rem',
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
+            
+            {/* Select all button */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+              <button
+                onClick={toggleAllSelection}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  color: 'var(--text-secondary)', fontSize: '0.8rem',
+                }}
+              >
+                {selectedIds.size === filtered.length && filtered.length > 0 ? (
+                  <CheckSquare size={16} color="var(--accent-blue)" />
+                ) : (
+                  <Square size={16} color="var(--text-muted)" />
+                )}
+                {selectedIds.size === filtered.length && filtered.length > 0 ? 'Desmarcar todos' : 'Selecionar todos'}
+              </button>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+              {filtered.map(bem => (
+                <div key={bem.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '18px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <button
+                        onClick={() => toggleSelection(bem.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: '2px' }}
+                      >
+                        {selectedIds.has(bem.id) ? (
+                          <CheckSquare size={16} color="var(--accent-blue)" />
+                        ) : (
+                          <Square size={16} color="var(--text-muted)" />
+                        )}
+                      </button>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{bem.nome}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          {bem.categoria} | {bem.data_aquisicao}
+                        </div>
+                        {bem.descricao && (
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '6px' }}>{bem.descricao}</div>
+                        )}
+                      </div>
                     </div>
-                    {bem.descricao && (
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '6px' }}>{bem.descricao}</div>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--accent-blue)' }}>{formatCurrency(bem.valor_compra, moedaBase)}</span>
-                    {deleteConfirm === bem.id ? (
-                      <span style={{ display: 'flex', gap: '4px' }}>
-                        <button onClick={() => handleDelete(bem.id)} style={{ background: 'rgba(255,82,82,0.15)', border: 'none', borderRadius: '6px', padding: '4px 6px', cursor: 'pointer', color: '#FF5252' }}><Check size={12} /></button>
-                        <button onClick={() => setDeleteConfirm(null)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '6px', padding: '4px 6px', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={12} /></button>
-                      </span>
-                    ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--accent-blue)' }}>{formatCurrency(bem.valor_compra, moedaBase)}</span>
+                      {deleteConfirm === bem.id ? (
+                        <span style={{ display: 'flex', gap: '4px' }}>
+                          <button onClick={() => handleDelete(bem.id)} style={{ background: 'rgba(255,82,82,0.15)', border: 'none', borderRadius: '6px', padding: '4px 6px', cursor: 'pointer', color: '#FF5252' }}><Check size={12} /></button>
+                          <button onClick={() => setDeleteConfirm(null)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '6px', padding: '4px 6px', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={12} /></button>
+                        </span>
+                      ) : (
                       <button onClick={() => setDeleteConfirm(bem.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', borderRadius: '6px' }}><Trash2 size={13} /></button>
                     )}
                   </div>
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          </>
         )}
       </Card>
 
