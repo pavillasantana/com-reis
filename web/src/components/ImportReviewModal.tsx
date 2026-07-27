@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   CheckCircle2,
   Circle,
@@ -51,6 +51,17 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
   const [rows, setRows] = useState<PendingTransaction[]>(() => transactions);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(transactions.map(t => t._key)));
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [catDropDirection, setCatDropDirection] = useState<Record<string, 'up' | 'down'>>({});
+  const catBtnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const measureCatDrop = useCallback((key: string) => {
+    const el = catBtnRefs.current[key];
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const dropdownHeight = 340;
+    setCatDropDirection(prev => ({ ...prev, [key]: spaceBelow < dropdownHeight ? 'up' : 'down' }));
+  }, []);
 
   // Reset when new transactions come in
   React.useEffect(() => {
@@ -287,7 +298,11 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
                   {/* Category */}
                   <div style={{ position: 'relative' }}>
                     <button
-                      onClick={() => setEditingCategory(isEditingCat ? null : row._key)}
+                      ref={(el) => { catBtnRefs.current[row._key] = el; }}
+                      onClick={() => {
+                        if (!isEditingCat) measureCatDrop(row._key);
+                        setEditingCategory(isEditingCat ? null : row._key);
+                      }}
                       style={{
                         width: '100%', background: 'var(--card-bg)',
                         border: '1px solid var(--card-border)',
@@ -303,10 +318,11 @@ export const ImportReviewModal: React.FC<ImportReviewModalProps> = ({
                     </button>
                     {isEditingCat && (
                       <div style={{
-                        position: 'absolute', top: '110%', left: 0, zIndex: 50,
+                        position: 'absolute', left: 0, zIndex: 50,
+                        ...(catDropDirection[row._key] === 'up' ? { bottom: '110%' } : { top: '110%' }),
                         background: 'var(--card-bg)', border: '1px solid var(--card-border)',
                         borderRadius: '10px', padding: '6px', minWidth: '150px',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.5)', maxHeight: '220px', overflowY: 'auto',
                       }}>
                         {CATEGORIAS.map(cat => (
                           <button

@@ -9,7 +9,7 @@
  */
 
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import type { Espaco, Conta, Transacao, Caixinha, Cartao, TagBancaria } from '../store/useStore';
+import type { Espaco, Conta, Transacao, Caixinha, Cartao, TagBancaria, TransacaoRecorrente } from '../store/useStore';
 import { captureError } from '../lib/sentry';
 
 // Helpers internos
@@ -1051,5 +1051,76 @@ export async function verificarStatusExclusao(): ServiceResult<any> {
   } catch (e) {
     captureError(e, { action: 'verificarStatusExclusao' });
     return { data: null, error: 'Erro ao verificar status de exclusão.' };
+  }
+}
+
+// ─── TRANSAÇÕES RECORRENTES ──────────────────────────────────────────────
+
+export async function fetchTransacoesRecorrentes(): ServiceResult<TransacaoRecorrente[]> {
+  if (!isSupabaseConfigured) return notConfigured();
+  try {
+    const { data, error } = await supabase
+      .from('transacoes_recorrentes')
+      .select('id, id_usuario, id_espaco, id_conta, tipo, valor, categoria, moeda_transacao, descricao, frequencia, dia_vencimento, data_inicio, data_fim, ativo')
+      .is('deleted_at', null)
+      .order('data_criacao', { ascending: false });
+    if (error) return { data: null, error: error.message };
+    return { data: (data || []) as TransacaoRecorrente[], error: null };
+  } catch (e) {
+    captureError(e, { action: 'fetchTransacoesRecorrentes' });
+    return { data: null, error: 'Erro ao buscar despesas recorrentes.' };
+  }
+}
+
+export async function createTransacaoRecorrente(
+  recorrente: Omit<TransacaoRecorrente, 'id'>
+): ServiceResult<TransacaoRecorrente> {
+  if (!isSupabaseConfigured) return notConfigured();
+  try {
+    const { data, error } = await supabase
+      .from('transacoes_recorrentes')
+      .insert(recorrente)
+      .select()
+      .single();
+    if (error) return { data: null, error: error.message };
+    return { data: data as TransacaoRecorrente, error: null };
+  } catch (e) {
+    captureError(e, { action: 'createTransacaoRecorrente' });
+    return { data: null, error: 'Erro ao criar despesa recorrente.' };
+  }
+}
+
+export async function updateTransacaoRecorrente(
+  id: string,
+  updates: Partial<Omit<TransacaoRecorrente, 'id' | 'id_usuario'>>
+): ServiceResult<TransacaoRecorrente> {
+  if (!isSupabaseConfigured) return notConfigured();
+  try {
+    const { data, error } = await supabase
+      .from('transacoes_recorrentes')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) return { data: null, error: error.message };
+    return { data: data as TransacaoRecorrente, error: null };
+  } catch (e) {
+    captureError(e, { action: 'updateTransacaoRecorrente' });
+    return { data: null, error: 'Erro ao atualizar despesa recorrente.' };
+  }
+}
+
+export async function deleteTransacaoRecorrente(id: string): ServiceResult<null> {
+  if (!isSupabaseConfigured) return notConfigured();
+  try {
+    const { error } = await supabase
+      .from('transacoes_recorrentes')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) return { data: null, error: error.message };
+    return { data: null, error: null };
+  } catch (e) {
+    captureError(e, { action: 'deleteTransacaoRecorrente' });
+    return { data: null, error: 'Erro ao excluir despesa recorrente.' };
   }
 }

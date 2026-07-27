@@ -56,6 +56,23 @@ export interface TagBancaria {
   cor: string;
 }
 
+export interface TransacaoRecorrente {
+  id: string;
+  id_usuario: string;
+  id_espaco: string;
+  id_conta: string;
+  tipo: 'receita' | 'despesa';
+  valor: number;
+  categoria: string;
+  moeda_transacao: string;
+  descricao?: string;
+  frequencia: 'semanal' | 'quinzenal' | 'mensal' | 'bimestral' | 'trimestral' | 'semestral' | 'anual';
+  dia_vencimento: number;
+  data_inicio: string;
+  data_fim?: string;
+  ativo: boolean;
+}
+
 interface AppState {
   // Auth & User Info
   id_usuario: string | null;
@@ -77,6 +94,7 @@ interface AppState {
   caixinhas: Caixinha[];
   cartoes: Cartao[];
   tagsBancarias: TagBancaria[];
+  transacoesRecorrentes: TransacaoRecorrente[];
 
   // Actions
   setUsuario: (id: string | null, email: string | null, nome: string | null, plano?: 'free' | 'premium', moeda_base?: string, avatar_url?: string | null) => void;
@@ -110,6 +128,10 @@ interface AppState {
   addTagBancaria: (tag: TagBancaria) => void;
   updateTagBancaria: (id: string, nome: string, cor: string) => void;
   removeTagBancaria: (id: string) => void;
+  setTransacoesRecorrentes: (recorrentes: TransacaoRecorrente[]) => void;
+  addTransacaoRecorrente: (recorrente: TransacaoRecorrente) => void;
+  updateTransacaoRecorrente: (id: string, updates: Partial<Omit<TransacaoRecorrente, 'id' | 'id_usuario'>>) => void;
+  removeTransacaoRecorrente: (id: string) => void;
 
   // Derived Getters
   getSaldoTotal: (cotacoes?: Record<string, number>) => number;
@@ -141,6 +163,7 @@ const INITIAL_STATE = {
   caixinhas: [],
   cartoes: [],
   tagsBancarias: [],
+  transacoesRecorrentes: [],
   isAuthLoading: true,
 };
 
@@ -208,6 +231,19 @@ export const useStore = create<AppState>()(
       })),
       removeTagBancaria: (id) => set((state) => ({
         tagsBancarias: state.tagsBancarias.filter(t => t.id !== id),
+      })),
+
+      setTransacoesRecorrentes: (recorrentes) => set({ transacoesRecorrentes: recorrentes }),
+      addTransacaoRecorrente: (recorrente) => set((state) => ({
+        transacoesRecorrentes: [recorrente, ...state.transacoesRecorrentes],
+      })),
+      updateTransacaoRecorrente: (id, updates) => set((state) => ({
+        transacoesRecorrentes: state.transacoesRecorrentes.map(r =>
+          r.id === id ? { ...r, ...updates } : r
+        ),
+      })),
+      removeTransacaoRecorrente: (id) => set((state) => ({
+        transacoesRecorrentes: state.transacoesRecorrentes.filter(r => r.id !== id),
       })),
 
       // Limpa a sessão sem apagar o estado persistido do localStorage

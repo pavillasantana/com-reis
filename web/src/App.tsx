@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import './GlobalStyles.css';
 import { useStore } from './store/useStore';
@@ -36,6 +36,7 @@ import { CaixinhaHistoricoModal } from './components/CaixinhaHistoricoModal';
 import { FechamentoMensalModal } from './components/FechamentoMensalModal';
 import { InventarioView } from './components/InventarioView';
 import { CalendarioFinanceiro } from './components/CalendarioFinanceiro';
+import { RecurringExpensesModal } from './components/RecurringExpensesModal';
 import { AnaliseGastos } from './components/AnaliseGastos';
 import { GastosCompartilhados } from './components/GastosCompartilhados';
 import { FAQModal, TermosModal } from './components/FAQTermos';
@@ -93,6 +94,26 @@ import {
   ResponsiveContainer, 
   Tooltip,
 } from 'recharts';
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  BRL: 'R$', USD: '$', EUR: '€', GBP: '£', ARS: '$', JPY: '¥',
+  CAD: '$', AUD: '$', CHF: 'CHF', CNY: '¥', MXN: '$', AED: 'AED',
+};
+
+const CURRENCY_OPTIONS = [
+  { code: 'BRL', symbol: 'R$' },
+  { code: 'USD', symbol: '$' },
+  { code: 'EUR', symbol: '€' },
+  { code: 'GBP', symbol: '£' },
+  { code: 'ARS', symbol: '$' },
+  { code: 'JPY', symbol: '¥' },
+  { code: 'CAD', symbol: '$' },
+  { code: 'AUD', symbol: '$' },
+  { code: 'CHF', symbol: 'CHF' },
+  { code: 'CNY', symbol: '¥' },
+  { code: 'MXN', symbol: '$' },
+  { code: 'AED', symbol: 'AED' },
+];
 
 
 
@@ -208,6 +229,7 @@ export default function App() {
   // ─── Phase 1: FAQ & Termos LGPD ────────────────────────────────────────────
   const [showFAQModal, setShowFAQModal] = useState(false);
   const [showTermosModal, setShowTermosModal] = useState(false);
+  const [showRecurringModal, setShowRecurringModal] = useState(false);
 
   // ─── Phase 3: Edição de Transação ──────────────────────────────────────────
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
@@ -252,6 +274,14 @@ export default function App() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordConfirmInput, setPasswordConfirmInput] = useState('');
+
+  // ─── Header Dropdowns: Space & Currency (glassmorphism) ──────────────
+  const [showSpaceDropdown, setShowSpaceDropdown] = useState(false);
+  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+  const spaceDropdownRef = useRef<HTMLDivElement>(null);
+  const spaceDropdownBtnRef = useRef<HTMLButtonElement>(null);
+  const currencyDropdownRef = useRef<HTMLDivElement>(null);
+  const currencyDropdownBtnRef = useRef<HTMLButtonElement>(null);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [deleteAccountStep, setDeleteAccountStep] = useState<1 | 2>(1);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
@@ -567,13 +597,14 @@ export default function App() {
   const totalBalance = getSaldoTotal(rates);
 
   const openAddTransactionModal = () => {
-    if (activeAccounts.length === 0) {
-      toast.error(t('web_tx_account_required'), t('web_tx_account_required_desc'));
-      return;
+    if (activeAccounts.length > 0) {
+      const defaultAccount = activeAccounts[0];
+      setTxContaId(defaultAccount.id);
+      setTxMoeda(defaultAccount.moeda_conta || 'BRL');
+    } else {
+      setTxContaId('');
+      setTxMoeda(moeda_base || 'BRL');
     }
-    const defaultAccount = activeAccounts[0];
-    setTxContaId(defaultAccount.id);
-    setTxMoeda(defaultAccount.moeda_conta || 'BRL');
     setTxCartaoId('');
     setShowAddTransactionModal(true);
   };
@@ -774,18 +805,18 @@ export default function App() {
     }
     let finalContaId = txContaId;
     if (!finalContaId) {
-      let contaGeral = contas.find(c => c.nome_instituicao === 'Conta Geral' && c.id_espaco === id_espaco_ativo);
-      if (!contaGeral) {
-        const novaContaGeral = {
+      let contaPrincipal = contas.find(c => c.nome_instituicao === 'Conta Principal' && c.id_espaco === id_espaco_ativo);
+      if (!contaPrincipal) {
+        const novaContaPrincipal = {
           id_espaco: id_espaco_ativo!,
-          nome_instituicao: 'Conta Geral',
+          nome_instituicao: 'Conta Principal',
           moeda_conta: moeda_base,
           saldo_inicial: 0
         };
-        const generatedId = await addConta(novaContaGeral);
+        const generatedId = await addConta(novaContaPrincipal);
         finalContaId = generatedId as string;
       } else {
-        finalContaId = contaGeral.id;
+        finalContaId = contaPrincipal.id;
       }
     }
 
@@ -1388,6 +1419,21 @@ export default function App() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showUserMenu]);
+
+  // Close Space & Currency dropdowns on outside click
+  useEffect(() => {
+    if (!showSpaceDropdown && !showCurrencyDropdown) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (showSpaceDropdown && spaceDropdownRef.current && !spaceDropdownRef.current.contains(e.target as Node) && spaceDropdownBtnRef.current && !spaceDropdownBtnRef.current.contains(e.target as Node)) {
+        setShowSpaceDropdown(false);
+      }
+      if (showCurrencyDropdown && currencyDropdownRef.current && !currencyDropdownRef.current.contains(e.target as Node) && currencyDropdownBtnRef.current && !currencyDropdownBtnRef.current.contains(e.target as Node)) {
+        setShowCurrencyDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [showSpaceDropdown, showCurrencyDropdown]);
 
   // Calculate Chart Data (Expense Category Breakdown) — converte para moeda_base
   const expenseData = activeTransactions
@@ -2820,6 +2866,28 @@ export default function App() {
                   <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
                   Nova Conta
                 </button>
+                <button
+                  onClick={() => { setShowRecurringModal(true); setShowMobileSidebar(false); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                    fontSize: '0.9rem',
+                    textAlign: 'left',
+                    width: '100%',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>repeat</span>
+                  {t('web_recurring_title') || 'Despesas Recorrentes'}
+                </button>
               </aside>
             </>
           )}
@@ -2926,6 +2994,28 @@ export default function App() {
               <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
               Nova Conta
             </button>
+            <button
+              onClick={() => setShowRecurringModal(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontWeight: 500,
+                fontSize: '0.9rem',
+                textAlign: 'left',
+                width: '100%',
+                transition: 'all 0.2s',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>repeat</span>
+              {t('web_recurring_title') || 'Despesas Recorrentes'}
+            </button>
           </aside>
 
           {/* MAIN CONTENT AREA */}
@@ -2948,20 +3038,6 @@ export default function App() {
               gap: '16px'
             }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-              <button
-                className="md:hidden"
-                onClick={() => setShowMobileSidebar(true)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  padding: '4px'
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>menu</span>
-              </button>
               <div
                 onClick={handleOpenProfileModal}
                 style={{
@@ -3196,80 +3272,184 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', background: 'var(--card-bg)', padding: '4px', borderRadius: '10px', border: '1px solid var(--card-border)' }}>
-                {espacos.map(space => (
-                  <button
-                    key={space.id}
-                    onClick={() => handleSwitchSpace(space.id)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              {/* Space Switcher — glassmorphism dropdown */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  ref={spaceDropdownBtnRef}
+                  onClick={() => setShowSpaceDropdown(p => !p)}
+                  style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--card-border)',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s',
+                    minWidth: '100px',
+                    justifyContent: 'center',
+                  }}
+                  title={t('web_dashboard_spaces') || 'Espaços'}
+                >
+                  {(() => {
+                    const active = espacos.find(s => s.id === id_espaco_ativo);
+                    return active ? (
+                      <>
+                        {active.tipo === 'PF' ? <User size={14} /> : <Briefcase size={14} />}
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.5px' }}>{active.nome}</span>
+                      </>
+                    ) : <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Espaço</span>;
+                  })()}
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    {showSpaceDropdown ? '▲' : '▼'}
+                  </span>
+                </button>
+                {showSpaceDropdown && (
+                  <div
+                    ref={spaceDropdownRef}
                     style={{
-                      background: id_espaco_ativo === space.id ? 'var(--accent-blue)' : 'transparent',
-                      color: id_espaco_ativo === space.id ? '#000' : 'var(--text-secondary)',
-                      border: 'none',
-                      padding: '8px 14px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '0.8rem'
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      left: 0,
+                      background: 'var(--card-bg)',
+                      border: '1px solid var(--card-border)',
+                      borderRadius: '10px',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                      minWidth: '170px',
+                      zIndex: 100,
+                      overflow: 'hidden',
+                      animation: 'slideDown 0.15s ease-out',
                     }}
                   >
-                    {space.tipo === 'PF' ? <User size={14} /> : <Briefcase size={14} />}
-                    {space.nome}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setShowAddSpaceModal(true)}
-                  style={{
-                    background: 'transparent',
-                    color: 'var(--accent-blue)',
-                    border: 'none',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    fontSize: '1.1rem'
-                  }}
-                  title="Criar novo espaço"
-                >
-                  +
-                </button>
+                    {espacos.map(space => (
+                      <button
+                        key={space.id}
+                        onClick={() => { handleSwitchSpace(space.id); setShowSpaceDropdown(false); }}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          border: 'none',
+                          background: id_espaco_ativo === space.id ? 'rgba(0, 229, 255, 0.1)' : 'transparent',
+                          color: id_espaco_ativo === space.id ? 'var(--accent-blue)' : 'var(--text-primary)',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          transition: 'background 0.15s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = id_espaco_ativo === space.id ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255,255,255,0.04)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = id_espaco_ativo === space.id ? 'rgba(0, 229, 255, 0.1)' : 'transparent'}
+                      >
+                        {space.tipo === 'PF' ? <User size={14} /> : <Briefcase size={14} />}
+                        <span style={{ flex: 1 }}>{space.nome}</span>
+                        {id_espaco_ativo === space.id && <span style={{ color: 'var(--accent-blue)', fontSize: '0.9rem' }}>✓</span>}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => { setShowAddSpaceModal(true); setShowSpaceDropdown(false); }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'var(--accent-blue)',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        borderTop: '1px solid var(--card-border)',
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>+</span>
+                      <span style={{ flex: 1 }}>{t('web_dashboard_create_space') || 'Criar espaço'}</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {t('web_dashboard_view_in')} 
-                <select
-                  value={moeda_base}
-                  onChange={(e) => setMoedaBase(e.target.value)}
+              {/* Base Currency Selector — glassmorphism dropdown */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  ref={currencyDropdownBtnRef}
+                  onClick={() => setShowCurrencyDropdown(p => !p)}
                   style={{
-                    background: 'var(--accent-blue)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '2px 6px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
+                    background: 'rgba(255,255,255,0.04)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--card-border)',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
                     cursor: 'pointer',
-                    outline: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s',
+                    minWidth: '80px',
+                    justifyContent: 'center',
                   }}
+                  title={t('web_dashboard_view_in') || 'Moeda base'}
                 >
-                  <option value="BRL">R$ BRL</option>
-                  <option value="USD">$ USD</option>
-                  <option value="EUR">€ EUR</option>
-                  <option value="GBP">£ GBP</option>
-                  <option value="ARS">$ ARS</option>
-                  <option value="JPY">¥ JPY</option>
-                  <option value="CAD">$ CAD</option>
-                  <option value="AUD">$ AUD</option>
-                  <option value="CHF">CHF</option>
-                  <option value="CNY">¥ CNY</option>
-                  <option value="MXN">$ MXN</option>
-                  <option value="AED">AED</option>
-                </select>
-              </span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.5px' }}>
+                    {CURRENCY_SYMBOLS[moeda_base] || moeda_base} {moeda_base}
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    {showCurrencyDropdown ? '▲' : '▼'}
+                  </span>
+                </button>
+                {showCurrencyDropdown && (
+                  <div
+                    ref={currencyDropdownRef}
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      right: 0,
+                      background: 'var(--card-bg)',
+                      border: '1px solid var(--card-border)',
+                      borderRadius: '10px',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                      minWidth: '150px',
+                      zIndex: 100,
+                      overflow: 'hidden',
+                      animation: 'slideDown 0.15s ease-out',
+                    }}
+                  >
+                    {CURRENCY_OPTIONS.map(opt => (
+                      <button
+                        key={opt.code}
+                        onClick={() => { setMoedaBase(opt.code); setShowCurrencyDropdown(false); }}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          border: 'none',
+                          background: moeda_base === opt.code ? 'rgba(0, 229, 255, 0.1)' : 'transparent',
+                          color: moeda_base === opt.code ? 'var(--accent-blue)' : 'var(--text-primary)',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          transition: 'background 0.15s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = moeda_base === opt.code ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255,255,255,0.04)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = moeda_base === opt.code ? 'rgba(0, 229, 255, 0.1)' : 'transparent'}
+                      >
+                        <span>{opt.symbol}</span>
+                        <span style={{ flex: 1 }}>{opt.code}</span>
+                        {moeda_base === opt.code && <span style={{ color: 'var(--accent-blue)', fontSize: '0.9rem' }}>✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <LanguageSelector />
 
@@ -4393,13 +4573,15 @@ export default function App() {
             </div>
           )}
 
-          <FloatingActionButton 
-            onClick={openAddTransactionModal}
-            title="Registrar nova transação"
-            aria-label="Registrar nova transação"
-          >
-            <Plus size={28} />
-          </FloatingActionButton>
+          {(['dashboard', 'compartilhados', 'analiseGastos'].includes(activeView)) && (
+            <FloatingActionButton 
+              onClick={openAddTransactionModal}
+              title="Registrar nova transação"
+              aria-label="Registrar nova transação"
+            >
+              <Plus size={28} />
+            </FloatingActionButton>
+          )}
             </main>
           </div>
         </div>
@@ -4583,6 +4765,11 @@ export default function App() {
         moedaBase={moeda_base}
         addTransacao={addTransacao}
         contaId={activeAccounts[0]?.id || ''}
+      />
+
+      <RecurringExpensesModal
+        isOpen={showRecurringModal}
+        onClose={() => setShowRecurringModal(false)}
       />
 
       {/* MODAL ALTERAR SENHA */}

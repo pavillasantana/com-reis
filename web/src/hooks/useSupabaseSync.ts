@@ -25,8 +25,10 @@ import {
   createCaixinhaMovimento,
   updateCaixinhaMovimento, deleteCaixinhaMovimento,
   criarAssinatura,
+  fetchTransacoesRecorrentes, createTransacaoRecorrente,
+  updateTransacaoRecorrente, deleteTransacaoRecorrente,
 } from '../services/supabaseService';
-import type { Espaco, Conta, Transacao, Caixinha, Cartao, TagBancaria } from '../store/useStore';
+import type { Espaco, Conta, Transacao, Caixinha, Cartao, TagBancaria, TransacaoRecorrente } from '../store/useStore';
 import type { MovimentoCaixinha } from '../components/CaixinhaHistoricoModal';
 import { captureError } from '../lib/sentry';
 
@@ -52,6 +54,9 @@ export function useSupabaseSync() {
     removeTagBancaria: storeRemoveTagBancaria,
     updateTransacaoConta: storeUpdateTransacaoConta,
     setPlanoUsuario,
+    setTransacoesRecorrentes, addTransacaoRecorrente: storeAddTransacaoRecorrente,
+    updateTransacaoRecorrente: storeUpdateTransacaoRecorrente,
+    removeTransacaoRecorrente: storeRemoveTransacaoRecorrente,
   } = useStore();
 
   const hasSynced = useRef(false);
@@ -64,13 +69,14 @@ export function useSupabaseSync() {
     const loadAll = async () => {
       hasSynced.current = true;
 
-      const [espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes, tagsBancariasRes] = await Promise.all([
+      const [espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes, tagsBancariasRes, recorrentesRes] = await Promise.all([
         fetchEspacos(),
         fetchContas(),
         fetchTransacoes(),
         fetchCaixinhas(),
         fetchCartoes(),
         fetchTagsBancarias(),
+        fetchTransacoesRecorrentes(),
       ]);
 
       // O plano do usuário é definido pelo syncUserToStore (lê do DB).
@@ -82,15 +88,16 @@ export function useSupabaseSync() {
       if (caixinhasRes.data && caixinhasRes.data.length > 0)  setCaixinhas(caixinhasRes.data);
       if (cartoesRes.data && cartoesRes.data.length > 0)    setCartoes(cartoesRes.data);
       if (tagsBancariasRes.data && tagsBancariasRes.data.length > 0) setTagsBancarias(tagsBancariasRes.data);
+      if (recorrentesRes.data && recorrentesRes.data.length > 0) setTransacoesRecorrentes(recorrentesRes.data);
 
       // Log erros no Sentry mas não bloqueia a UI
-      [espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes, tagsBancariasRes].forEach(({ error }) => {
+      [espacosRes, contasRes, transacoesRes, caixinhasRes, cartoesRes, tagsBancariasRes, recorrentesRes].forEach(({ error }) => {
         if (error) captureError(new Error(error), { action: 'loadAll' });
       });
     };
 
     loadAll();
-  }, [id_usuario, isAuthLoading, setEspacos, setContas, setTransacoes, setCaixinhas, setCartoes, setTagsBancarias]);
+  }, [id_usuario, isAuthLoading, setEspacos, setContas, setTransacoes, setCaixinhas, setCartoes, setTagsBancarias, setTransacoesRecorrentes]);
 
   // Reset hasSynced quando o usuário muda (logout/login)
   useEffect(() => {
@@ -420,6 +427,46 @@ export function useSupabaseSync() {
     }
   }, [id_usuario]);
 
+  // ─── TRANSAÇÕES RECORRENTES (write-through) ─────────────────────────────
+
+  const addTransacaoRecorrente = useCallback(async (
+    recorrente: Omit<TransacaoRecorrente, 'id'>
+  ): Promise<string | null> => {
+    if (!isSupabaseConfigured || !id_usuario) {
+      const localId = 'local-rec-' + Math.random().toString(36).substr(2, 9);
+      storeAddTransacaoRecorrente({ ...recorrente, id: localId });
+      return localId;
+    }
+    const { data, error } = await createTransacaoRecorrente(recorrente);
+    if (error || !data) {
+      captureError(new Error(error ?? 'createTransacaoRecorrente failed'));
+      const localId = 'local-rec-' + Math.random().toString(36).substr(2, 9);
+      storeAddTransacaoRecorrente({ ...recorrente, id: localId });
+      return localId;
+    }
+    storeAddTransacaoRecorrente(data);
+    return data.id;
+  }, [id_usuario, storeAddTransacaoRecorrente]);
+
+  const updateTransacaoRecorrente = useCallback(async (
+    id: string,
+    updates: Partial<Omit<TransacaoRecorrente, 'id' | 'id_usuario'>>
+  ): Promise<void> => {
+    storeUpdateTransacaoRecorrente(id, updates);
+    if (isSupabaseConfigured && id_usuario && !id.startsWith('local-')) {
+      const { error } = await updateTransacaoRecorrente(id, updates);
+      if (error) captureError(new Error(error), { action: 'updateTransacaoRecorrente', id });
+    }
+  }, [id_usuario, storeUpdateTransacaoRecorrente]);
+
+  const removeTransacaoRecorrente = useCallback(async (id: string): Promise<void> => {
+    storeRemoveTransacaoRecorrente(id);
+    if (isSupabaseConfigured && id_usuario && !id.startsWith('local-')) {
+      const { error } = await deleteTransacaoRecorrente(id);
+      if (error) captureError(new Error(error), { action: 'removeTransacaoRecorrente', id });
+    }
+  }, [id_usuario, storeRemoveTransacaoRecorrente]);
+
     return {
       // Write-through actions (usam store + Supabase)
       addEspaco,
@@ -445,5 +492,9 @@ export function useSupabaseSync() {
       addCaixinhaMovimento,
       editCaixinhaMovimento,
       removeCaixinhaMovimento,
+      // Transações Recorrentes
+      addTransacaoRecorrente,
+      updateTransacaoRecorrente,
+      removeTransacaoRecorrente,
     };
 }

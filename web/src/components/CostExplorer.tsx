@@ -17,6 +17,7 @@ import { useExchangeRates } from '../hooks/useExchangeRates';
 import { useGlobalCountries, useGlobalStates, useGlobalCitiesForCountry } from '../hooks/useGlobalLocationData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useI18n } from '../i18n';
+import { useWorldBankPPP, convertViaPPP } from '../hooks/useWorldBankPPP';
 
 interface CostExplorerProps {
   planoUsuario: 'free' | 'premium';
@@ -30,6 +31,7 @@ interface DisplayProfile {
   pibPerCapita: number;
   currency: string;
   fonte: string;
+  iso3?: string;
 }
 
 export function CostExplorer({ 
@@ -65,6 +67,7 @@ export function CostExplorer({
   const { data: globalCities, isLoading: loadingGlobalCities } = useGlobalCitiesForCountry(selectedCountry);
 
   const { data: rates } = useExchangeRates(planoUsuario === 'premium');
+  const { pppData: worldPPP, loading: loadingPPP } = useWorldBankPPP();
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -114,12 +117,14 @@ export function CostExplorer({
         const cityToLookup = selectedCity || selectedCountry;
         if (cityToLookup) {
           const glProfile: TeleportCost = await getTeleportCityProfile(cityToLookup, selectedCountry);
+          const matchedCountry = globalCountries?.find(c => c.country === selectedCountry);
           if (!cancelled) {
             setProfile({
               salarioMedio: glProfile.salarioMedio,
               pibPerCapita: glProfile.custoVida,
               currency: glProfile.currency,
               fonte: glProfile.fonte,
+              iso3: matchedCountry?.iso3,
             });
             setLocalName(selectedCity ? `${selectedCity} (${selectedCountry})` : selectedCountry);
           }
@@ -131,7 +136,7 @@ export function CostExplorer({
 
     loadProfile();
     return () => { cancelled = true; };
-  }, [selectedUf, selectedCity, selectedCountry, isBrazil, selectedMunicipio, estados]);
+  }, [selectedUf, selectedCity, selectedCountry, isBrazil, selectedMunicipio, estados, globalCountries]);
 
   const rateToBRL = rates ? (profile.currency === 'BRL' ? 1 : (rates[profile.currency] || 1)) : 1;
   const profileSalarioBRL = profile.salarioMedio * rateToBRL;
@@ -593,6 +598,67 @@ export function CostExplorer({
                 </>
               )}
             </div>
+
+            {/* PPP Equivalence — only for non-Brazil when PPP data is available */}
+            {!isBrazil && userAverageExpense > 0 && profile.currency && worldPPP[profile.iso3 || ''] && (
+              <div style={{ 
+                marginTop: '16px', 
+                paddingTop: '16px', 
+                borderTop: '1px solid var(--card-border)',
+              }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
+                  {t('web_cost_ppp_title') || 'Poder de Compra (PPP)'} — {worldPPP[profile.iso3 || '']?.year}
+                </span>
+                <div style={{ fontSize: '0.8rem', lineHeight: '1.4', color: 'var(--text-secondary)' }}>
+                  {(() => {
+                    const userCurrencyPPP = worldPPP[moedaBase];
+                    const targetPPP = worldPPP[profile.iso3 || ''];
+                    if (!userCurrencyPPP || !targetPPP) return null;
+
+                    const userExpenseInTargetPPPPower = convertViaPPP(userAverageExpense, userCurrencyPPP.pppRate, targetPPP.pppRate);
+                    const ratio = targetPPP.pppRate / userCurrencyPPP.pppRate;
+                    
+                    return (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <span>{t('web_cost_ppp_rate_source') || 'PPP Source'}:</span>
+                          <span style={{ fontWeight: 600 }}>1 USD ≈ {formatCurrency(userCurrencyPPP.pppRate, moedaBase)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <span>{t('web_cost_ppp_rate_target') || 'PPP Target'}:</span>
+                          <span style={{ fontWeight: 600 }}>1 USD ≈ {formatCurrency(targetPPP.pppRate, profile.currency)}</span>
+                        </div>
+                        <div style={{ 
+                          marginTop: '10px', 
+                          padding: '10px 12px', 
+                          background: 'rgba(0, 229, 255, 0.06)', 
+                          borderRadius: '8px',
+                          border: '1px solid rgba(0, 229, 255, 0.15)',
+                        }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                            {t('web_cost_ppp_equivalence') || 'Equivalência PPP'}
+                          </span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                            {formatCurrency(userAverageExpense, moedaBase)}
+                          </span>
+                          <span style={{ color: 'var(--text-muted)' }}> {t('web_cost_ppp_equals') || 'equivale a'} </span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                            {formatCurrency(userExpenseInTargetPPPPower, profile.currency)}
+                          </span>
+                          <span style={{ color: 'var(--text-muted)' }}> {t('web_cost_ppp_in') || 'em poder de compra local'}</span>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            {ratio > 1 
+                              ? `${t('web_cost_ppp_hint_cheaper') || 'Mercadorias são ~'}${Math.round((1 - 1/ratio) * 100)}% ${t('web_cost_ppp_hint_cheaper2') || 'mais baratas em'} ${localName}`
+                              : `${t('web_cost_ppp_hint_expensive') || 'Mercadorias são ~'}${Math.round((ratio - 1) * 100)}% ${t('web_cost_ppp_hint_expensive2') || 'mais caras em'} ${localName}`
+                            }
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
