@@ -33,7 +33,7 @@ const CURRENCY_MAP: Record<string, string> = {
   LKA: 'LKR', KEN: 'KES', ETH: 'ETB', GHA: 'GHS', TZA: 'TZS',
   MAR: 'MAD', TUN: 'TND', DZA: 'DZD', IRQ: 'IQD', IRN: 'IRR',
   ARE: 'AED', QAT: 'QAR', KWT: 'KWD', BHR: 'BHD', OMN: 'OMR',
-  JOR: 'JOD', LBN: 'LBP', ISR: 'ILS', ARE: 'AED', NZL: 'NZD',
+   JOR: 'JOD', LBN: 'LBP', ISR: 'ILS', NZL: 'NZD',
   SGP: 'SGD', HKG: 'HKD', TWN: 'TWD', CZE: 'CZK', HUN: 'HUN',
   ROU: 'RON', BGR: 'BGR', HRV: 'HRK', SRB: 'RSD', UKR: 'UAH',
   KAZ: 'KZT', UZB: 'UZB', GEO: 'GEO', AZE: 'AZE', ARM: 'AMD',

@@ -67,7 +67,7 @@ export function CostExplorer({
   const { data: globalCities, isLoading: loadingGlobalCities } = useGlobalCitiesForCountry(selectedCountry);
 
   const { data: rates } = useExchangeRates(planoUsuario === 'premium');
-  const { pppData: worldPPP, loading: loadingPPP } = useWorldBankPPP();
+  const { pppData: worldPPP } = useWorldBankPPP();
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;

@@ -26,7 +26,7 @@ import {
   updateCaixinhaMovimento, deleteCaixinhaMovimento,
   criarAssinatura,
   fetchTransacoesRecorrentes, createTransacaoRecorrente,
-  updateTransacaoRecorrente, deleteTransacaoRecorrente,
+  updateTransacaoRecorrente as updateTransacaoRecorrenteService, deleteTransacaoRecorrente,
 } from '../services/supabaseService';
 import type { Espaco, Conta, Transacao, Caixinha, Cartao, TagBancaria, TransacaoRecorrente } from '../store/useStore';
 import type { MovimentoCaixinha } from '../components/CaixinhaHistoricoModal';
@@ -455,7 +455,7 @@ export function useSupabaseSync() {
   ): Promise<void> => {
     storeUpdateTransacaoRecorrente(id, updates);
     if (isSupabaseConfigured && id_usuario && !id.startsWith('local-')) {
-      const { error } = await updateTransacaoRecorrente(id, updates);
+      const { error } = await updateTransacaoRecorrenteService(id, updates);
       if (error) captureError(new Error(error), { action: 'updateTransacaoRecorrente', id });
     }
   }, [id_usuario, storeUpdateTransacaoRecorrente]);
