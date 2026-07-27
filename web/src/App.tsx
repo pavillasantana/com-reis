@@ -4401,7 +4401,7 @@ export default function App() {
           {activeView === 'investimentos' && (
             <>
               <AdBanner adSlot="topo_investimentos" />
-              <InvestimentosView moedaBase={moeda_base} onUpgrade={handleOpenCheckout} id_usuario={id_usuario} />
+              <InvestimentosView moedaBase={moeda_base} onUpgrade={handleOpenCheckout} id_usuario={id_usuario} contas={activeAccounts} addTransacao={addTransacao} />
             </>
           )}
 

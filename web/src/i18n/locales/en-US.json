@@ -830,6 +830,8 @@
   "web_invest_search": "Search by ticker...",
   "web_invest_sell": "Sell",
   "web_invest_sells": "Sells",
+  "web_invest_account_destination": "Destination Account (Redemption)",
+  "web_invest_select_account": "Select account to receive...",
   "web_invest_subcategory": "Subcategory",
   "web_invest_subtitle": "Currency quotes and portfolio tracking",
   "web_invest_ticker": "Ticker",

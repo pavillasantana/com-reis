@@ -8,8 +8,10 @@ import { formatCurrency } from '../utils/currency';
 import {
   fetchTransacoesAtivos, createTransacaoAtivo,
   updateTransacaoAtivo, deleteTransacaoAtivo,
+  createTransacao,
 } from '../services/supabaseService';
 import type { TransacaoAtivo } from '../services/supabaseService';
+import type { Conta, Transacao } from '../store/useStore';
 import { Logo } from './Logo';
 import {
   CATEGORIAS_INVESTIMENTO, getCategoriaByTicker,
@@ -22,6 +24,8 @@ interface InvestimentosViewProps {
   moedaBase: string;
   onUpgrade: () => void;
   id_usuario: string | null;
+  contas: Conta[];
+  addTransacao: (transacao: Transacao) => void;
 }
 
 const CLEAN_BG = '#F4F7FE';
@@ -35,7 +39,7 @@ const ACCENT_GREEN = '#10B981';
 const ACCENT_RED = '#EF4444';
 const ACCENT_CYAN = '#0EA5E9';
 
-export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase, id_usuario }) => {
+export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase, id_usuario, contas, addTransacao }) => {
   const { t } = useI18n();
 
   const [txs, setTxs] = useState<TransacaoAtivo[]>([]);
@@ -59,6 +63,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   const [sugestoes, setSugestoes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [fContaDestino, setFContaDestino] = useState('');
 
   const carregarTransacoes = useCallback(async () => {
     setLoading(true);
@@ -77,7 +82,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
     setEditId(null); setFTicker(''); setFTipo('compra');
     setFQtd(''); setFPreco(''); setFData(new Date().toISOString().split('T')[0]);
     setFCategoria(''); setFSubcategoria('');
-    setSugestoes([]); setModalOpen(true);
+    setSugestoes([]); setFContaDestino(''); setModalOpen(true);
   };
 
   const openEdit = (tx: TransacaoAtivo) => {
@@ -109,6 +114,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
     const qtd = parseFloat(fQtd.replace(',', '.'));
     const preco = parseFloat(fPreco.replace(',', '.'));
     if (isNaN(qtd) || qtd <= 0 || isNaN(preco) || preco <= 0) return;
+    if (fTipo === 'venda' && !fContaDestino) return;
     setSaving(true);
 
     if (editId) {
@@ -135,6 +141,24 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
       });
       if (data && !error) {
         setTxs(prev => [...prev, data]);
+
+        if (fTipo === 'venda') {
+          const total = qtd * preco;
+          const novaTransacao: Omit<Transacao, 'id'> = {
+            id_conta: fContaDestino,
+            tipo: 'receita',
+            valor: total,
+            categoria: 'Investimentos',
+            data_transacao: fData,
+            taxa_cambio_dia: 1,
+            descricao: `Resgate ${fTicker.trim()} — ${qtd} un. × ${formatCurrency(preco, moedaBase)}`,
+            moeda_transacao: moedaBase,
+          };
+          const { data: txData, error: txError } = await createTransacao(novaTransacao);
+          if (txData && !txError) {
+            addTransacao({ ...txData, id: txData.id || `local-${Date.now()}` });
+          }
+        }
       }
     }
 
@@ -639,6 +663,22 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                 ))}
               </div>
 
+              {fTipo === 'venda' && (
+                <>
+                  <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_invest_account_destination')}</label>
+                  <select
+                    value={fContaDestino}
+                    onChange={e => setFContaDestino(e.target.value)}
+                    style={{ ...inputStyle, marginBottom: '16px', cursor: 'pointer' }}
+                  >
+                    <option value="">{t('web_invest_select_account')}</option>
+                    {contas.map(c => (
+                      <option key={c.id} value={c.id}>{c.nome_instituicao}</option>
+                    ))}
+                  </select>
+                </>
+              )}
+
               <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_invest_category')}</label>
               <select
                 value={fCategoria}
@@ -697,7 +737,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                   border: `1px solid ${CLEAN_BORDER}`, borderRadius: '12px',
                   cursor: 'pointer', color: CLEAN_TEXT_SECONDARY, fontWeight: 600,
                 }}>{t('cancel')}</button>
-                <button onClick={handleSave} disabled={saving || !fTicker || !fQtd || !fPreco} style={{
+                <button onClick={handleSave} disabled={saving || !fTicker || !fQtd || !fPreco || (fTipo === 'venda' && !fContaDestino)} style={{
                   flex: 1.5, padding: '12px', background: ACCENT_BLUE, border: 'none',
                   borderRadius: '12px', cursor: 'pointer', color: '#fff', fontWeight: 700,
                   opacity: saving ? 0.7 : 1,
