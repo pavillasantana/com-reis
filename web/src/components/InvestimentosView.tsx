@@ -208,15 +208,22 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
     
     if (!window.confirm(confirmMessage)) return;
     
+    let erros = 0;
     for (const id of selectedIds) {
       if (!id.startsWith('local-')) {
-        await deleteTransacaoAtivo(id);
+        const { error } = await deleteTransacaoAtivo(id);
+        if (error) erros++;
       }
     }
     
     setTxs(prev => prev.filter(t => !selectedIds.has(t.id)));
     setSelectedIds(new Set());
-    toast.success(t('bulk_delete_success', { count: selectedIds.size }) || `${selectedIds.size} transação(ões) excluída(s) com sucesso!`);
+    
+    if (erros > 0) {
+      toast.error(`Falha ao excluir ${erros} operação(ões). Verifique sua conexão.`);
+    } else {
+      toast.success(t('bulk_delete_success', { count: selectedIds.size }) || `${selectedIds.size} operação(ões) excluída(s) com sucesso!`);
+    }
   };
 
   const filtered = useMemo(() =>

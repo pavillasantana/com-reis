@@ -56,6 +56,7 @@ export const CalendarioFinanceiro: React.FC<Props> = ({ transacoes, contas, moed
 
   const txsDoMes = useMemo(() =>
     transacoes.filter(t => {
+      if (t.categoria === 'Transferência') return false;
       const nd = normalizeDate(t.data_transacao);
       return nd.startsWith(mesStr);
     }),

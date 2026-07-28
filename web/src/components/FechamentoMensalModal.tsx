@@ -38,7 +38,7 @@ export const FechamentoMensalModal: React.FC<FechamentoMensalProps> = ({
   const mesNome = t(MESES_KEYS[mesIdx]);
 
   const txsMes = useMemo(() =>
-    transacoes.filter(t => t.tipo === 'despesa' && t.data_transacao.startsWith(mesStr)),
+    transacoes.filter(t => t.tipo === 'despesa' && t.categoria !== 'Transferência' && t.data_transacao.startsWith(mesStr)),
     [transacoes, mesStr]
   );
 

@@ -63,6 +63,7 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
   const filteredTransactions = useMemo(() => {
     return transacoes.filter((t) => {
       if (tipoFilter !== 'todas' && t.tipo !== tipoFilter) return false;
+      if (t.categoria === 'Transferência') return false;
       const d = t.data_transacao;
       if (!d) return false;
       const dateStr = d.includes('/') ? `${d.slice(6, 10)}-${d.slice(3, 5)}-${d.slice(0, 2)}` : d;
