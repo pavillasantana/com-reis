@@ -25,14 +25,6 @@ interface BrapiResult {
   currency?: string;
 }
 
-interface CoinGeckoResult {
-  id: string;
-  symbol: string;
-  current_price: number;
-  price_change_percentage_24h: number;
-  name: string;
-}
-
 const CRYPTO_TICKERS: Record<string, string> = {
   'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana',
   'ADA': 'cardano', 'XRP': 'ripple', 'DOT': 'polkadot',
@@ -49,8 +41,6 @@ const CRYPTO_TICKERS: Record<string, string> = {
   '1INCH': '1inch', 'YFI': 'yearn-finance', 'SNX': 'synthetix',
   'COMP': 'compound-governance-token',
 };
-
-const CRYPTO_COINGECKO_IDS = Object.values(CRYPTO_TICKERS);
 
 function isCryptoTicker(ticker: string): boolean {
   return ticker in CRYPTO_TICKERS;

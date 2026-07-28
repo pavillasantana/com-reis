@@ -11,7 +11,7 @@ import {
   fetchTransacoesAtivos, createTransacaoAtivo,
   updateTransacaoAtivo, deleteTransacaoAtivo,
   createTransacao,
-  fetchDividendos, deleteDividendo,
+  fetchDividendos,
 } from '../services/supabaseService';
 import type { TransacaoAtivo, Dividendo } from '../services/supabaseService';
 import type { Conta, Transacao } from '../store/useStore';
@@ -24,7 +24,6 @@ import {
 } from '../utils/investmentCategories';
 import { useI18n } from '../i18n';
 import { useQuotes, calcularMetricas, calcularRanking } from '../hooks/useInvestments';
-import type { StockQuote } from '../hooks/useInvestments';
 import { AssetDetailModal } from './AssetDetailModal';
 
 type Tab = 'overview' | 'carteira' | 'ranking' | 'operacoes';

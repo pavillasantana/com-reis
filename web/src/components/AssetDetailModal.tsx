@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Trash2, TrendingUp, TrendingDown, Check, Calendar, DollarSign, PieChart } from 'lucide-react';
+import { X, Trash2, Check, Calendar } from 'lucide-react';
 import { formatCurrency } from '../utils/currency';
 import { deleteTransacaoAtivo } from '../services/supabaseService';
 import type { TransacaoAtivo } from '../services/supabaseService';
@@ -42,7 +42,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
 
   const quote = quotes.find(q => q.symbol.toUpperCase() === ticker.toUpperCase());
 
-  const { posicao, totalInvestido, totalVendido, precoMedio, qtdAtual } = useMemo(() => {
+  const { totalInvestido, precoMedio, qtdAtual } = useMemo(() => {
     let qtd = 0, custo = 0, vendaTotal = 0;
     allTxs.forEach(t => {
       const vol = t.quantidade * t.preco_unitario;
@@ -51,9 +51,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
     });
     const pm = qtd > 0 ? custo / qtd : 0;
     return {
-      posicao: qtd,
       totalInvestido: custo,
-      totalVendido: vendaTotal,
       precoMedio: pm,
       qtdAtual: qtd,
     };
