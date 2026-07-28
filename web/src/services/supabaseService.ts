@@ -1189,3 +1189,68 @@ export async function gerarTransacoesDoMes(
   
   return { geradas, erros };
 }
+
+// ─── DIVIDENDOS / PROVENTOS ─────────────────────────────────────────────
+
+export interface Dividendo {
+  id: string;
+  id_usuario: string;
+  ticker: string;
+  valor: number;
+  data_recebimento: string;
+  tipo: 'dividendo' | 'juros' | 'cupom' | 'rendimento';
+  descricao: string;
+}
+
+export async function fetchDividendos(): ServiceResult<Dividendo[]> {
+  if (!isSupabaseConfigured) return notConfigured();
+  try {
+    const { data, error } = await supabase
+      .from('dividendos')
+      .select('*')
+      .order('data_recebimento', { ascending: false });
+    if (error) return { data: null, error: error.message };
+    const mapped = (data || []).map((r: any) => ({
+      ...r,
+      valor: Number(r.valor),
+    })) as Dividendo[];
+    return { data: mapped, error: null };
+  } catch (e) {
+    captureError(e, { action: 'fetchDividendos' });
+    return { data: null, error: 'Erro ao buscar dividendos.' };
+  }
+}
+
+export async function createDividendo(
+  div: Omit<Dividendo, 'id'>
+): ServiceResult<Dividendo> {
+  if (!isSupabaseConfigured) return notConfigured();
+  try {
+    const { data, error } = await supabase
+      .from('dividendos')
+      .insert(div)
+      .select('*')
+      .single();
+    if (error) return { data: null, error: error.message };
+    const raw = data as any;
+    return { data: { ...raw, valor: Number(raw.valor) }, error: null };
+  } catch (e) {
+    captureError(e, { action: 'createDividendo' });
+    return { data: null, error: 'Erro ao registrar dividendo.' };
+  }
+}
+
+export async function deleteDividendo(id: string): ServiceResult<void> {
+  if (!isSupabaseConfigured) return notConfigured();
+  try {
+    const { error } = await supabase
+      .from('dividendos')
+      .delete()
+      .eq('id', id);
+    if (error) return { data: null, error: error.message };
+    return { data: undefined, error: null };
+  } catch (e) {
+    captureError(e, { action: 'deleteDividendo', id });
+    return { data: null, error: 'Erro ao deletar dividendo.' };
+  }
+}

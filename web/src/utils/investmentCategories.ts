@@ -168,7 +168,94 @@ const TICKER_CATEGORY_MAP: Record<string, TickerMapEntry> = {
   'QBTC11': { categoria: 'renda_variavel_br', subcategoria: 'etfs_br' },
   'ETHE11': { categoria: 'renda_variavel_br', subcategoria: 'etfs_br' },
 
-  // Internacional — Stocks
+  // Europa — Stocks (Espanha)
+  'SAN':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'SAN.MC': { categoria: 'internacional', subcategoria: 'stocks' },
+  'BBVA': { categoria: 'internacional', subcategoria: 'stocks' },
+  'TEF':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'IBE':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'REP':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'ITX':  { categoria: 'internacional', subcategoria: 'stocks' },
+
+  // Europa — Stocks (França)
+  'MC':   { categoria: 'internacional', subcategoria: 'stocks' },
+  'MC.PA': { categoria: 'internacional', subcategoria: 'stocks' },
+  'OR':   { categoria: 'internacional', subcategoria: 'stocks' },
+  'OR.PA': { categoria: 'internacional', subcategoria: 'stocks' },
+  'AIR':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'AIR.PA': { categoria: 'internacional', subcategoria: 'stocks' },
+  'SAN.PA': { categoria: 'internacional', subcategoria: 'stocks' },
+
+  // Europa — Stocks (Alemanha)
+  'SAP':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'SAP.DE': { categoria: 'internacional', subcategoria: 'stocks' },
+  'SIE':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'SIE.DE': { categoria: 'internacional', subcategoria: 'stocks' },
+  'DTE':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'DTE.DE': { categoria: 'internacional', subcategoria: 'stocks' },
+  'BMW':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'BMW.DE': { categoria: 'internacional', subcategoria: 'stocks' },
+  'VOW3': { categoria: 'internacional', subcategoria: 'stocks' },
+  'VOW3.DE': { categoria: 'internacional', subcategoria: 'stocks' },
+
+  // Europa — Stocks (Holanda)
+  'ASML': { categoria: 'internacional', subcategoria: 'stocks' },
+  'ASML.AS': { categoria: 'internacional', subcategoria: 'stocks' },
+  'PHIA': { categoria: 'internacional', subcategoria: 'stocks' },
+  'PHIA.AS': { categoria: 'internacional', subcategoria: 'stocks' },
+
+  // Europa — Stocks (Reino Unido)
+  'HSBA': { categoria: 'internacional', subcategoria: 'stocks' },
+  'HSBA.L': { categoria: 'internacional', subcategoria: 'stocks' },
+  'BP':   { categoria: 'internacional', subcategoria: 'stocks' },
+  'BP.L': { categoria: 'internacional', subcategoria: 'stocks' },
+  'ULVR': { categoria: 'internacional', subcategoria: 'stocks' },
+  'ULVR.L': { categoria: 'internacional', subcategoria: 'stocks' },
+  'RIO':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'RIO.L': { categoria: 'internacional', subcategoria: 'stocks' },
+  'GSK':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'GSK.L': { categoria: 'internacional', subcategoria: 'stocks' },
+
+  // Europa — Stocks (Suíça)
+  'NESN': { categoria: 'internacional', subcategoria: 'stocks' },
+  'NESN.SW': { categoria: 'internacional', subcategoria: 'stocks' },
+  'ROG':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'ROG.SW': { categoria: 'internacional', subcategoria: 'stocks' },
+  'NOVN': { categoria: 'internacional', subcategoria: 'stocks' },
+  'NOVN.SW': { categoria: 'internacional', subcategoria: 'stocks' },
+
+  // Europa — Stocks (Itália)
+  'ENI':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'ENI.MI': { categoria: 'internacional', subcategoria: 'stocks' },
+  'ISP':  { categoria: 'internacional', subcategoria: 'stocks' },
+  'ISP.MI': { categoria: 'internacional', subcategoria: 'stocks' },
+
+  // América Latina — Argentina
+  'GGAL': { categoria: 'internacional', subcategoria: 'stocks' },
+  'GGAL.BA': { categoria: 'internacional', subcategoria: 'stocks' },
+  'YPFD': { categoria: 'internacional', subcategoria: 'stocks' },
+  'YPFD.BA': { categoria: 'internacional', subcategoria: 'stocks' },
+  'PAMP': { categoria: 'internacional', subcategoria: 'stocks' },
+  'PAMP.BA': { categoria: 'internacional', subcategoria: 'stocks' },
+  'MELI': { categoria: 'internacional', subcategoria: 'stocks' },
+  'BMA':  { categoria: 'internacional', subcategoria: 'stocks' },
+
+  // América Latina — México
+  'FEMSA': { categoria: 'internacional', subcategoria: 'stocks' },
+  'FEMSA.MX': { categoria: 'internacional', subcategoria: 'stocks' },
+  'WALMEX': { categoria: 'internacional', subcategoria: 'stocks' },
+  'WALMEX.MX': { categoria: 'internacional', subcategoria: 'stocks' },
+
+  // América Latina — Chile
+  'COPEC': { categoria: 'internacional', subcategoria: 'stocks' },
+  'COPEC.SN': { categoria: 'internacional', subcategoria: 'stocks' },
+  'BSANTANDER': { categoria: 'internacional', subcategoria: 'stocks' },
+  'BSANTANDER.SN': { categoria: 'internacional', subcategoria: 'stocks' },
+
+  // América Latina — Peru
+  'BAP':  { categoria: 'internacional', subcategoria: 'stocks' },
+
+  // Internacional — Stocks (EUA)
   'AAPL':  { categoria: 'internacional', subcategoria: 'stocks' },
   'MSFT':  { categoria: 'internacional', subcategoria: 'stocks' },
   'GOOGL': { categoria: 'internacional', subcategoria: 'stocks' },
@@ -322,6 +409,47 @@ export const TICKER_DB: Record<string, string> = {
   'USDVAL': 'Dólar Comercial ETF', 'BBSE3': 'BB Seguridade ON',
   'DIVO11': 'DIVO11 ETF', 'GOGL11': 'Investo Google ETF',
   'NASD11': 'Investo Nasdaq ETF', 'QQQX': 'QQQ NASDAQ ETF',
+
+  // ── Internacional — Stocks (Europa) ──
+  'SAN': 'Banco Santander (Espanha)', 'SAN.MC': 'Banco Santander (BME)',
+  'BBVA': 'BBVA (Espanha)', 'TEF': 'Telefónica (Espanha)',
+  'IBE': 'Iberdrola (Espanha)', 'REP': 'Repsol (Espanha)',
+  'ITX': 'Inditex (Zara, Espanha)',
+  'MC': 'LVMH (França)', 'MC.PA': 'LVMH (Euronext)',
+  'OR': 'L\'Oréal (França)', 'OR.PA': 'L\'Oréal (Euronext)',
+  'AIR': 'Airbus (França)', 'AIR.PA': 'Airbus (Euronext)',
+  'SAN.PA': 'Sanofi (Euronext)',
+  'SAP': 'SAP (Alemanha)', 'SAP.DE': 'SAP (Xetra)',
+  'SIE': 'Siemens (Alemanha)', 'SIE.DE': 'Siemens (Xetra)',
+  'DTE': 'Deutsche Telekom (Alemanha)', 'DTE.DE': 'Deutsche Telekom (Xetra)',
+  'BMW': 'BMW (Alemanha)', 'BMW.DE': 'BMW (Xetra)',
+  'VOW3': 'Volkswagen (Alemanha)', 'VOW3.DE': 'Volkswagen (Xetra)',
+  'ASML': 'ASML (Holanda)', 'ASML.AS': 'ASML (Euronext Amsterdam)',
+  'PHIA': 'Philips (Holanda)', 'PHIA.AS': 'Philips (Euronext)',
+  'HSBA': 'HSBC (Reino Unido)', 'HSBA.L': 'HSBC (LSE)',
+  'BP': 'BP (Reino Unido)', 'BP.L': 'BP (LSE)',
+  'ULVR': 'Unilever (Reino Unido)', 'ULVR.L': 'Unilever (LSE)',
+  'RIO': 'Rio Tinto (Reino Unido)', 'RIO.L': 'Rio Tinto (LSE)',
+  'GSK': 'GSK (Reino Unido)', 'GSK.L': 'GSK (LSE)',
+  'NESN': 'Nestlé (Suíça)', 'NESN.SW': 'Nestlé (SIX Swiss)',
+  'ROG': 'Roche (Suíça)', 'ROG.SW': 'Roche (SIX Swiss)',
+  'NOVN': 'Novartis (Suíça)', 'NOVN.SW': 'Novartis (SIX Swiss)',
+  'ENI': 'Eni (Itália)', 'ENI.MI': 'Eni (Borsa Italiana)',
+  'ISP': 'Intesa Sanpaolo (Itália)', 'ISP.MI': 'Intesa Sanpaolo (Borsa Italiana)',
+
+  // ── Internacional — Stocks (América Latina) ──
+  'GGAL': 'Grupo Financiero Galicia (Argentina)',
+  'GGAL.BA': 'Grupo Galicia (BYMA)',
+  'YPFD': 'YPF (Argentina)', 'YPFD.BA': 'YPF (BYMA)',
+  'PAMP': 'Pampa Energía (Argentina)', 'PAMP.BA': 'Pampa Energía (BYMA)',
+  'MELI': 'Mercado Libre (Argentina/EUA)',
+  'BMA': 'Banco Macro (Argentina)',
+  'FEMSA': 'FEMSA (México)', 'FEMSA.MX': 'FEMSA (BMV)',
+  'WALMEX': 'Walmart México', 'WALMEX.MX': 'Walmart México (BMV)',
+  'COPEC': 'Copec (Chile)', 'COPEC.SN': 'Copec (Santiago)',
+  'BSANTANDER': 'Banco Santander Chile',
+  'BSANTANDER.SN': 'Banco Santander Chile (Santiago)',
+  'BAP': 'Credicorp (Peru)',
 
   // ── Internacional — Stocks (EUA) ──
   'AAPL': 'Apple Inc', 'MSFT': 'Microsoft Corp', 'GOOGL': 'Alphabet Inc',

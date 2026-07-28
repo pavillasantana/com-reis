@@ -44,7 +44,7 @@ import { FAQModal, TermosModal } from './components/FAQTermos';
 import { useExchangeRates } from './hooks/useExchangeRates';
 import { usePremium } from './hooks/usePremium';
 import { MOCK_ESTADO_PROFILES as ESTADO_PROFILES } from './hooks/useIbgeData';
-import { useInvestments } from './hooks/useInvestments';
+import type { StockQuote } from './hooks/useInvestments';
 import { useFinancialTips } from './hooks/useFinancialTips';
 import type { Article } from './hooks/useFinancialTips';
 import {
@@ -302,9 +302,6 @@ export default function App() {
     EUR: 5.8,
     ARS: 0.006
   };
-
-  // Investments Data (Brapi.dev)
-  const { data: _investments } = useInvestments(Boolean(id_usuario));
 
   // Financial tips (Strapi CMS)
   const [tipsPage, setTipsPage] = useState(1);

@@ -3,15 +3,17 @@ import {
   TrendingUp, TrendingDown, Plus, Trash2, Pencil,
   Search, Filter, BarChart3, DollarSign, Calendar,
   X, Check, RefreshCw, ChevronDown, ChevronRight,
-  CheckSquare, Square,
+  CheckSquare, Square, PieChart, Target, Award, Globe,
+  TrendingUp as TrendingUpIcon, Wallet,
 } from 'lucide-react';
 import { formatCurrency } from '../utils/currency';
 import {
   fetchTransacoesAtivos, createTransacaoAtivo,
   updateTransacaoAtivo, deleteTransacaoAtivo,
   createTransacao,
+  fetchDividendos, deleteDividendo,
 } from '../services/supabaseService';
-import type { TransacaoAtivo } from '../services/supabaseService';
+import type { TransacaoAtivo, Dividendo } from '../services/supabaseService';
 import type { Conta, Transacao } from '../store/useStore';
 import { Logo } from './Logo';
 import { useToast } from './Toast';
@@ -21,6 +23,11 @@ import {
   getCategoriaInfo, searchTickers, getTickerName,
 } from '../utils/investmentCategories';
 import { useI18n } from '../i18n';
+import { useQuotes, calcularMetricas, calcularRanking } from '../hooks/useInvestments';
+import type { StockQuote } from '../hooks/useInvestments';
+import { AssetDetailModal } from './AssetDetailModal';
+
+type Tab = 'overview' | 'carteira' | 'ranking' | 'operacoes';
 
 interface InvestimentosViewProps {
   moedaBase: string;
@@ -45,8 +52,11 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   const { t } = useI18n();
   const toast = useToast();
 
+  const [tab, setTab] = useState<Tab>('overview');
   const [txs, setTxs] = useState<TransacaoAtivo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dividendos, setDividendos] = useState<Dividendo[]>([]);
+
   const [filtroTipo, setFiltroTipo] = useState<'todos' | 'compra' | 'venda'>('todos');
   const [busca, setBusca] = useState('');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
@@ -69,18 +79,79 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [fContaDestino, setFContaDestino] = useState('');
 
+  const [detailTicker, setDetailTicker] = useState<string | null>(null);
+  const [dividendoModal, setDividendoModal] = useState(false);
+  const [fDivTicker, setFDivTicker] = useState('');
+  const [fDivValor, setFDivValor] = useState('');
+  const [fDivData, setFDivData] = useState(new Date().toISOString().split('T')[0]);
+  const [fDivTipo, setFDivTipo] = useState<string>('dividendo');
+
   const carregarTransacoes = useCallback(async () => {
     setLoading(true);
     const { data, error } = await fetchTransacoesAtivos();
-    if (data && !error) {
-      setTxs(data);
-    }
+    if (data && !error) setTxs(data);
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    carregarTransacoes();
-  }, [carregarTransacoes]);
+  const carregarDividendos = useCallback(async () => {
+    const { data, error } = await fetchDividendos();
+    if (data && !error) setDividendos(data);
+  }, []);
+
+  useEffect(() => { carregarTransacoes(); carregarDividendos(); }, [carregarTransacoes, carregarDividendos]);
+
+  const uniqueTickers = useMemo(() => {
+    const s = new Set(txs.map(t => t.ticker.toUpperCase()));
+    return [...s];
+  }, [txs]);
+
+  const { data: quotes = [] } = useQuotes(uniqueTickers, uniqueTickers.length > 0);
+
+  const dividendosPorTicker = useMemo(() => {
+    const map: Record<string, number> = {};
+    dividendos.forEach(d => {
+      const key = d.ticker.toUpperCase();
+      map[key] = (map[key] || 0) + d.valor;
+    });
+    return map;
+  }, [dividendos]);
+
+  const totalDividendos = useMemo(() => dividendos.reduce((s, d) => s + d.valor, 0), [dividendos]);
+
+  const posicoes = useMemo(() => {
+    const map: Record<string, { ticker: string; qtd: number; custoTotal: number; qtdCompra: number; qtdVenda: number; categoria?: string; subcategoria?: string }> = {};
+    txs.forEach(t => {
+      if (!map[t.ticker]) map[t.ticker] = { ticker: t.ticker, qtd: 0, custoTotal: 0, qtdCompra: 0, qtdVenda: 0, categoria: t.categoria, subcategoria: t.subcategoria };
+      const vol = t.quantidade * t.preco_unitario;
+      if (t.tipo === 'compra') { map[t.ticker].qtd += t.quantidade; map[t.ticker].custoTotal += vol; map[t.ticker].qtdCompra += t.quantidade; }
+      else { map[t.ticker].qtd -= t.quantidade; map[t.ticker].custoTotal -= vol; map[t.ticker].qtdVenda += t.quantidade; }
+    });
+    return Object.values(map).filter(p => p.qtd > 0);
+  }, [txs]);
+
+  const posicoesPorCategoria = useMemo(() => {
+    const grupos: Record<string, Record<string, typeof posicoes>> = {};
+    posicoes.forEach(p => {
+      const catId = p.categoria || 'sem_categoria';
+      const subId = p.subcategoria || 'sem_subcategoria';
+      if (!grupos[catId]) grupos[catId] = {};
+      if (!grupos[catId][subId]) grupos[catId][subId] = [];
+      grupos[catId][subId].push(p);
+    });
+    return grupos;
+  }, [posicoes]);
+
+  const metricas = useMemo(() => calcularMetricas(posicoes, quotes, totalDividendos), [posicoes, quotes, totalDividendos]);
+  const ranking = useMemo(() => calcularRanking(posicoes, quotes), [posicoes, quotes]);
+
+  const rankingPorCategoria = useMemo(() => {
+    const groups: Record<string, typeof ranking> = {};
+    ranking.forEach(r => {
+      if (!groups[r.categoria]) groups[r.categoria] = [];
+      groups[r.categoria].push(r);
+    });
+    return groups;
+  }, [ranking]);
 
   const openAdd = () => {
     setEditId(null); setFTicker(''); setFTipo('compra');
@@ -100,194 +171,18 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
 
   const closeModal = () => { setModalOpen(false); setEditId(null); setSugestoes([]); };
 
-  const handleTickerChange = (v: string) => {
-    setFTicker(v.toUpperCase());
-    if (v.length >= 2) {
-      setSugestoes(searchTickers(v, 6).map(r => r.ticker));
-    } else { setSugestoes([]); }
-
-    const cat = getCategoriaByTicker(v);
-    if (cat) {
-      setFCategoria(cat.categoria);
-      setFSubcategoria(cat.subcategoria);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!fTicker.trim()) return;
-    const qtd = parseFloat(fQtd.replace(',', '.'));
-    const preco = parseFloat(fPreco.replace(',', '.'));
-    if (isNaN(qtd) || qtd <= 0 || isNaN(preco) || preco <= 0) return;
-    if (fTipo === 'venda' && !fContaDestino) return;
-    setSaving(true);
-
-    if (editId) {
-      const { error } = await updateTransacaoAtivo(editId, {
-        quantidade: qtd, preco_unitario: preco, data_transacao: fData,
-        categoria: fCategoria || undefined, subcategoria: fSubcategoria || undefined,
-      });
-      if (!error) {
-        setTxs(prev => prev.map(t => t.id === editId
-          ? { ...t, ticker: fTicker.trim(), tipo: fTipo, quantidade: qtd, preco_unitario: preco, data_transacao: fData, categoria: fCategoria || undefined, subcategoria: fSubcategoria || undefined }
-          : t
-        ));
-      }
-    } else {
-      const { data, error } = await createTransacaoAtivo({
-        id_usuario: id_usuario || '',
-        ticker: fTicker.trim(),
-        tipo: fTipo,
-        quantidade: qtd,
-        preco_unitario: preco,
-        data_transacao: fData,
-        categoria: fCategoria || undefined,
-        subcategoria: fSubcategoria || undefined,
-      });
-      if (data && !error) {
-        setTxs(prev => [...prev, data]);
-
-        if (fTipo === 'venda') {
-          const total = qtd * preco;
-          const novaTransacao: Omit<Transacao, 'id'> = {
-            id_conta: fContaDestino,
-            tipo: 'receita',
-            valor: total,
-            categoria: 'Investimentos',
-            data_transacao: fData,
-            taxa_cambio_dia: 1,
-            descricao: `Resgate ${fTicker.trim()} — ${qtd} un. × ${formatCurrency(preco, moedaBase)}`,
-            moeda_transacao: moedaBase,
-          };
-          const { data: txData, error: txError } = await createTransacao(novaTransacao);
-          if (txData && !txError) {
-            addTransacao({ ...txData, id: txData.id || `local-${Date.now()}` });
-          }
-        }
-      }
-    }
-
-    setSaving(false);
-    closeModal();
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!id.startsWith('local-')) {
-      await deleteTransacaoAtivo(id);
-    }
-    setTxs(prev => prev.filter(t => t.id !== id));
-    setDeleteConfirm(null);
-  };
-
-  const toggleSelection = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const toggleAllSelection = () => {
-    setSelectedIds(prev => {
-      if (prev.size === filtered.length) {
-        return new Set();
-      } else {
-        return new Set(filtered.map(tx => tx.id));
-      }
-    });
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedIds.size === 0) return;
-    
-    const confirmMessage = t('bulk_delete_confirm', { count: selectedIds.size }) || 
-      `Tem certeza que deseja excluir permanentemente ${selectedIds.size} transação(ões)?`;
-    
-    if (!window.confirm(confirmMessage)) return;
-    
-    let erros = 0;
-    for (const id of selectedIds) {
-      if (!id.startsWith('local-')) {
-        const { error } = await deleteTransacaoAtivo(id);
-        if (error) erros++;
-      }
-    }
-    
-    setTxs(prev => prev.filter(t => !selectedIds.has(t.id)));
-    setSelectedIds(new Set());
-    
-    if (erros > 0) {
-      toast.error(`Falha ao excluir ${erros} operação(ões). Verifique sua conexão.`);
-    } else {
-      toast.success(t('bulk_delete_success', { count: selectedIds.size }) || `${selectedIds.size} operação(ões) excluída(s) com sucesso!`);
-    }
-  };
-
-  const filtered = useMemo(() =>
-    txs
-      .filter(t => {
-        if (filtroTipo !== 'todos' && t.tipo !== filtroTipo) return false;
-        if (!t.ticker.includes(busca.toUpperCase())) return false;
-        if (filtroCategoria !== 'todas' && t.categoria !== filtroCategoria) return false;
-        return true;
-      })
-      .sort((a, b) => sortDir === 'desc' ? b.data_transacao.localeCompare(a.data_transacao) : a.data_transacao.localeCompare(b.data_transacao)),
-    [txs, filtroTipo, busca, sortDir, filtroCategoria]
-  );
-
-  const posicoes = useMemo(() => {
-    const map: Record<string, { ticker: string; qtd: number; custoTotal: number; qtdCompra: number; qtdVenda: number; categoria?: string; subcategoria?: string }> = {};
-    txs.forEach(t => {
-      if (!map[t.ticker]) map[t.ticker] = { ticker: t.ticker, qtd: 0, custoTotal: 0, qtdCompra: 0, qtdVenda: 0, categoria: t.categoria, subcategoria: t.subcategoria };
-      const vol = t.quantidade * t.preco_unitario;
-      if (t.tipo === 'compra') { map[t.ticker].qtd += t.quantidade; map[t.ticker].custoTotal += vol; map[t.ticker].qtdCompra += t.quantidade; }
-      else { map[t.ticker].qtd -= t.quantidade; map[t.ticker].custoTotal -= vol; map[t.ticker].qtdVenda += t.quantidade; }
-    });
-    return Object.values(map).filter(p => p.qtd > 0);
-  }, [txs]);
-
-  const posicoesPorCategoria = useMemo(() => {
-    const grupos: Record<string, Record<string, typeof posicoes>> = {};
-
-    posicoes.forEach(p => {
-      const catId = p.categoria || 'sem_categoria';
-      const subId = p.subcategoria || 'sem_subcategoria';
-      if (!grupos[catId]) grupos[catId] = {};
-      if (!grupos[catId][subId]) grupos[catId][subId] = [];
-      grupos[catId][subId].push(p);
-    });
-
-    return grupos;
-  }, [posicoes]);
-
-  const toggleGrupo = (key: string) => {
-    setGruposExpandidos(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
-  };
-
-  const expandirTodos = () => {
-    const allKeys = new Set<string>();
-    Object.entries(posicoesPorCategoria).forEach(([catId, subs]) => {
-      allKeys.add(catId);
-      Object.keys(subs).forEach(subId => allKeys.add(`${catId}/${subId}`));
-    });
-    setGruposExpandidos(allKeys);
-  };
-
-  const patrimonioTotal = posicoes.reduce((s, p) => s + p.custoTotal, 0);
+  const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
+    { key: 'overview', label: t('web_invest_tab_overview'), icon: <PieChart size={15} /> },
+    { key: 'carteira', label: t('web_invest_tab_portfolio'), icon: <Wallet size={15} /> },
+    { key: 'ranking', label: t('web_invest_tab_ranking'), icon: <Award size={15} /> },
+    { key: 'operacoes', label: t('web_invest_tab_ops'), icon: <BarChart3 size={15} /> },
+  ];
 
   const inputStyle: React.CSSProperties = {
     background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
     borderRadius: '10px', padding: '10px 14px', color: CLEAN_TEXT,
     fontSize: '0.88rem', width: '100%', outline: 'none',
   };
-
 
   if (loading) {
     return (
@@ -299,418 +194,665 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
 
   return (
     <div style={{ background: CLEAN_BG, minHeight: '100vh', padding: '0 0 60px 0' }}>
-
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
-
         <div style={{ padding: '24px 0 8px' }}>
           <Logo variant="full" size="md" />
         </div>
 
-        <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' }}>
+        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, letterSpacing: '-0.5px', color: CLEAN_TEXT }}>{t('web_invest_title')}</h2>
             <p style={{ margin: '4px 0 0', color: CLEAN_TEXT_SECONDARY, fontSize: '0.95rem' }}>
               {t('web_invest_subtitle')}
             </p>
           </div>
-          <button onClick={openAdd} style={{
-            display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px',
-            background: ACCENT_BLUE, border: 'none',
-            borderRadius: '12px', color: '#fff', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
-          }}>
-            <Plus size={16} /> {t('web_invest_register_op')}
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => setDividendoModal(true)} style={{
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px',
+              background: 'transparent', border: `1px solid ${CLEAN_BORDER}`,
+              borderRadius: '12px', color: CLEAN_TEXT_SECONDARY, fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
+            }}>
+              <DollarSign size={16} /> {t('web_invest_dividend_btn')}
+            </button>
+            <button onClick={openAdd} style={{
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px',
+              background: ACCENT_BLUE, border: 'none',
+              borderRadius: '12px', color: '#fff', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
+            }}>
+              <Plus size={16} /> {t('web_invest_register_op')}
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '28px' }}>
-          {[
-            { label: t('web_invest_patrimony'), value: formatCurrency(patrimonioTotal, moedaBase), icon: <BarChart3 size={18} />, color: ACCENT_BLUE },
-            { label: t('web_invest_total_ops'), value: String(txs.length), icon: <DollarSign size={18} />, color: ACCENT_GREEN },
-            { label: t('web_invest_positions'), value: String(posicoes.length), icon: <TrendingUp size={18} />, color: ACCENT_CYAN },
-            { label: t('average_price'), value: posicoes.length > 0 ? formatCurrency(patrimonioTotal / posicoes.reduce((s, p) => s + p.qtd, 0), moedaBase) : 'R$ 0,00', icon: <Filter size={18} />, color: '#F59E0B' },
-          ].map((c, i) => (
-            <div key={i} style={{
-              background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
-              borderRadius: '16px', padding: '20px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        <div style={{ marginBottom: '24px', display: 'flex', gap: '4px', background: CLEAN_CARD, borderRadius: '14px', padding: '4px', border: `1px solid ${CLEAN_BORDER}` }}>
+          {tabs.map(tabItem => (
+            <button key={tabItem.key} onClick={() => setTab(tabItem.key)} style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              padding: '10px 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700,
+              cursor: 'pointer', border: 'none', transition: 'all 0.15s',
+              background: tab === tabItem.key ? ACCENT_BLUE : 'transparent',
+              color: tab === tabItem.key ? '#fff' : CLEAN_TEXT_SECONDARY,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: c.color }}>
-                {c.icon}
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: CLEAN_TEXT_SECONDARY }}>{c.label}</span>
-              </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: CLEAN_TEXT }}>{c.value}</div>
-            </div>
+              {tabItem.icon}
+              {tabItem.label}
+            </button>
           ))}
         </div>
 
-        {posicoes.length > 0 && (
-          <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
-            <button onClick={() => setVizualizacao('categorias')} style={{
-              padding: '8px 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700,
-              cursor: 'pointer', border: vizualizacao === 'categorias' ? 'none' : `1px solid ${CLEAN_BORDER}`,
-              background: vizualizacao === 'categorias' ? ACCENT_BLUE : CLEAN_CARD,
-              color: vizualizacao === 'categorias' ? '#fff' : CLEAN_TEXT_SECONDARY,
-            }}>{t('web_invest_category')}</button>
-            <button onClick={() => setVizualizacao('lista')} style={{
-              padding: '8px 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700,
-              cursor: 'pointer', border: vizualizacao === 'lista' ? 'none' : `1px solid ${CLEAN_BORDER}`,
-              background: vizualizacao === 'lista' ? ACCENT_BLUE : CLEAN_CARD,
-              color: vizualizacao === 'lista' ? '#fff' : CLEAN_TEXT_SECONDARY,
-            }}>{vizualizacao === 'lista' ? t('web_invest_positions') : t('web_invest_category')}</button>
-          </div>
+        {tab === 'overview' && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+              {[
+                { label: t('web_invest_overview_total_invested'), value: formatCurrency(metricas.totalInvestido, moedaBase), icon: <BarChart3 size={18} />, color: ACCENT_BLUE },
+                { label: t('web_invest_overview_current_value'), value: formatCurrency(metricas.totalAtual, moedaBase), icon: <TrendingUpIcon size={18} />, color: ACCENT_GREEN },
+                { label: t('web_invest_overview_return'), value: `${metricas.rentabilidadePercent >= 0 ? '+' : ''}${metricas.rentabilidadePercent.toFixed(2)}%`, icon: <Target size={18} />, color: metricas.rentabilidadePercent >= 0 ? ACCENT_GREEN : ACCENT_RED },
+                { label: t('web_invest_overview_dividends_total'), value: formatCurrency(metricas.totalDividendos, moedaBase), icon: <DollarSign size={18} />, color: ACCENT_CYAN },
+                { label: t('web_invest_overview_assets_count'), value: String(metricas.quantidadeAtivos), icon: <Globe size={18} />, color: '#F59E0B' },
+              ].map((c, i) => (
+                <div key={i} style={{
+                  background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
+                  borderRadius: '16px', padding: '20px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: c.color }}>
+                    {c.icon}
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: CLEAN_TEXT_SECONDARY }}>{c.label}</span>
+                  </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: CLEAN_TEXT }}>{c.value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginBottom: '28px', background: CLEAN_CARD, borderRadius: '16px', padding: '20px', border: `1px solid ${CLEAN_BORDER}` }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: CLEAN_TEXT, margin: '0 0 16px' }}>{t('web_invest_overview_distribution')}</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                {Object.entries(posicoesPorCategoria).map(([catId, subs]) => {
+                  const catInfo = getCategoriaInfo(catId);
+                  const total = Object.values(subs).flat().reduce((s, p) => s + p.custoTotal, 0);
+                  const percent = metricas.totalInvestido > 0 ? (total / metricas.totalInvestido) * 100 : 0;
+                  return (
+                    <div key={catId} style={{
+                      padding: '16px', background: '#F8FAFC', borderRadius: '12px',
+                      border: `1px solid ${CLEAN_BORDER}`,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: catInfo?.cor || CLEAN_TEXT_MUTED }} />
+                        <span style={{ fontWeight: 600, fontSize: '0.82rem', color: CLEAN_TEXT }}>{catInfo?.nome || catId}</span>
+                      </div>
+                      <div style={{ fontSize: '1rem', fontWeight: 800, color: CLEAN_TEXT }}>{formatCurrency(total, moedaBase)}</div>
+                      <div style={{ fontSize: '0.78rem', color: CLEAN_TEXT_MUTED }}>{t('web_invest_overview_percent_portfolio', { percent: percent.toFixed(1) })}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ background: CLEAN_CARD, borderRadius: '16px', padding: '20px', border: `1px solid ${CLEAN_BORDER}` }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: CLEAN_TEXT, margin: '0 0 16px' }}>{t('web_invest_overview_latest_dividends')}</h3>
+              {dividendos.length === 0 ? (
+                <p style={{ color: CLEAN_TEXT_MUTED, fontSize: '0.85rem' }}>{t('web_invest_dividend_no_data')}</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {dividendos.slice(0, 5).map(d => (
+                    <div key={d.id} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '10px 14px', background: '#F8FAFC', borderRadius: '10px',
+                    }}>
+                      <div>
+                        <span style={{ fontWeight: 700, color: ACCENT_BLUE, fontSize: '0.85rem' }}>{d.ticker}</span>
+                        <span style={{ fontSize: '0.78rem', color: CLEAN_TEXT_MUTED, marginLeft: '8px' }}>{d.tipo}</span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 700, color: ACCENT_GREEN, fontSize: '0.85rem' }}>+ {formatCurrency(d.valor, moedaBase)}</div>
+                        <div style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Calendar size={10} /> {d.data_recebimento}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
 
-        {posicoes.length > 0 && vizualizacao === 'categorias' && (
-          <div style={{ marginBottom: '28px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: CLEAN_TEXT_SECONDARY, textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>{t('web_invest_category')}</h3>
-              <button onClick={expandirTodos} style={{
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                color: ACCENT_BLUE, fontSize: '0.78rem', fontWeight: 700,
+        {tab === 'carteira' && (
+          <>
+            <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
+              <button onClick={() => setVizualizacao('categorias')} style={{
+                padding: '8px 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700,
+                cursor: 'pointer', border: vizualizacao === 'categorias' ? 'none' : `1px solid ${CLEAN_BORDER}`,
+                background: vizualizacao === 'categorias' ? ACCENT_BLUE : CLEAN_CARD,
+                color: vizualizacao === 'categorias' ? '#fff' : CLEAN_TEXT_SECONDARY,
+              }}>{t('web_invest_category')}</button>
+              <button onClick={() => setVizualizacao('lista')} style={{
+                padding: '8px 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700,
+                cursor: 'pointer', border: vizualizacao === 'lista' ? 'none' : `1px solid ${CLEAN_BORDER}`,
+                background: vizualizacao === 'lista' ? ACCENT_BLUE : CLEAN_CARD,
+                color: vizualizacao === 'lista' ? '#fff' : CLEAN_TEXT_SECONDARY,
+              }}>Lista</button>
+              <button onClick={() => {
+                const allKeys = new Set<string>();
+                Object.entries(posicoesPorCategoria).forEach(([catId, subs]) => {
+                  allKeys.add(catId);
+                  Object.keys(subs).forEach(subId => allKeys.add(`${catId}/${subId}`));
+                });
+                setGruposExpandidos(prev => prev.size > 0 ? new Set() : allKeys);
+              }} style={{
+                padding: '8px 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 600,
+                cursor: 'pointer', border: `1px solid ${CLEAN_BORDER}`,
+                background: CLEAN_CARD, color: CLEAN_TEXT_SECONDARY,
               }}>
-                {gruposExpandidos.size > 0 ? 'Recolher todas' : 'Expandir todas'}
+                {gruposExpandidos.size > 0 ? t('web_invest_portfolio_collapse') : t('web_invest_portfolio_expand')}
               </button>
             </div>
 
-            {Object.entries(posicoesPorCategoria).map(([catId, subs]) => {
-              const catInfo = catId !== 'sem_categoria' ? getCategoriaInfo(catId) : null;
-              const catPosicoes = Object.values(subs).flat();
-              const catTotal = catPosicoes.reduce((s, p) => s + p.custoTotal, 0);
-              const catExpanded = gruposExpandidos.has(catId);
+            <div style={{ marginBottom: '16px', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', color: CLEAN_TEXT_MUTED, fontWeight: 600, marginRight: '4px' }}>{t('web_invest_portfolio_filter')}</span>
+              {CATEGORIAS_INVESTIMENTO.map(cat => (
+                <button key={cat.id} onClick={() => setFiltroCategoria(filtroCategoria === cat.id ? 'todas' : cat.id)} style={{
+                  padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700,
+                  cursor: 'pointer',
+                  background: filtroCategoria === cat.id ? cat.cor : 'transparent',
+                  color: filtroCategoria === cat.id ? '#fff' : CLEAN_TEXT_SECONDARY,
+                  border: filtroCategoria === cat.id ? 'none' : `1px solid ${CLEAN_BORDER}`,
+                }}>{cat.nome}</button>
+              ))}
+            </div>
+
+            {posicoes.length === 0 && (
+              <div style={{ padding: '64px 24px', textAlign: 'center', color: CLEAN_TEXT_MUTED }}>
+                <Wallet size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                <p style={{ margin: 0, fontSize: '0.95rem' }}>{t('web_invest_portfolio_no_assets')}</p>
+              </div>
+            )}
+
+            {posicoes.length > 0 && vizualizacao === 'categorias' && (
+              <div style={{ marginBottom: '28px' }}>
+                {Object.entries(posicoesPorCategoria).filter(([catId]) => filtroCategoria === 'todas' || catId === filtroCategoria).map(([catId, subs]) => {
+                  const catInfo = catId !== 'sem_categoria' ? getCategoriaInfo(catId) : null;
+                  const catPosicoes = Object.values(subs).flat();
+                  const catTotal = catPosicoes.reduce((s, p) => s + p.custoTotal, 0);
+                  const catExpanded = gruposExpandidos.has(catId);
+
+                  return (
+                    <div key={catId} style={{
+                      background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
+                      borderRadius: '14px', marginBottom: '10px', overflow: 'hidden',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    }}>
+                      <button
+                        onClick={() => {
+                          const next = new Set(gruposExpandidos);
+                          if (next.has(catId)) next.delete(catId); else next.add(catId);
+                          setGruposExpandidos(next);
+                        }}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: '12px',
+                          padding: '14px 18px', background: 'transparent', border: 'none',
+                          cursor: 'pointer', textAlign: 'left',
+                        }}
+                      >
+                        {catExpanded ? <ChevronDown size={16} color={CLEAN_TEXT_MUTED} /> : <ChevronRight size={16} color={CLEAN_TEXT_MUTED} />}
+                        <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: catInfo?.cor || CLEAN_TEXT_MUTED, flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontWeight: 700, color: CLEAN_TEXT, fontSize: '0.9rem' }}>{catInfo?.nome || catId}</span>
+                          <span style={{ fontSize: '0.75rem', color: CLEAN_TEXT_MUTED, marginLeft: '8px' }}>{catPosicoes.length} ativo(s)</span>
+                        </div>
+                        <span style={{ fontWeight: 700, color: ACCENT_BLUE, fontSize: '0.9rem' }}>{formatCurrency(catTotal, moedaBase)}</span>
+                      </button>
+
+                      {catExpanded && (
+                        <div style={{ borderTop: `1px solid ${CLEAN_BORDER}` }}>
+                          {Object.entries(subs).map(([subId, subPosicoes]) => {
+                            const subExpanded = gruposExpandidos.has(`${catId}/${subId}`);
+                            const subTotal = subPosicoes.reduce((s, p) => s + p.custoTotal, 0);
+                            return (
+                              <div key={subId}>
+                                <button
+                                  onClick={() => {
+                                    const next = new Set(gruposExpandidos);
+                                    const key = `${catId}/${subId}`;
+                                    if (next.has(key)) next.delete(key); else next.add(key);
+                                    setGruposExpandidos(next);
+                                  }}
+                                  style={{
+                                    width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+                                    padding: '10px 18px 10px 42px', background: '#F8FAFC', border: 'none',
+                                    cursor: 'pointer', textAlign: 'left', borderTop: `1px solid ${CLEAN_BORDER}`,
+                                  }}
+                                >
+                                  {subExpanded ? <ChevronDown size={13} color={CLEAN_TEXT_MUTED} /> : <ChevronRight size={13} color={CLEAN_TEXT_MUTED} />}
+                                  <div style={{ flex: 1 }}>
+                                    <span style={{ fontWeight: 600, color: CLEAN_TEXT_SECONDARY, fontSize: '0.82rem' }}>
+                                      {getNomeSubcategoria(catId, subId)}
+                                    </span>
+                                    <span style={{ fontSize: '0.7rem', color: CLEAN_TEXT_MUTED, marginLeft: '6px' }}>{subPosicoes.length}</span>
+                                  </div>
+                                  <span style={{ fontWeight: 600, color: CLEAN_TEXT_SECONDARY, fontSize: '0.82rem' }}>
+                                    {formatCurrency(subTotal, moedaBase)}
+                                  </span>
+                                </button>
+
+                                {subExpanded && subPosicoes.map(p => {
+                                  const q = quotes.find(q => q.symbol.toUpperCase() === p.ticker.toUpperCase());
+                                  const currentVal = q ? q.regularMarketPrice * p.qtd : null;
+                                  const ret = (currentVal && p.custoTotal > 0) ? ((currentVal - p.custoTotal) / p.custoTotal) * 100 : null;
+                                  return (
+                                    <div key={p.ticker} onClick={() => setDetailTicker(p.ticker)} style={{
+                                      display: 'flex', alignItems: 'center', gap: '12px',
+                                      padding: '10px 18px 10px 60px', borderTop: `1px solid ${CLEAN_BORDER}`,
+                                      cursor: 'pointer', transition: 'background 0.12s',
+                                    }}
+                                      onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                      <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: 700, fontSize: '0.85rem', color: ACCENT_BLUE }}>{p.ticker}</div>
+                                        <div style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED }}>{q?.longName || getTickerName(p.ticker) || p.ticker}</div>
+                                      </div>
+                                      <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: CLEAN_TEXT }}>{p.qtd.toFixed(2)}</div>
+                                        <div style={{ fontSize: '0.72rem', color: ACCENT_GREEN }}>PM {formatCurrency(p.custoTotal / p.qtd, moedaBase)}</div>
+                                      </div>
+                                      <div style={{ textAlign: 'right', minWidth: '80px' }}>
+                                        {currentVal !== null && (
+                                          <>
+                                            <div style={{ fontWeight: 700, fontSize: '0.82rem', color: CLEAN_TEXT }}>
+                                              {formatCurrency(currentVal, moedaBase)}
+                                            </div>
+                                            <div style={{ fontSize: '0.72rem', color: ret !== null && ret >= 0 ? ACCENT_GREEN : ACCENT_RED }}>
+                                              {ret !== null ? `${ret >= 0 ? '+' : ''}${ret.toFixed(2)}%` : ''}
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
+                                      <div style={{ fontWeight: 700, color: ACCENT_BLUE, fontSize: '0.85rem', minWidth: '100px', textAlign: 'right' }}>
+                                        {formatCurrency(p.custoTotal, moedaBase)}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {posicoes.length > 0 && vizualizacao === 'lista' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px', marginBottom: '28px' }}>
+                {posicoes.filter(p => filtroCategoria === 'todas' || p.categoria === filtroCategoria).map(p => {
+                  const q = quotes.find(q => q.symbol.toUpperCase() === p.ticker.toUpperCase());
+                  const currentVal = q ? q.regularMarketPrice * p.qtd : null;
+                  const ret = (currentVal && p.custoTotal > 0) ? ((currentVal - p.custoTotal) / p.custoTotal) * 100 : null;
+                  return (
+                    <div key={p.ticker} onClick={() => setDetailTicker(p.ticker)} style={{
+                      background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
+                      borderRadius: '14px', padding: '16px', cursor: 'pointer',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <div style={{ fontWeight: 800, fontSize: '1rem', color: ACCENT_BLUE }}>{p.ticker}</div>
+                        {ret !== null && (
+                          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: ret >= 0 ? ACCENT_GREEN : ACCENT_RED }}>
+                            {ret >= 0 ? '+' : ''}{ret.toFixed(2)}%
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: CLEAN_TEXT_MUTED, marginBottom: '8px' }}>{q?.longName || getTickerName(p.ticker) || p.ticker}</div>
+                      {p.categoria && (
+                        <div style={{ fontSize: '0.7rem', color: CLEAN_TEXT_MUTED, marginBottom: '8px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: getCategoriaInfo(p.categoria)?.cor || CLEAN_TEXT_MUTED }} />
+                          {getNomeSubcategoria(p.categoria, p.subcategoria || '')}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: CLEAN_TEXT }}>{p.qtd.toFixed(2)} cotas</div>
+                      <div style={{ fontSize: '0.8rem', color: ACCENT_GREEN }}>PM {formatCurrency(p.custoTotal / p.qtd, moedaBase)}</div>
+                      {currentVal !== null && (
+                        <div style={{ fontSize: '0.8rem', color: CLEAN_TEXT, marginTop: '4px' }}>
+                          Atual: {formatCurrency(currentVal, moedaBase)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {tab === 'ranking' && (
+          <div style={{ marginBottom: '28px' }}>
+            {Object.entries(rankingPorCategoria).map(([catId, items]) => {
+              const catInfo = getCategoriaInfo(catId);
+              const top5 = items.slice(0, 5);
+              const bottom5 = items.slice(-5).reverse();
 
               return (
                 <div key={catId} style={{
                   background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
-                  borderRadius: '14px', marginBottom: '10px', overflow: 'hidden',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  borderRadius: '16px', marginBottom: '16px', overflow: 'hidden',
                 }}>
-                  <button
-                    onClick={() => toggleGrupo(catId)}
-                    style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: '12px',
-                      padding: '14px 18px', background: 'transparent', border: 'none',
-                      cursor: 'pointer', textAlign: 'left',
-                    }}
-                  >
-                    {catExpanded ? <ChevronDown size={16} color={CLEAN_TEXT_MUTED} /> : <ChevronRight size={16} color={CLEAN_TEXT_MUTED} />}
-                    <div style={{
-                      width: '10px', height: '10px', borderRadius: '50%',
-                      background: catInfo?.cor || CLEAN_TEXT_MUTED, flexShrink: 0,
-                    }} />
-                    <div style={{ flex: 1 }}>
-                      <span style={{ fontWeight: 700, color: CLEAN_TEXT, fontSize: '0.9rem' }}>
-                        {catInfo?.nome || (catId === 'sem_categoria' ? 'Sem Categoria' : catId)}
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: CLEAN_TEXT_MUTED, marginLeft: '8px' }}>
-                        {catPosicoes.length} posição(ões)
-                      </span>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '16px 20px', borderBottom: `1px solid ${CLEAN_BORDER}`,
+                  }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: catInfo?.cor || CLEAN_TEXT_MUTED }} />
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: CLEAN_TEXT }}>
+                      {catInfo?.nome || catId}
+                    </h3>
+                  </div>
+
+                  <div style={{ padding: '16px 20px' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: ACCENT_GREEN, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <TrendingUp size={14} /> {t('web_invest_ranking_best')}
                     </div>
-                    <span style={{ fontWeight: 700, color: ACCENT_BLUE, fontSize: '0.9rem' }}>
-                      {formatCurrency(catTotal, moedaBase)}
-                    </span>
-                  </button>
+                    {top5.map((r, i) => (
+                      <div key={r.ticker} onClick={() => setDetailTicker(r.ticker)} style={{
+                        display: 'flex', alignItems: 'center', gap: '12px',
+                        padding: '8px 12px', borderRadius: '8px', cursor: 'pointer',
+                        transition: 'background 0.12s', marginBottom: '4px',
+                      }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: CLEAN_TEXT_MUTED, width: '20px' }}>#{i + 1}</span>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: ACCENT_BLUE }}>{r.ticker}</span>
+                          <span style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED, marginLeft: '6px' }}>{r.nome}</span>
+                        </div>
+                        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: r.retornoPercent >= 0 ? ACCENT_GREEN : ACCENT_RED }}>
+                          {r.retornoPercent >= 0 ? '+' : ''}{r.retornoPercent.toFixed(2)}%
+                        </span>
+                        <span style={{ fontSize: '0.78rem', color: CLEAN_TEXT_SECONDARY }}>
+                          {formatCurrency(r.lucroPrej, moedaBase)}
+                        </span>
+                      </div>
+                    ))}
 
-                  {catExpanded && (
-                    <div style={{ borderTop: `1px solid ${CLEAN_BORDER}` }}>
-                      {Object.entries(subs).map(([subId, subPosicoes]) => {
-                        const subExpanded = gruposExpandidos.has(`${catId}/${subId}`);
-                        const subTotal = subPosicoes.reduce((s, p) => s + p.custoTotal, 0);
-
-                        return (
-                          <div key={subId}>
-                            <button
-                              onClick={() => toggleGrupo(`${catId}/${subId}`)}
-                              style={{
-                                width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
-                                padding: '10px 18px 10px 42px', background: '#F8FAFC', border: 'none',
-                                cursor: 'pointer', textAlign: 'left', borderTop: `1px solid ${CLEAN_BORDER}`,
-                              }}
-                            >
-                              {subExpanded ? <ChevronDown size={13} color={CLEAN_TEXT_MUTED} /> : <ChevronRight size={13} color={CLEAN_TEXT_MUTED} />}
-                              <div style={{ flex: 1 }}>
-                                <span style={{ fontWeight: 600, color: CLEAN_TEXT_SECONDARY, fontSize: '0.82rem' }}>
-                                  {catId !== 'sem_categoria' ? getNomeSubcategoria(catId, subId) : (subId === 'sem_subcategoria' ? 'Sem Subcategoria' : subId)}
-                                </span>
-                                <span style={{ fontSize: '0.7rem', color: CLEAN_TEXT_MUTED, marginLeft: '6px' }}>
-                                  {subPosicoes.length}
-                                </span>
-                              </div>
-                              <span style={{ fontWeight: 600, color: CLEAN_TEXT_SECONDARY, fontSize: '0.82rem' }}>
-                                {formatCurrency(subTotal, moedaBase)}
-                              </span>
-                            </button>
-
-                            {subExpanded && subPosicoes.map(p => (
-                              <div key={p.ticker} style={{
-                                display: 'flex', alignItems: 'center', gap: '12px',
-                                padding: '10px 18px 10px 60px', borderTop: `1px solid ${CLEAN_BORDER}`,
-                              }}>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: ACCENT_BLUE }}>{p.ticker}</div>
-                                  <div style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED }}>{getTickerName(p.ticker) || p.ticker}</div>
-                                </div>
-                                <div style={{ textAlign: 'right' }}>
-                                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: CLEAN_TEXT }}>{p.qtd.toFixed(2)} cotas</div>
-                                  <div style={{ fontSize: '0.72rem', color: ACCENT_GREEN }}>{t('pm_label')} {formatCurrency(p.custoTotal / p.qtd, moedaBase)}</div>
-                                </div>
-                                <div style={{ fontWeight: 700, color: ACCENT_BLUE, fontSize: '0.85rem', minWidth: '100px', textAlign: 'right' }}>
-                                  {formatCurrency(p.custoTotal, moedaBase)}
-                                </div>
-                              </div>
-                            ))}
+                    {bottom5.length > 0 && bottom5[0].ticker !== top5[0]?.ticker && (
+                      <>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: ACCENT_RED, margin: '16px 0 10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <TrendingDown size={14} /> {t('web_invest_ranking_worst')}
+                        </div>
+                        {bottom5.map((r, i) => (
+                          <div key={r.ticker} onClick={() => setDetailTicker(r.ticker)} style={{
+                            display: 'flex', alignItems: 'center', gap: '12px',
+                            padding: '8px 12px', borderRadius: '8px', cursor: 'pointer',
+                            transition: 'background 0.12s', marginBottom: '4px',
+                          }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: CLEAN_TEXT_MUTED, width: '20px' }}>#{i + 1}</span>
+                            <div style={{ flex: 1 }}>
+                              <span style={{ fontWeight: 700, fontSize: '0.85rem', color: ACCENT_BLUE }}>{r.ticker}</span>
+                              <span style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED, marginLeft: '6px' }}>{r.nome}</span>
+                            </div>
+                            <span style={{ fontWeight: 700, fontSize: '0.85rem', color: r.retornoPercent >= 0 ? ACCENT_GREEN : ACCENT_RED }}>
+                              {r.retornoPercent >= 0 ? '+' : ''}{r.retornoPercent.toFixed(2)}%
+                            </span>
+                            <span style={{ fontSize: '0.78rem', color: CLEAN_TEXT_SECONDARY }}>
+                              {formatCurrency(r.lucroPrej, moedaBase)}
+                            </span>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                        ))}
+                      </>
+                    )}
+                  </div>
                 </div>
               );
             })}
+
+            {Object.keys(rankingPorCategoria).length === 0 && (
+              <div style={{ padding: '64px 24px', textAlign: 'center', color: CLEAN_TEXT_MUTED }}>
+                <Award size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                <p>{t('web_invest_ranking_empty')}</p>
+              </div>
+            )}
           </div>
         )}
 
-        {posicoes.length > 0 && vizualizacao === 'lista' && (
-          <div style={{ marginBottom: '28px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px', color: CLEAN_TEXT_SECONDARY, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('web_invest_positions')}</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
-              {posicoes.map(p => (
-                <div key={p.ticker} style={{
-                  background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
-                  borderRadius: '14px', padding: '16px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                }}>
-                  <div style={{ fontWeight: 800, fontSize: '1rem', color: ACCENT_BLUE, marginBottom: '4px' }}>{p.ticker}</div>
-                  <div style={{ fontSize: '0.78rem', color: CLEAN_TEXT_MUTED }}>{getTickerName(p.ticker) || p.ticker}</div>
-                  {p.categoria && (
-                    <div style={{ fontSize: '0.7rem', color: CLEAN_TEXT_MUTED, marginTop: '4px', display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      <span style={{
-                        width: '6px', height: '6px', borderRadius: '50%',
-                        background: getCategoriaInfo(p.categoria)?.cor || CLEAN_TEXT_MUTED,
-                      }} />
-                      {getNomeSubcategoria(p.categoria, p.subcategoria || '')}
-                    </div>
-                  )}
-                  <div style={{ marginTop: '10px', fontSize: '0.88rem', fontWeight: 700, color: CLEAN_TEXT }}>{p.qtd.toFixed(2)} cotas</div>
-                  <div style={{ fontSize: '0.8rem', color: ACCENT_GREEN, marginTop: '2px' }}>{t('pm_label')} {formatCurrency(p.custoTotal / p.qtd, moedaBase)}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div style={{ marginBottom: '16px', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', color: CLEAN_TEXT_MUTED, fontWeight: 600, marginRight: '4px' }}>{t('web_invest_category')}:</span>
-          <button onClick={() => setFiltroCategoria('todas')} style={{
-            padding: '5px 12px', borderRadius: '16px', fontSize: '0.72rem', fontWeight: 700,
-            cursor: 'pointer',
-            background: filtroCategoria === 'todas' ? ACCENT_BLUE : 'transparent',
-            color: filtroCategoria === 'todas' ? '#fff' : CLEAN_TEXT_SECONDARY,
-            border: filtroCategoria === 'todas' ? 'none' : `1px solid ${CLEAN_BORDER}`,
-          }}>{t('web_invest_all')}</button>
-          {CATEGORIAS_INVESTIMENTO.map(cat => (
-            <button key={cat.id} onClick={() => setFiltroCategoria(filtroCategoria === cat.id ? 'todas' : cat.id)} style={{
-              padding: '5px 12px', borderRadius: '16px', fontSize: '0.72rem', fontWeight: 700,
-              cursor: 'pointer',
-              background: filtroCategoria === cat.id ? cat.cor : 'transparent',
-              color: filtroCategoria === cat.id ? '#fff' : CLEAN_TEXT_SECONDARY,
-              border: filtroCategoria === cat.id ? 'none' : `1px solid ${CLEAN_BORDER}`,
-            }}>{cat.nome}</button>
-          ))}
-        </div>
-
-        <div style={{
-          background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
-          borderRadius: '20px', overflow: 'hidden',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-        }}>
-          <div style={{
-            padding: '20px 24px', borderBottom: `1px solid ${CLEAN_BORDER}`,
-            display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center',
-          }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
-              <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: CLEAN_TEXT_MUTED }} />
-              <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={t('web_invest_search')} style={{ ...inputStyle, paddingLeft: '34px' }} />
-            </div>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {[
-                { label: t('web_invest_all'), key: 'todos' as const, color: ACCENT_BLUE },
-                { label: t('web_invest_buys'), key: 'compra' as const, color: ACCENT_RED },
-                { label: t('web_invest_sells'), key: 'venda' as const, color: ACCENT_GREEN },
-              ].map(chip => (
-                <button key={chip.key} onClick={() => setFiltroTipo(chip.key)} style={{
-                  padding: '7px 14px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700,
-                  cursor: 'pointer',
-                  background: filtroTipo === chip.key ? chip.color : 'transparent',
-                  color: filtroTipo === chip.key ? '#fff' : CLEAN_TEXT_SECONDARY,
-                  border: filtroTipo === chip.key ? 'none' : `1px solid ${CLEAN_BORDER}`,
-                  transition: 'all 0.15s',
-                }}>{chip.label}</button>
-              ))}
-            </div>
-            <button onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')} style={{
-              background: 'transparent', border: `1px solid ${CLEAN_BORDER}`, borderRadius: '10px',
-              padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center',
-              gap: '6px', color: CLEAN_TEXT_SECONDARY, fontSize: '0.78rem',
+        {tab === 'operacoes' && (
+          <>
+            <div style={{
+              background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
+              borderRadius: '20px', overflow: 'hidden',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
             }}>
-              <Filter size={13} /> {sortDir === 'desc' ? t('web_invest_newest') : t('web_invest_oldest')}
-            </button>
-          </div>
-
-          {filtered.length === 0 ? (
-            <div style={{ padding: '64px 24px', textAlign: 'center', color: CLEAN_TEXT_MUTED }}>
-              <BarChart3 size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
-              <p style={{ margin: 0 }}>{t('web_invest_no_ops')}<br />Clique em "Nova Operação" para começar.</p>
-            </div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              {/* Bulk delete toolbar */}
-              {selectedIds.size > 0 && (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '12px 16px', marginBottom: '12px',
-                  background: 'rgba(239,68,68,0.05)', borderRadius: '12px',
-                  border: '1px solid rgba(239,68,68,0.2)',
-                }}>
-                  <span style={{ fontSize: '0.85rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 600 }}>
-                    {selectedIds.size} selecionada(s)
-                  </span>
-                  <button
-                    onClick={handleBulkDelete}
-                    style={{
-                      background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-                      borderRadius: '8px', padding: '8px 16px', cursor: 'pointer',
-                      color: ACCENT_RED, fontWeight: 700, fontSize: '0.8rem',
-                      display: 'flex', alignItems: 'center', gap: '6px',
-                    }}
-                  >
-                    <Trash2 size={14} />
-                    Excluir ({selectedIds.size})
-                  </button>
-                  <button
-                    onClick={() => setSelectedIds(new Set())}
-                    style={{
-                      background: 'transparent', border: `1px solid ${CLEAN_BORDER}`,
-                      borderRadius: '8px', padding: '8px 12px', cursor: 'pointer',
-                      color: CLEAN_TEXT_SECONDARY, fontSize: '0.8rem',
-                    }}
-                  >
-                    Cancelar
-                  </button>
+              <div style={{
+                padding: '20px 24px', borderBottom: `1px solid ${CLEAN_BORDER}`,
+                display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center',
+              }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: CLEAN_TEXT_MUTED }} />
+                  <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={t('web_invest_search')} style={{ ...inputStyle, paddingLeft: '34px' }} />
                 </div>
-              )}
-              
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ background: '#F8FAFC' }}>
-                    <th style={{ padding: '12px 16px', width: '40px' }}>
-                      <button
-                        onClick={toggleAllSelection}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                      >
-                        {selectedIds.size === filtered.length && filtered.length > 0 ? (
-                          <CheckSquare size={16} color={ACCENT_BLUE} />
-                        ) : (
-                          <Square size={16} color={CLEAN_TEXT_MUTED} />
-                        )}
-                      </button>
-                    </th>
-                    {['Tipo', t('web_invest_ticker'), t('web_invest_category'), t('quantity_label'), t('unit_price_label'), 'Total', 'Data', ''].map(h => (
-                      <th key={h} style={{
-                        padding: '12px 16px', textAlign: h === 'Total' || h === t('unit_price_label') ? 'right' : 'left',
-                        color: CLEAN_TEXT_SECONDARY, fontWeight: 700, fontSize: '0.72rem',
-                        textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap',
-                      }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(tx => {
-                    const isCompra = tx.tipo === 'compra';
-                    const total = tx.quantidade * tx.preco_unitario;
-                    const catInfo = tx.categoria ? getCategoriaInfo(tx.categoria) : null;
-                    return (
-                      <tr key={tx.id} style={{ borderTop: `1px solid ${CLEAN_BORDER}`, transition: 'background 0.12s' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#F8FAFC')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                      >
-                        <td style={{ padding: '14px 16px', width: '40px' }}>
-                          <button
-                            onClick={() => toggleSelection(tx.id)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                          >
-                            {selectedIds.has(tx.id) ? (
-                              <CheckSquare size={16} color={ACCENT_BLUE} />
-                            ) : (
-                              <Square size={16} color={CLEAN_TEXT_MUTED} />
-                            )}
-                          </button>
-                        </td>
-                        <td style={{ padding: '14px 16px' }}>
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '6px',
-                            padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700,
-                            background: isCompra ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
-                            color: isCompra ? ACCENT_RED : ACCENT_GREEN,
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {[
+                    { label: t('web_invest_all'), key: 'todos' as const, color: ACCENT_BLUE },
+                    { label: t('web_invest_buys'), key: 'compra' as const, color: ACCENT_RED },
+                    { label: t('web_invest_sells'), key: 'venda' as const, color: ACCENT_GREEN },
+                  ].map(chip => (
+                    <button key={chip.key} onClick={() => setFiltroTipo(chip.key)} style={{
+                      padding: '7px 14px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700,
+                      cursor: 'pointer',
+                      background: filtroTipo === chip.key ? chip.color : 'transparent',
+                      color: filtroTipo === chip.key ? '#fff' : CLEAN_TEXT_SECONDARY,
+                      border: filtroTipo === chip.key ? 'none' : `1px solid ${CLEAN_BORDER}`,
+                      transition: 'all 0.15s',
+                    }}>{chip.label}</button>
+                  ))}
+                </div>
+                <button onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')} style={{
+                  background: 'transparent', border: `1px solid ${CLEAN_BORDER}`, borderRadius: '10px',
+                  padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  gap: '6px', color: CLEAN_TEXT_SECONDARY, fontSize: '0.78rem',
+                }}>
+                  <Filter size={13} /> {sortDir === 'desc' ? t('web_invest_newest') : t('web_invest_oldest')}
+                </button>
+              </div>
+
+              <div style={{ marginBottom: '16px', display: 'flex', gap: '6px', flexWrap: 'wrap', padding: '0 24px', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.75rem', color: CLEAN_TEXT_MUTED, fontWeight: 600, marginRight: '4px' }}>{t('web_invest_category')}:</span>
+                <button onClick={() => setFiltroCategoria('todas')} style={{
+                  padding: '5px 12px', borderRadius: '16px', fontSize: '0.72rem', fontWeight: 700,
+                  cursor: 'pointer',
+                  background: filtroCategoria === 'todas' ? ACCENT_BLUE : 'transparent',
+                  color: filtroCategoria === 'todas' ? '#fff' : CLEAN_TEXT_SECONDARY,
+                  border: filtroCategoria === 'todas' ? 'none' : `1px solid ${CLEAN_BORDER}`,
+                }}>{t('web_invest_all')}</button>
+                {CATEGORIAS_INVESTIMENTO.map(cat => (
+                  <button key={cat.id} onClick={() => setFiltroCategoria(filtroCategoria === cat.id ? 'todas' : cat.id)} style={{
+                    padding: '5px 12px', borderRadius: '16px', fontSize: '0.72rem', fontWeight: 700,
+                    cursor: 'pointer',
+                    background: filtroCategoria === cat.id ? cat.cor : 'transparent',
+                    color: filtroCategoria === cat.id ? '#fff' : CLEAN_TEXT_SECONDARY,
+                    border: filtroCategoria === cat.id ? 'none' : `1px solid ${CLEAN_BORDER}`,
+                  }}>{cat.nome}</button>
+                ))}
+              </div>
+
+              {(() => {
+                const filtered = txs
+                  .filter(t => {
+                    if (filtroTipo !== 'todos' && t.tipo !== filtroTipo) return false;
+                    if (!t.ticker.includes(busca.toUpperCase())) return false;
+                    if (filtroCategoria !== 'todas' && t.categoria !== filtroCategoria) return false;
+                    return true;
+                  })
+                  .sort((a, b) => sortDir === 'desc' ? b.data_transacao.localeCompare(a.data_transacao) : a.data_transacao.localeCompare(b.data_transacao));
+
+                return (
+                  <>
+                    {filtered.length === 0 ? (
+                      <div style={{ padding: '64px 24px', textAlign: 'center', color: CLEAN_TEXT_MUTED }}>
+                        <BarChart3 size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                        <p style={{ margin: 0 }}>{t('web_invest_no_ops')}<br />Clique em "Nova Operação" para começar.</p>
+                      </div>
+                    ) : (
+                      <div style={{ overflowX: 'auto' }}>
+                        {selectedIds.size > 0 && (
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: '12px',
+                            padding: '12px 16px', margin: '0 16px 12px',
+                            background: 'rgba(239,68,68,0.05)', borderRadius: '12px',
+                            border: '1px solid rgba(239,68,68,0.2)',
                           }}>
-                            {isCompra ? <TrendingDown size={11} /> : <TrendingUp size={11} />}
-                            {isCompra ? t('web_invest_buy') : t('web_invest_sell')}
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px 16px', fontWeight: 800, color: ACCENT_BLUE }}>
-                          {tx.ticker}
-                          <div style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED, fontWeight: 400 }}>{getTickerName(tx.ticker)}</div>
-                        </td>
-                        <td style={{ padding: '14px 16px' }}>
-                          {catInfo ? (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: CLEAN_TEXT_SECONDARY }}>
-                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: catInfo.cor, flexShrink: 0 }} />
-                              {getNomeSubcategoria(tx.categoria!, tx.subcategoria || '')}
+                            <span style={{ fontSize: '0.85rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 600 }}>
+                              {selectedIds.size} selecionada(s)
                             </span>
-                          ) : (
-                            <span style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED }}>—</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '14px 16px', color: CLEAN_TEXT }}>{tx.quantidade}</td>
-                        <td style={{ padding: '14px 16px', textAlign: 'right', color: CLEAN_TEXT }}>{formatCurrency(tx.preco_unitario, moedaBase)}</td>
-                        <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700, color: isCompra ? ACCENT_RED : ACCENT_GREEN }}>
-                          {isCompra ? '-' : '+'} {formatCurrency(total, moedaBase)}
-                        </td>
-                        <td style={{ padding: '14px 16px', color: CLEAN_TEXT_MUTED, whiteSpace: 'nowrap' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Calendar size={11} />{tx.data_transacao}</span>
-                        </td>
-                        <td style={{ padding: '14px 12px' }}>
-                          {deleteConfirm === tx.id ? (
-                            <span style={{ display: 'flex', gap: '6px' }}>
-                              <button onClick={() => handleDelete(tx.id)} style={{
-                                background: 'rgba(239,68,68,0.15)', border: 'none',
-                                borderRadius: '6px', padding: '5px 8px', cursor: 'pointer', color: ACCENT_RED,
-                              }}><Check size={12} /></button>
-                              <button onClick={() => setDeleteConfirm(null)} style={{
-                                background: 'transparent', border: `1px solid ${CLEAN_BORDER}`,
-                                borderRadius: '6px', padding: '5px 8px', cursor: 'pointer', color: CLEAN_TEXT_MUTED,
-                              }}><X size={12} /></button>
-                            </span>
-                          ) : (
-                            <span style={{ display: 'flex', gap: '6px' }}>
-                              <button onClick={() => openEdit(tx)} style={{
-                                background: 'none', border: 'none', cursor: 'pointer',
-                                color: CLEAN_TEXT_MUTED, padding: '4px', borderRadius: '6px',
-                              }}><Pencil size={13} /></button>
-                              <button onClick={() => setDeleteConfirm(tx.id)} style={{
-                                background: 'none', border: 'none', cursor: 'pointer',
-                                color: CLEAN_TEXT_MUTED, padding: '4px', borderRadius: '6px',
-                              }}><Trash2 size={13} /></button>
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            <button onClick={async () => {
+                              if (selectedIds.size === 0) return;
+                              if (!window.confirm(`Excluir permanentemente ${selectedIds.size} operação(ões)?`)) return;
+                              let erros = 0;
+                              for (const id of selectedIds) {
+                                if (!id.startsWith('local-')) {
+                                  const { error } = await deleteTransacaoAtivo(id);
+                                  if (error) erros++;
+                                }
+                              }
+                              setTxs(prev => prev.filter(t => !selectedIds.has(t.id)));
+                              setSelectedIds(new Set());
+                              if (erros > 0) toast.error(`Falha ao excluir ${erros} operação(ões).`);
+                              else toast.success(`${selectedIds.size} operação(ões) excluída(s)!`);
+                            }} style={{
+                              background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                              borderRadius: '8px', padding: '8px 16px', cursor: 'pointer',
+                              color: ACCENT_RED, fontWeight: 700, fontSize: '0.8rem',
+                              display: 'flex', alignItems: 'center', gap: '6px',
+                            }}>
+                              <Trash2 size={14} /> Excluir ({selectedIds.size})
+                            </button>
+                            <button onClick={() => setSelectedIds(new Set())} style={{
+                              background: 'transparent', border: `1px solid ${CLEAN_BORDER}`,
+                              borderRadius: '8px', padding: '8px 12px', cursor: 'pointer',
+                              color: CLEAN_TEXT_SECONDARY, fontSize: '0.8rem',
+                            }}>Cancelar</button>
+                          </div>
+                        )}
+
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                          <thead>
+                            <tr style={{ background: '#F8FAFC' }}>
+                              <th style={{ padding: '12px 16px', width: '40px' }}>
+                                <button onClick={() => {
+                                  if (selectedIds.size === filtered.length) setSelectedIds(new Set());
+                                  else setSelectedIds(new Set(filtered.map(tx => tx.id)));
+                                }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                                  {selectedIds.size === filtered.length && filtered.length > 0 ? (
+                                    <CheckSquare size={16} color={ACCENT_BLUE} />
+                                  ) : (
+                                    <Square size={16} color={CLEAN_TEXT_MUTED} />
+                                  )}
+                                </button>
+                              </th>
+                              {['Tipo', t('web_invest_ticker'), t('web_invest_category'), t('quantity_label'), t('unit_price_label'), 'Total', 'Data', ''].map(h => (
+                                <th key={h} style={{
+                                  padding: '12px 16px', textAlign: h === 'Total' || h === t('unit_price_label') ? 'right' : 'left',
+                                  color: CLEAN_TEXT_SECONDARY, fontWeight: 700, fontSize: '0.72rem',
+                                  textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap',
+                                }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filtered.map(tx => {
+                              const isCompra = tx.tipo === 'compra';
+                              const total = tx.quantidade * tx.preco_unitario;
+                              const catInfo = tx.categoria ? getCategoriaInfo(tx.categoria) : null;
+                              return (
+                                <tr key={tx.id} style={{ borderTop: `1px solid ${CLEAN_BORDER}`, transition: 'background 0.12s' }}
+                                  onMouseEnter={e => (e.currentTarget.style.background = '#F8FAFC')}
+                                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                >
+                                  <td style={{ padding: '14px 16px', width: '40px' }}>
+                                    <button onClick={() => {
+                                      const next = new Set(selectedIds);
+                                      if (next.has(tx.id)) next.delete(tx.id); else next.add(tx.id);
+                                      setSelectedIds(next);
+                                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                                      {selectedIds.has(tx.id) ? <CheckSquare size={16} color={ACCENT_BLUE} /> : <Square size={16} color={CLEAN_TEXT_MUTED} />}
+                                    </button>
+                                  </td>
+                                  <td style={{ padding: '14px 16px' }}>
+                                    <span style={{
+                                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                      padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700,
+                                      background: isCompra ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
+                                      color: isCompra ? ACCENT_RED : ACCENT_GREEN,
+                                    }}>
+                                      {isCompra ? <TrendingDown size={11} /> : <TrendingUp size={11} />}
+                                      {isCompra ? t('web_invest_buy') : t('web_invest_sell')}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '14px 16px', fontWeight: 800, color: ACCENT_BLUE }}>
+                                    {tx.ticker}
+                                    <div style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED, fontWeight: 400 }}>{getTickerName(tx.ticker)}</div>
+                                  </td>
+                                  <td style={{ padding: '14px 16px' }}>
+                                    {catInfo ? (
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: CLEAN_TEXT_SECONDARY }}>
+                                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: catInfo.cor, flexShrink: 0 }} />
+                                        {getNomeSubcategoria(tx.categoria!, tx.subcategoria || '')}
+                                      </span>
+                                    ) : <span style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED }}>—</span>}
+                                  </td>
+                                  <td style={{ padding: '14px 16px', color: CLEAN_TEXT }}>{tx.quantidade}</td>
+                                  <td style={{ padding: '14px 16px', textAlign: 'right', color: CLEAN_TEXT }}>{formatCurrency(tx.preco_unitario, moedaBase)}</td>
+                                  <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700, color: isCompra ? ACCENT_RED : ACCENT_GREEN }}>
+                                    {isCompra ? '-' : '+'} {formatCurrency(total, moedaBase)}
+                                  </td>
+                                  <td style={{ padding: '14px 16px', color: CLEAN_TEXT_MUTED, whiteSpace: 'nowrap' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Calendar size={11} />{tx.data_transacao}</span>
+                                  </td>
+                                  <td style={{ padding: '14px 12px' }}>
+                                    {deleteConfirm === tx.id ? (
+                                      <span style={{ display: 'flex', gap: '6px' }}>
+                                        <button onClick={async () => {
+                                          if (!tx.id.startsWith('local-')) await deleteTransacaoAtivo(tx.id);
+                                          setTxs(prev => prev.filter(t => t.id !== tx.id));
+                                          setDeleteConfirm(null);
+                                        }} style={{
+                                          background: 'rgba(239,68,68,0.15)', border: 'none',
+                                          borderRadius: '6px', padding: '5px 8px', cursor: 'pointer', color: ACCENT_RED,
+                                        }}><Check size={12} /></button>
+                                        <button onClick={() => setDeleteConfirm(null)} style={{
+                                          background: 'transparent', border: `1px solid ${CLEAN_BORDER}`,
+                                          borderRadius: '6px', padding: '5px 8px', cursor: 'pointer', color: CLEAN_TEXT_MUTED,
+                                        }}><X size={12} /></button>
+                                      </span>
+                                    ) : (
+                                      <span style={{ display: 'flex', gap: '6px' }}>
+                                        <button onClick={() => openEdit(tx)} style={{
+                                          background: 'none', border: 'none', cursor: 'pointer',
+                                          color: CLEAN_TEXT_MUTED, padding: '4px', borderRadius: '6px',
+                                        }}><Pencil size={13} /></button>
+                                        <button onClick={() => setDeleteConfirm(tx.id)} style={{
+                                          background: 'none', border: 'none', cursor: 'pointer',
+                                          color: CLEAN_TEXT_MUTED, padding: '4px', borderRadius: '6px',
+                                        }}><Trash2 size={13} /></button>
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
-          )}
-        </div>
+          </>
+        )}
 
         {modalOpen && (
           <div style={{
@@ -735,7 +877,14 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
 
               <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('asset_ticker_label')}</label>
               <div style={{ position: 'relative', marginBottom: '16px' }}>
-                <input value={fTicker} onChange={e => handleTickerChange(e.target.value)} placeholder="PETR4, BTC, MXRF11..." style={inputStyle} />
+                <input value={fTicker} onChange={e => {
+                  const v = e.target.value.toUpperCase();
+                  setFTicker(v);
+                  if (v.length >= 2) setSugestoes(searchTickers(v, 6).map(r => r.ticker));
+                  else setSugestoes([]);
+                  const cat = getCategoriaByTicker(v);
+                  if (cat) { setFCategoria(cat.categoria); setFSubcategoria(cat.subcategoria); }
+                }} placeholder="PETR4, BTC, MXRF11, SAN..." style={inputStyle} />
                 {sugestoes.length > 0 && (
                   <div style={{
                     position: 'absolute', top: '110%', left: 0, right: 0, background: CLEAN_CARD,
@@ -778,48 +927,30 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
               {fTipo === 'venda' && (
                 <>
                   <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_invest_account_destination')}</label>
-                  <select
-                    value={fContaDestino}
-                    onChange={e => setFContaDestino(e.target.value)}
-                    style={{ ...inputStyle, marginBottom: '16px', cursor: 'pointer' }}
-                  >
+                  <select value={fContaDestino} onChange={e => setFContaDestino(e.target.value)} style={{ ...inputStyle, marginBottom: '16px', cursor: 'pointer' }}>
                     <option value="">{t('web_invest_select_account')}</option>
-                    {contas.map(c => (
-                      <option key={c.id} value={c.id}>{c.nome_instituicao}</option>
-                    ))}
+                    {contas.map(c => <option key={c.id} value={c.id}>{c.nome_instituicao}</option>)}
                   </select>
                 </>
               )}
 
               <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_invest_category')}</label>
-              <select
-                value={fCategoria}
-                onChange={e => { setFCategoria(e.target.value); setFSubcategoria(''); }}
-                style={{ ...inputStyle, marginBottom: '12px', cursor: 'pointer' }}
-              >
+              <select value={fCategoria} onChange={e => { setFCategoria(e.target.value); setFSubcategoria(''); }} style={{ ...inputStyle, marginBottom: '12px', cursor: 'pointer' }}>
                 <option value="">Selecione a categoria...</option>
-                {CATEGORIAS_INVESTIMENTO.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.nome}</option>
-                ))}
+                {CATEGORIAS_INVESTIMENTO.map(cat => <option key={cat.id} value={cat.id}>{cat.nome}</option>)}
               </select>
 
               {fCategoria && (
                 <>
                   <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_invest_subcategory')}</label>
-                  <select
-                    value={fSubcategoria}
-                    onChange={e => setFSubcategoria(e.target.value)}
-                    style={{ ...inputStyle, marginBottom: '16px', cursor: 'pointer' }}
-                  >
+                  <select value={fSubcategoria} onChange={e => setFSubcategoria(e.target.value)} style={{ ...inputStyle, marginBottom: '16px', cursor: 'pointer' }}>
                     <option value="">Selecione a subcategoria...</option>
-                    {getCategoriaInfo(fCategoria)?.subcategorias.map(sub => (
-                      <option key={sub.id} value={sub.id}>{sub.nome} — {sub.descricao}</option>
-                    ))}
+                    {getCategoriaInfo(fCategoria)?.subcategorias.map(sub => <option key={sub.id} value={sub.id}>{sub.nome} — {sub.descricao}</option>)}
                   </select>
                 </>
               )}
 
-              <div className="rg-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('quantity_label')}</label>
                   <input type="number" min="0" step="0.01" value={fQtd} onChange={e => setFQtd(e.target.value)} placeholder="100" style={inputStyle} />
@@ -849,7 +980,50 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                   border: `1px solid ${CLEAN_BORDER}`, borderRadius: '12px',
                   cursor: 'pointer', color: CLEAN_TEXT_SECONDARY, fontWeight: 600,
                 }}>{t('cancel')}</button>
-                <button onClick={handleSave} disabled={saving || !fTicker || !fQtd || !fPreco || (fTipo === 'venda' && !fContaDestino)} style={{
+                <button onClick={async () => {
+                  if (!fTicker.trim()) return;
+                  const qtd = parseFloat(fQtd.replace(',', '.'));
+                  const preco = parseFloat(fPreco.replace(',', '.'));
+                  if (isNaN(qtd) || qtd <= 0 || isNaN(preco) || preco <= 0) return;
+                  if (fTipo === 'venda' && !fContaDestino) return;
+                  setSaving(true);
+
+                  if (editId) {
+                    const { error } = await updateTransacaoAtivo(editId, {
+                      quantidade: qtd, preco_unitario: preco, data_transacao: fData,
+                      categoria: fCategoria || undefined, subcategoria: fSubcategoria || undefined,
+                    });
+                    if (!error) {
+                      setTxs(prev => prev.map(t => t.id === editId
+                        ? { ...t, ticker: fTicker.trim(), tipo: fTipo, quantidade: qtd, preco_unitario: preco, data_transacao: fData, categoria: fCategoria || undefined, subcategoria: fSubcategoria || undefined }
+                        : t
+                      ));
+                    }
+                  } else {
+                    const { data, error } = await createTransacaoAtivo({
+                      id_usuario: id_usuario || '',
+                      ticker: fTicker.trim(), tipo: fTipo, quantidade: qtd,
+                      preco_unitario: preco, data_transacao: fData,
+                      categoria: fCategoria || undefined, subcategoria: fSubcategoria || undefined,
+                    });
+                    if (data && !error) {
+                      setTxs(prev => [...prev, data]);
+                      if (fTipo === 'venda') {
+                        const total = qtd * preco;
+                        const novaTransacao: Omit<Transacao, 'id'> = {
+                          id_conta: fContaDestino, tipo: 'receita', valor: total,
+                          categoria: 'Investimentos', data_transacao: fData, taxa_cambio_dia: 1,
+                          descricao: `Resgate ${fTicker.trim()} — ${qtd} un. × ${formatCurrency(preco, moedaBase)}`,
+                          moeda_transacao: moedaBase,
+                        };
+                        const { data: txData, error: txError } = await createTransacao(novaTransacao);
+                        if (txData && !txError) addTransacao({ ...txData, id: txData.id || `local-${Date.now()}` });
+                      }
+                    }
+                  }
+                  setSaving(false);
+                  closeModal();
+                }} disabled={saving || !fTicker || !fQtd || !fPreco || (fTipo === 'venda' && !fContaDestino)} style={{
                   flex: 1.5, padding: '12px', background: ACCENT_BLUE, border: 'none',
                   borderRadius: '12px', cursor: 'pointer', color: '#fff', fontWeight: 700,
                   opacity: saving ? 0.7 : 1,
@@ -861,6 +1035,89 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
               </div>
             </div>
           </div>
+        )}
+
+        {dividendoModal && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '16px',
+          }}>
+            <div style={{
+              background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
+              borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '440px',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.12)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: CLEAN_TEXT }}>{t('web_invest_dividend_register')}</h3>
+                <button onClick={() => setDividendoModal(false)} style={{
+                  background: 'transparent', border: `1px solid ${CLEAN_BORDER}`,
+                  borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', color: CLEAN_TEXT_MUTED,
+                }}><X size={16} /></button>
+              </div>
+
+              <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Ativo (Ticker)</label>
+              <input value={fDivTicker} onChange={e => setFDivTicker(e.target.value.toUpperCase())} placeholder="PETR4, MXRF11..." style={{ ...inputStyle, marginBottom: '16px' }} />
+
+              <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_invest_dividend_type')}</label>
+              <select value={fDivTipo} onChange={e => setFDivTipo(e.target.value)} style={{ ...inputStyle, marginBottom: '16px', cursor: 'pointer' }}>
+                <option value="dividendo">{t('web_invest_dividend_types_dividendo')}</option>
+                <option value="juros">{t('web_invest_dividend_types_juros')}</option>
+                <option value="cupom">{t('web_invest_dividend_types_cupom')}</option>
+                <option value="rendimento">{t('web_invest_dividend_types_rendimento')}</option>
+              </select>
+
+              <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_invest_dividend_value')}</label>
+              <input type="number" min="0" step="0.01" value={fDivValor} onChange={e => setFDivValor(e.target.value)} placeholder="150.00" style={{ ...inputStyle, marginBottom: '16px' }} />
+
+              <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_invest_dividend_date')}</label>
+              <input type="date" value={fDivData} onChange={e => setFDivData(e.target.value)} style={{ ...inputStyle, marginBottom: '24px' }} />
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => setDividendoModal(false)} style={{
+                  flex: 1, padding: '12px', background: 'transparent',
+                  border: `1px solid ${CLEAN_BORDER}`, borderRadius: '12px',
+                  cursor: 'pointer', color: CLEAN_TEXT_SECONDARY, fontWeight: 600,
+                }}>Cancelar</button>
+                <button onClick={async () => {
+                  const { createDividendo } = await import('../services/supabaseService');
+                  const { data, error } = await createDividendo({
+                    id_usuario: id_usuario || '',
+                    ticker: fDivTicker.toUpperCase(),
+                    tipo: fDivTipo as any,
+                    valor: parseFloat(fDivValor),
+                    data_recebimento: fDivData,
+                    descricao: '',
+                  });
+                  if (data && !error) {
+                    setDividendos(prev => [...prev, data]);
+                    toast.success('Provento registrado!');
+                    setDividendoModal(false);
+                    setFDivTicker(''); setFDivValor(''); setFDivData(new Date().toISOString().split('T')[0]);
+                  } else {
+                    toast.error(error || 'Erro ao registrar.');
+                  }
+                }} disabled={!fDivTicker || !fDivValor} style={{
+                  flex: 1.5, padding: '12px', background: ACCENT_BLUE, border: 'none',
+                  borderRadius: '12px', cursor: 'pointer', color: '#fff', fontWeight: 700,
+                  opacity: (!fDivTicker || !fDivValor) ? 0.6 : 1,
+                }}>
+                  Registrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {detailTicker && (
+          <AssetDetailModal
+            ticker={detailTicker}
+            txs={txs}
+            quotes={quotes}
+            moedaBase={moedaBase}
+            dividendosTotal={dividendosPorTicker[detailTicker.toUpperCase()] || 0}
+            onClose={() => setDetailTicker(null)}
+            onUpdate={() => { carregarTransacoes(); carregarDividendos(); }}
+          />
         )}
       </div>
     </div>
