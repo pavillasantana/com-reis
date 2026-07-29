@@ -1292,5 +1292,12 @@
   "web_invest_cancel": "Cancelar",
   "web_invest_dividend_asset_ticker": "Ativo (Ticker)",
   "web_invest_delete_confirm": "Excluir",
-  "web_invest_bulk_delete_confirm": "Excluir permanentemente {count} lote(s)?"
+  "web_invest_bulk_delete_confirm": "Excluir permanentemente {count} lote(s)?",
+  "web_invest_bulk_delete_assets": "Excluir Ativos",
+  "web_invest_ranking_search": "Buscar ativo no mercado...",
+  "web_invest_ranking_all": "Todos",
+  "web_invest_ranking_domestic": "Doméstico",
+  "web_invest_ranking_international": "Internacional",
+  "web_invest_ranking_no_data": "Selecione uma categoria para carregar os dados de mercado.",
+  "web_invest_ranking_no_results": "Nenhum ativo encontrado para esta busca."
 }

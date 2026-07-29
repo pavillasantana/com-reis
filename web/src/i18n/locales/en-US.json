@@ -1291,5 +1291,12 @@
   "web_invest_cancel": "Cancel",
   "web_invest_dividend_asset_ticker": "Asset (Ticker)",
   "web_invest_delete_confirm": "Delete",
-  "web_invest_bulk_delete_confirm": "Permanently delete {count} lot(s)?"
+  "web_invest_bulk_delete_confirm": "Permanently delete {count} lot(s)?",
+  "web_invest_bulk_delete_assets": "Delete Assets",
+  "web_invest_ranking_search": "Search asset in market...",
+  "web_invest_ranking_all": "All",
+  "web_invest_ranking_domestic": "Domestic",
+  "web_invest_ranking_international": "International",
+  "web_invest_ranking_no_data": "Select a category to load market data.",
+  "web_invest_ranking_no_results": "No assets found for this search."
 }

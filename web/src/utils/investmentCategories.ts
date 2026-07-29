@@ -10,6 +10,7 @@ export interface CategoriaInvestimento {
   id: string;
   nome: string;
   cor: string;
+  pais?: string;
   subcategorias: Subcategoria[];
 }
 
@@ -18,6 +19,7 @@ export const CATEGORIAS_INVESTIMENTO: CategoriaInvestimento[] = [
     id: 'renda_fixa_br',
     nome: 'Renda Fixa Nacional',
     cor: '#10B981',
+    pais: 'BR',
     subcategorias: [
       { id: 'tesouro_direto', nome: 'Tesouro Direto', descricao: 'Títulos públicos federais (IPCA+, Selic, Prefixado)' },
       { id: 'cdb_rdb', nome: 'CDB / RDB', descricao: 'Certificados e Recibos de Depósito Bancário' },
@@ -31,6 +33,7 @@ export const CATEGORIAS_INVESTIMENTO: CategoriaInvestimento[] = [
     id: 'renda_variavel_br',
     nome: 'Renda Variável Nacional',
     cor: '#3B82F6',
+    pais: 'BR',
     subcategorias: [
       { id: 'acoes', nome: 'Ações', descricao: 'Pequenas participações em empresas listadas na B3' },
       { id: 'fiis', nome: 'FIIs', descricao: 'Fundos Imobiliários — cotas de imóveis com renda de aluguéis' },
@@ -55,6 +58,7 @@ export const CATEGORIAS_INVESTIMENTO: CategoriaInvestimento[] = [
     id: 'fundos',
     nome: 'Fundos de Investimento',
     cor: '#F59E0B',
+    pais: 'BR',
     subcategorias: [
       { id: 'fundo_rf', nome: 'Renda Fixa', descricao: 'Fundos focados em títulos conservadores' },
       { id: 'fundo_acoes', nome: 'Ações', descricao: 'Fundos que selecionam empresas com potencial' },
@@ -539,6 +543,72 @@ export const TICKER_DB: Record<string, string> = {
   'TESOURO PREFIXADO 2026': 'Tesouro Prefixado 2026', 'TESOURO PREFIXADO 2029': 'Tesouro Prefixado 2029',
   'NTN-B': 'Tesouro IPCA+', 'LTN': 'Tesouro Prefixado', 'LFT': 'Tesouro Selic',
 };
+
+// ─── Funções de País / Localização ──────────────────────────────────
+
+export function getPaisPorCategoria(categoriaId: string): string | undefined {
+  return getCategoriaInfo(categoriaId)?.pais;
+}
+
+const MOEDA_PAIS: Record<string, string> = {
+  'BRL': 'BR', 'USD': 'US', 'EUR': 'EU', 'ARS': 'AR',
+  'MXN': 'MX', 'CLP': 'CL', 'PEN': 'PE', 'GBP': 'UK',
+  'CHF': 'CH', 'CAD': 'CA', 'AUD': 'AU',
+};
+
+export function getPaisPorMoeda(moeda: string): string | undefined {
+  return MOEDA_PAIS[moeda.toUpperCase()];
+}
+
+export function isCategoriaDomestica(categoriaId: string, moedaBase: string): boolean {
+  const catPais = getPaisPorCategoria(categoriaId);
+  if (!catPais) return false;
+  const userPais = getPaisPorMoeda(moedaBase);
+  if (!userPais) return false;
+  return catPais === userPais;
+}
+
+export function getCategoriasDomesticas(moedaBase: string): string[] {
+  const userPais = getPaisPorMoeda(moedaBase);
+  if (!userPais) return [];
+  return CATEGORIAS_INVESTIMENTO
+    .filter(c => c.pais === userPais)
+    .map(c => c.id);
+}
+
+// ─── Agrupamento de Tickers por Categoria ──────────────────────────
+
+export function getTickersPorCategoria(categoriaId: string): Array<{ ticker: string; nome: string }> {
+  const results: Array<{ ticker: string; nome: string }> = [];
+  for (const [ticker, nome] of Object.entries(TICKER_DB)) {
+    const entry = TICKER_CATEGORY_MAP[ticker.toUpperCase()];
+    if (entry && entry.categoria === categoriaId) {
+      results.push({ ticker, nome });
+    }
+  }
+  return results.sort((a, b) => a.ticker.localeCompare(b.ticker));
+}
+
+export function getTickersPorSubcategoria(categoriaId: string, subcategoriaId: string): Array<{ ticker: string; nome: string }> {
+  const results: Array<{ ticker: string; nome: string }> = [];
+  for (const [ticker, nome] of Object.entries(TICKER_DB)) {
+    const entry = TICKER_CATEGORY_MAP[ticker.toUpperCase()];
+    if (entry && entry.categoria === categoriaId && entry.subcategoria === subcategoriaId) {
+      results.push({ ticker, nome });
+    }
+  }
+  return results.sort((a, b) => a.ticker.localeCompare(b.ticker));
+}
+
+export function getTodasCategoriasComTickers(): Array<{
+  categoria: CategoriaInvestimento;
+  tickers: Array<{ ticker: string; nome: string }>;
+}> {
+  return CATEGORIAS_INVESTIMENTO.map(cat => ({
+    categoria: cat,
+    tickers: getTickersPorCategoria(cat.id),
+  }));
+}
 
 // ─── Busca com tolerância a erros ──────────────────────────────────
 

@@ -21,9 +21,12 @@ import {
   CATEGORIAS_INVESTIMENTO, getCategoriaByTicker,
   getNomeSubcategoria,
   getCategoriaInfo, searchTickers, getTickerName,
+  getTickersPorCategoria, getTodasCategoriasComTickers,
+  getPaisPorMoeda, isCategoriaDomestica, getCategoriasDomesticas,
 } from '../utils/investmentCategories';
 import { useI18n } from '../i18n';
-import { useQuotes, calcularMetricas, calcularRanking } from '../hooks/useInvestments';
+import { useQuotes, useMarketQuotesByCategory, calcularMetricas, calcularRanking, calcularMarketRanking } from '../hooks/useInvestments';
+import type { MarketRankingItem } from '../hooks/useInvestments';
 import { AssetDetailModal } from './AssetDetailModal';
 
 type Tab = 'overview' | 'carteira' | 'ranking' | 'operacoes';
@@ -84,6 +87,11 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   const [fDivValor, setFDivValor] = useState('');
   const [fDivData, setFDivData] = useState(new Date().toISOString().split('T')[0]);
   const [fDivTipo, setFDivTipo] = useState<string>('dividendo');
+
+  const [selectedAssetTickers, setSelectedAssetTickers] = useState<Set<string>>(new Set());
+  const [rankingCategory, setRankingCategory] = useState<string | null>(null);
+  const [rankingFilter, setRankingFilter] = useState<'todos' | 'domestico' | 'internacional'>('todos');
+  const [searchMarket, setSearchMarket] = useState('');
 
   const carregarTransacoes = useCallback(async () => {
     setLoading(true);
@@ -151,6 +159,19 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
     });
     return groups;
   }, [ranking]);
+
+  const { data: marketQuotes = [], isLoading: marketLoading } = useMarketQuotesByCategory(rankingCategory);
+
+  const allCategoriasComTickers = useMemo(() => getTodasCategoriasComTickers(), []);
+
+  const marketRanking = useMemo(() => {
+    if (!rankingCategory) return [];
+    const cat = allCategoriasComTickers.find(c => c.categoria.id === rankingCategory);
+    if (!cat) return [];
+    return calcularMarketRanking(cat.tickers, marketQuotes)
+      .filter(r => !searchMarket || r.ticker.includes(searchMarket.toUpperCase()) || r.nome.toUpperCase().includes(searchMarket.toUpperCase()))
+      .sort((a, b) => b.changePercent - a.changePercent);
+  }, [rankingCategory, allCategoriasComTickers, marketQuotes, searchMarket]);
 
   const openAdd = () => {
     setEditId(null); setFTicker(''); setFTipo('compra');
@@ -317,7 +338,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
 
         {tab === 'carteira' && (
           <>
-            <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
+            <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <button onClick={() => setVizualizacao('categorias')} style={{
                 padding: '8px 16px', borderRadius: '10px', fontSize: '0.82rem', fontWeight: 700,
                 cursor: 'pointer', border: vizualizacao === 'categorias' ? 'none' : `1px solid ${CLEAN_BORDER}`,
@@ -358,6 +379,49 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                 }}>{cat.nome}</button>
               ))}
             </div>
+
+            {selectedAssetTickers.size > 0 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '12px 18px', marginBottom: '16px',
+                background: 'rgba(239,68,68,0.05)', borderRadius: '12px',
+                border: '1px solid rgba(239,68,68,0.2)',
+              }}>
+                <span style={{ fontSize: '0.85rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 600 }}>
+                  {selectedAssetTickers.size} ativo(s) selecionado(s)
+                </span>
+                <button onClick={async () => {
+                  if (selectedAssetTickers.size === 0) return;
+                  if (!window.confirm(`Excluir permanentemente TODOS os lotes de ${selectedAssetTickers.size} ativo(s)?`)) return;
+                  let erros = 0;
+                  for (const ticker of selectedAssetTickers) {
+                    const txsToDelete = txs.filter(t => t.ticker.toUpperCase() === ticker);
+                    for (const tx of txsToDelete) {
+                      if (!tx.id.startsWith('local-')) {
+                        const { error } = await deleteTransacaoAtivo(tx.id);
+                        if (error) erros++;
+                      }
+                    }
+                  }
+                  setSelectedAssetTickers(new Set());
+                  await carregarTransacoes();
+                  if (erros > 0) toast.error(`Falha ao excluir ${erros} lote(s).`);
+                  else toast.success(`${selectedAssetTickers.size} ativo(s) excluído(s)!`);
+                }} style={{
+                  background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                  borderRadius: '8px', padding: '8px 16px', cursor: 'pointer',
+                  color: ACCENT_RED, fontWeight: 700, fontSize: '0.8rem',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                }}>
+                  <Trash2 size={14} /> {t('web_invest_bulk_delete_assets')} ({selectedAssetTickers.size})
+                </button>
+                <button onClick={() => setSelectedAssetTickers(new Set())} style={{
+                  background: 'transparent', border: `1px solid ${CLEAN_BORDER}`,
+                  borderRadius: '8px', padding: '8px 12px', cursor: 'pointer',
+                  color: CLEAN_TEXT_SECONDARY, fontSize: '0.8rem',
+                }}>{t('web_invest_cancel')}</button>
+              </div>
+            )}
 
             {posicoes.length === 0 && (
               <div style={{ padding: '64px 24px', textAlign: 'center', color: CLEAN_TEXT_MUTED }}>
@@ -437,15 +501,27 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                                   const q = quotes.find(q => q.symbol.toUpperCase() === p.ticker.toUpperCase());
                                   const currentVal = q ? q.regularMarketPrice * p.qtd : null;
                                   const ret = (currentVal && p.custoTotal > 0) ? ((currentVal - p.custoTotal) / p.custoTotal) * 100 : null;
+                                  const isSelected = selectedAssetTickers.has(p.ticker.toUpperCase());
                                   return (
-                                    <div key={p.ticker} onClick={() => setDetailTicker(p.ticker)} style={{
-                                      display: 'flex', alignItems: 'center', gap: '12px',
-                                      padding: '10px 18px 10px 60px', borderTop: `1px solid ${CLEAN_BORDER}`,
+                                    <div key={p.ticker} style={{
+                                      display: 'flex', alignItems: 'center', gap: '10px',
+                                      padding: '8px 18px 8px 60px', borderTop: `1px solid ${CLEAN_BORDER}`,
                                       cursor: 'pointer', transition: 'background 0.12s',
+                                      background: isSelected ? 'rgba(16,69,161,0.04)' : 'transparent',
                                     }}
-                                      onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-                                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                      onClick={() => setDetailTicker(p.ticker)}
+                                      onMouseEnter={e => e.currentTarget.style.background = isSelected ? 'rgba(16,69,161,0.04)' : '#F8FAFC'}
+                                      onMouseLeave={e => e.currentTarget.style.background = isSelected ? 'rgba(16,69,161,0.04)' : 'transparent'}
                                     >
+                                      <div onClick={e => { e.stopPropagation(); setSelectedAssetTickers(prev => { const n = new Set(prev); n.has(p.ticker.toUpperCase()) ? n.delete(p.ticker.toUpperCase()) : n.add(p.ticker.toUpperCase()); return n; }); }} style={{
+                                        width: '18px', height: '18px', borderRadius: '4px',
+                                        border: isSelected ? 'none' : `2px solid ${CLEAN_TEXT_MUTED}`,
+                                        background: isSelected ? ACCENT_BLUE : 'transparent',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer', flexShrink: 0,
+                                      }}>
+                                        {isSelected && <Check size={10} color="#fff" />}
+                                      </div>
                                       <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: 700, fontSize: '0.85rem', color: ACCENT_BLUE }}>{p.ticker}</div>
                                         <div style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED }}>{q?.longName || getTickerName(p.ticker) || p.ticker}</div>
@@ -484,39 +560,56 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
             )}
 
             {posicoes.length > 0 && vizualizacao === 'lista' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px', marginBottom: '28px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px', marginBottom: '28px' }}>
                 {posicoes.filter(p => filtroCategoria === 'todas' || p.categoria === filtroCategoria).map(p => {
                   const q = quotes.find(q => q.symbol.toUpperCase() === p.ticker.toUpperCase());
                   const currentVal = q ? q.regularMarketPrice * p.qtd : null;
                   const ret = (currentVal && p.custoTotal > 0) ? ((currentVal - p.custoTotal) / p.custoTotal) * 100 : null;
+                  const isSelected = selectedAssetTickers.has(p.ticker.toUpperCase());
                   return (
-                    <div key={p.ticker} onClick={() => setDetailTicker(p.ticker)} style={{
-                      background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
+                    <div key={p.ticker} style={{
+                      background: isSelected ? 'rgba(16,69,161,0.04)' : CLEAN_CARD,
+                      border: `1px solid ${isSelected ? ACCENT_BLUE + '30' : CLEAN_BORDER}`,
                       borderRadius: '14px', padding: '16px', cursor: 'pointer',
                       boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                        <div style={{ fontWeight: 800, fontSize: '1rem', color: ACCENT_BLUE }}>{p.ticker}</div>
-                        {ret !== null && (
-                          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: ret >= 0 ? ACCENT_GREEN : ACCENT_RED }}>
-                            {ret >= 0 ? '+' : ''}{ret.toFixed(2)}%
-                          </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <div onClick={e => { e.stopPropagation(); setSelectedAssetTickers(prev => { const n = new Set(prev); n.has(p.ticker.toUpperCase()) ? n.delete(p.ticker.toUpperCase()) : n.add(p.ticker.toUpperCase()); return n; }); }} style={{
+                          width: '18px', height: '18px', borderRadius: '4px',
+                          border: isSelected ? 'none' : `2px solid ${CLEAN_TEXT_MUTED}`,
+                          background: isSelected ? ACCENT_BLUE : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer', flexShrink: 0,
+                        }}>
+                          {isSelected && <Check size={10} color="#fff" />}
+                        </div>
+                        <div style={{ flex: 1 }} onClick={() => setDetailTicker(p.ticker)}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ fontWeight: 800, fontSize: '1rem', color: ACCENT_BLUE }}>{p.ticker}</div>
+                            {ret !== null && (
+                              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: ret >= 0 ? ACCENT_GREEN : ACCENT_RED }}>
+                                {ret >= 0 ? '+' : ''}{ret.toFixed(2)}%
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: CLEAN_TEXT_MUTED, marginTop: '2px' }}>{q?.longName || getTickerName(p.ticker) || p.ticker}</div>
+                        </div>
+                      </div>
+                      <div onClick={() => setDetailTicker(p.ticker)}>
+                        {p.categoria && (
+                          <div style={{ fontSize: '0.7rem', color: CLEAN_TEXT_MUTED, marginBottom: '8px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: getCategoriaInfo(p.categoria)?.cor || CLEAN_TEXT_MUTED }} />
+                            {getNomeSubcategoria(p.categoria, p.subcategoria || '')}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: CLEAN_TEXT }}>{p.qtd.toFixed(2)} cotas</div>
+                        <div style={{ fontSize: '0.8rem', color: ACCENT_GREEN }}>PM {formatCurrency(p.custoTotal / p.qtd, moedaBase)}</div>
+                        {currentVal !== null && (
+                          <div style={{ fontSize: '0.8rem', color: CLEAN_TEXT, marginTop: '4px' }}>
+                            Atual: {formatCurrency(currentVal, moedaBase)}
+                          </div>
                         )}
                       </div>
-                      <div style={{ fontSize: '0.78rem', color: CLEAN_TEXT_MUTED, marginBottom: '8px' }}>{q?.longName || getTickerName(p.ticker) || p.ticker}</div>
-                      {p.categoria && (
-                        <div style={{ fontSize: '0.7rem', color: CLEAN_TEXT_MUTED, marginBottom: '8px', display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: getCategoriaInfo(p.categoria)?.cor || CLEAN_TEXT_MUTED }} />
-                          {getNomeSubcategoria(p.categoria, p.subcategoria || '')}
-                        </div>
-                      )}
-                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: CLEAN_TEXT }}>{p.qtd.toFixed(2)} cotas</div>
-                      <div style={{ fontSize: '0.8rem', color: ACCENT_GREEN }}>PM {formatCurrency(p.custoTotal / p.qtd, moedaBase)}</div>
-                      {currentVal !== null && (
-                        <div style={{ fontSize: '0.8rem', color: CLEAN_TEXT, marginTop: '4px' }}>
-                          Atual: {formatCurrency(currentVal, moedaBase)}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -527,93 +620,131 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
 
         {tab === 'ranking' && (
           <div style={{ marginBottom: '28px' }}>
-            {Object.entries(rankingPorCategoria).map(([catId, items]) => {
-              const catInfo = getCategoriaInfo(catId);
-              const top5 = items.slice(0, 5);
-              const bottom5 = items.slice(-5).reverse();
-
-              return (
-                <div key={catId} style={{
-                  background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
-                  borderRadius: '16px', marginBottom: '16px', overflow: 'hidden',
-                }}>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '16px 20px', borderBottom: `1px solid ${CLEAN_BORDER}`,
-                  }}>
-                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: catInfo?.cor || CLEAN_TEXT_MUTED }} />
-                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: CLEAN_TEXT }}>
-                      {catInfo?.nome || catId}
-                    </h3>
-                  </div>
-
-                  <div style={{ padding: '16px 20px' }}>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: ACCENT_GREEN, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <TrendingUp size={14} /> {t('web_invest_ranking_best')}
-                    </div>
-                    {top5.map((r, i) => (
-                      <div key={r.ticker} onClick={() => setDetailTicker(r.ticker)} style={{
-                        display: 'flex', alignItems: 'center', gap: '12px',
-                        padding: '8px 12px', borderRadius: '8px', cursor: 'pointer',
-                        transition: 'background 0.12s', marginBottom: '4px',
-                      }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: CLEAN_TEXT_MUTED, width: '20px' }}>#{i + 1}</span>
-                        <div style={{ flex: 1 }}>
-                          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: ACCENT_BLUE }}>{r.ticker}</span>
-                          <span style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED, marginLeft: '6px' }}>{r.nome}</span>
-                        </div>
-                        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: r.retornoPercent >= 0 ? ACCENT_GREEN : ACCENT_RED }}>
-                          {r.retornoPercent >= 0 ? '+' : ''}{r.retornoPercent.toFixed(2)}%
-                        </span>
-                        <span style={{ fontSize: '0.78rem', color: CLEAN_TEXT_SECONDARY }}>
-                          {formatCurrency(r.lucroPrej, moedaBase)}
-                        </span>
-                      </div>
-                    ))}
-
-                    {bottom5.length > 0 && bottom5[0].ticker !== top5[0]?.ticker && (
-                      <>
-                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: ACCENT_RED, margin: '16px 0 10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <TrendingDown size={14} /> {t('web_invest_ranking_worst')}
-                        </div>
-                        {bottom5.map((r, i) => (
-                          <div key={r.ticker} onClick={() => setDetailTicker(r.ticker)} style={{
-                            display: 'flex', alignItems: 'center', gap: '12px',
-                            padding: '8px 12px', borderRadius: '8px', cursor: 'pointer',
-                            transition: 'background 0.12s', marginBottom: '4px',
-                          }}
-                            onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                          >
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: CLEAN_TEXT_MUTED, width: '20px' }}>#{i + 1}</span>
-                            <div style={{ flex: 1 }}>
-                              <span style={{ fontWeight: 700, fontSize: '0.85rem', color: ACCENT_BLUE }}>{r.ticker}</span>
-                              <span style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED, marginLeft: '6px' }}>{r.nome}</span>
-                            </div>
-                            <span style={{ fontWeight: 700, fontSize: '0.85rem', color: r.retornoPercent >= 0 ? ACCENT_GREEN : ACCENT_RED }}>
-                              {r.retornoPercent >= 0 ? '+' : ''}{r.retornoPercent.toFixed(2)}%
-                            </span>
-                            <span style={{ fontSize: '0.78rem', color: CLEAN_TEXT_SECONDARY }}>
-                              {formatCurrency(r.lucroPrej, moedaBase)}
-                            </span>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-
-            {Object.keys(rankingPorCategoria).length === 0 && (
-              <div style={{ padding: '64px 24px', textAlign: 'center', color: CLEAN_TEXT_MUTED }}>
-                <Award size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
-                <p>{t('web_invest_ranking_empty')}</p>
+            <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+                <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: CLEAN_TEXT_MUTED }} />
+                <input
+                  value={searchMarket} onChange={e => setSearchMarket(e.target.value)}
+                  placeholder={t('web_invest_ranking_search')}
+                  style={{ ...inputStyle, paddingLeft: '34px' }}
+                />
               </div>
-            )}
+              <button onClick={() => setRankingFilter('todos')} style={{
+                padding: '6px 14px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700,
+                cursor: 'pointer',
+                background: rankingFilter === 'todos' ? ACCENT_BLUE : 'transparent',
+                color: rankingFilter === 'todos' ? '#fff' : CLEAN_TEXT_SECONDARY,
+                border: rankingFilter === 'todos' ? 'none' : `1px solid ${CLEAN_BORDER}`,
+              }}>{t('web_invest_ranking_all')}</button>
+              <button onClick={() => setRankingFilter('domestico')} style={{
+                padding: '6px 14px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700,
+                cursor: 'pointer',
+                background: rankingFilter === 'domestico' ? ACCENT_GREEN : 'transparent',
+                color: rankingFilter === 'domestico' ? '#fff' : CLEAN_TEXT_SECONDARY,
+                border: rankingFilter === 'domestico' ? 'none' : `1px solid ${CLEAN_BORDER}`,
+              }}>{t('web_invest_ranking_domestic')}</button>
+              <button onClick={() => setRankingFilter('internacional')} style={{
+                padding: '6px 14px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700,
+                cursor: 'pointer',
+                background: rankingFilter === 'internacional' ? '#8B5CF6' : 'transparent',
+                color: rankingFilter === 'internacional' ? '#fff' : CLEAN_TEXT_SECONDARY,
+                border: rankingFilter === 'internacional' ? 'none' : `1px solid ${CLEAN_BORDER}`,
+              }}>{t('web_invest_ranking_international')}</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+              {allCategoriasComTickers
+                .filter(({ categoria }) => {
+                  const domesticas = getCategoriasDomesticas(moedaBase);
+                  if (rankingFilter === 'domestico') return domesticas.includes(categoria.id);
+                  if (rankingFilter === 'internacional') return !domesticas.includes(categoria.id);
+                  return true;
+                })
+                .filter(({ tickers }) => !searchMarket || tickers.some(t =>
+                  t.ticker.includes(searchMarket.toUpperCase()) ||
+                  t.nome.toUpperCase().includes(searchMarket.toUpperCase())
+                ))
+                .map(({ categoria: cat, tickers }) => {
+                  const isSelected = rankingCategory === cat.id;
+                  const isDomestica = isCategoriaDomestica(cat.id, moedaBase);
+                  return (
+                    <div key={cat.id} style={{
+                      background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
+                      borderRadius: '16px', overflow: 'hidden',
+                      boxShadow: isSelected ? '0 4px 12px rgba(0,0,0,0.08)' : 'none',
+                    }}>
+                      <button
+                        onClick={() => setRankingCategory(isSelected ? null : cat.id)}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+                          padding: '14px 18px', background: isSelected ? '#F8FAFC' : 'transparent',
+                          border: 'none', cursor: 'pointer', textAlign: 'left',
+                        }}
+                      >
+                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: cat.cor, flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: CLEAN_TEXT }}>{cat.nome}</span>
+                          <span style={{ fontSize: '0.7rem', color: CLEAN_TEXT_MUTED, marginLeft: '6px' }}>
+                            {tickers.length} ativos
+                          </span>
+                        </div>
+                        {isDomestica ? (
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#fff', background: ACCENT_GREEN, padding: '2px 8px', borderRadius: '10px' }}>{t('web_invest_ranking_domestic')}</span>
+                        ) : (
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: CLEAN_TEXT_SECONDARY, background: '#F1F5F9', padding: '2px 8px', borderRadius: '10px' }}>{t('web_invest_ranking_international')}</span>
+                        )}
+                        {isSelected ? <ChevronDown size={14} color={CLEAN_TEXT_MUTED} /> : <ChevronRight size={14} color={CLEAN_TEXT_MUTED} />}
+                      </button>
+
+                      {isSelected && (
+                        <div style={{ borderTop: `1px solid ${CLEAN_BORDER}`, padding: '12px 14px', maxHeight: '400px', overflowY: 'auto' }}>
+                          {marketLoading && (
+                            <p style={{ color: CLEAN_TEXT_MUTED, fontSize: '0.78rem', textAlign: 'center', padding: '20px' }}>{t('loading')}...</p>
+                          )}
+                          {!marketLoading && marketRanking.length === 0 && !searchMarket && (
+                            <p style={{ color: CLEAN_TEXT_MUTED, fontSize: '0.78rem', textAlign: 'center', padding: '20px' }}>{t('web_invest_ranking_no_data')}</p>
+                          )}
+                          {!marketLoading && marketRanking.length === 0 && searchMarket && (
+                            <p style={{ color: CLEAN_TEXT_MUTED, fontSize: '0.78rem', textAlign: 'center', padding: '20px' }}>{t('web_invest_ranking_no_results')}</p>
+                          )}
+                          {!marketLoading && marketRanking.slice(0, 50).map((r, i) => {
+                            const quote = marketQuotes.find(q => q.symbol.toUpperCase() === r.ticker.toUpperCase());
+                            const changePct = r.changePercent;
+                            return (
+                              <div key={r.ticker} onClick={() => setDetailTicker(r.ticker)} style={{
+                                display: 'flex', alignItems: 'center', gap: '10px',
+                                padding: '7px 10px', borderRadius: '8px', cursor: 'pointer',
+                                transition: 'background 0.12s', marginBottom: '2px',
+                              }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                              >
+                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: CLEAN_TEXT_MUTED, width: '22px' }}>#{i + 1}</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontWeight: 700, fontSize: '0.82rem', color: ACCENT_BLUE }}>{r.ticker}</div>
+                                  <div style={{ fontSize: '0.68rem', color: CLEAN_TEXT_MUTED, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.nome}</div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                  {r.preco > 0 && (
+                                    <div style={{ fontWeight: 700, fontSize: '0.82rem', color: CLEAN_TEXT }}>
+                                      {formatCurrency(r.preco, moedaBase)}
+                                    </div>
+                                  )}
+                                  {quote && (
+                                    <div style={{ fontSize: '0.72rem', fontWeight: 600, color: changePct >= 0 ? ACCENT_GREEN : ACCENT_RED }}>
+                                      {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
           </div>
         )}
 

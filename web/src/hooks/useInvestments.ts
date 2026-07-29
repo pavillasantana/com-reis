@@ -17,6 +17,16 @@ export interface PortfolioMetrics {
   quantidadeOperacoes: number;
 }
 
+export interface MarketRankingItem {
+  ticker: string;
+  nome: string;
+  categoria: string;
+  subcategoria: string;
+  preco: number;
+  changePercent: number;
+  changeCurrency: string;
+}
+
 interface BrapiResult {
   symbol: string;
   longName?: string;
@@ -129,15 +139,24 @@ async function fetchCoinGeckoTickers(tickers: string[]): Promise<StockQuote[]> {
 
 export async function fetchQuotes(tickers: string[]): Promise<StockQuote[]> {
   const unique = [...new Set(tickers.map(t => t.toUpperCase()))];
+  if (unique.length === 0) return [];
+
   const crypto = unique.filter(isCryptoTicker);
   const stocks = unique.filter(t => !isCryptoTicker(t));
 
-  const [stockQuotes, cryptoQuotes] = await Promise.all([
-    fetchBrapiQuotes(stocks),
-    fetchCoinGeckoTickers(crypto),
-  ]);
+  const BATCH_SIZE = 25;
+  const batches: string[][] = [];
+  for (let i = 0; i < stocks.length; i += BATCH_SIZE) {
+    batches.push(stocks.slice(i, i + BATCH_SIZE));
+  }
 
-  return [...stockQuotes, ...cryptoQuotes];
+  const stockResults = await Promise.all(
+    batches.map(batch => fetchBrapiQuotes(batch))
+  );
+  const allStockQuotes = stockResults.flat();
+  const cryptoQuotes = await fetchCoinGeckoTickers(crypto);
+
+  return [...allStockQuotes, ...cryptoQuotes];
 }
 
 export function useQuotes(tickers: string[], enabled: boolean = true) {
@@ -149,6 +168,21 @@ export function useQuotes(tickers: string[], enabled: boolean = true) {
     queryFn: () => fetchQuotes(sortedTickers),
     staleTime: 1000 * 60 * 5,
     enabled: enabled && sortedTickers.length > 0,
+  });
+}
+
+export function useMarketQuotesByCategory(categoriaId: string | null) {
+  return useQuery<StockQuote[]>({
+    queryKey: ['market-quotes', categoriaId],
+    queryFn: async () => {
+      if (!categoriaId) return [];
+      const { getTickersPorCategoria } = await import('../utils/investmentCategories');
+      const tickers = getTickersPorCategoria(categoriaId).map(t => t.ticker);
+      if (tickers.length === 0) return [];
+      return fetchQuotes(tickers);
+    },
+    staleTime: 1000 * 60 * 2,
+    enabled: !!categoriaId,
   });
 }
 
@@ -223,4 +257,24 @@ export function calcularRanking(
       retornoPercent,
     };
   }).sort((a, b) => b.retornoPercent - a.retornoPercent);
+}
+
+export function calcularMarketRanking(
+  tickers: Array<{ ticker: string; nome: string }>,
+  quotes: StockQuote[]
+): MarketRankingItem[] {
+  const quoteMap = new Map(quotes.map(q => [q.symbol.toUpperCase(), q]));
+
+  return tickers.map(t => {
+    const quote = quoteMap.get(t.ticker.toUpperCase());
+    return {
+      ticker: t.ticker,
+      nome: t.nome,
+      categoria: '',
+      subcategoria: '',
+      preco: quote?.regularMarketPrice || 0,
+      changePercent: quote?.regularMarketChangePercent || 0,
+      changeCurrency: '',
+    };
+  });
 }
