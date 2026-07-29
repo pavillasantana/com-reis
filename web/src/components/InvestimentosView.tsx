@@ -25,7 +25,7 @@ import {
   isCategoriaDomestica, getCategoriasDomesticas,
 } from '../utils/investmentCategories';
 import { useI18n } from '../i18n';
-import { useQuotes, useMarketQuotesByCategory, calcularMetricas, calcularRanking, calcularMarketRanking } from '../hooks/useInvestments';
+import { useQuotes, useMarketQuotesByCategory, calcularMetricas, calcularMarketRanking } from '../hooks/useInvestments';
 import { AssetDetailModal } from './AssetDetailModal';
 
 type Tab = 'overview' | 'carteira' | 'ranking' | 'operacoes';
@@ -148,7 +148,6 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   }, [posicoes]);
 
   const metricas = useMemo(() => calcularMetricas(posicoes, quotes, totalDividendos), [posicoes, quotes, totalDividendos]);
-  const ranking = useMemo(() => calcularRanking(posicoes, quotes), [posicoes, quotes]);
 
   const { data: marketQuotes = [], isLoading: marketLoading } = useMarketQuotesByCategory(rankingCategory);
 
