@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Com Réis - PF, PJ e Multimoedas no Mesmo Dashboard</title>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Sora -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sora: ['Sora', 'sans-serif'],
+          },
+          colors: {
+            primary: '#1a2b4b',
+            secondary: '#2e5cb8', // Adjusted to match the specific blue brand intent
+            accent: '#00a88e', // Teal/green from IMAGE_2
+            surface: '#f8f9ff',
+            'surface-container-low': '#eff4ff',
+            'surface-container-lowest': '#ffffff',
+            'on-surface-variant': '#5a6b8a',
+            outline: '#d1d9e6',
+          },
+          borderRadius: {
+            'eight': '8px',
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="typography">
+    body {
+      font-family: 'Sora', sans-serif;
+      background-color: #f8f9ff;
+      color: #1a2b4b;
+    }
+    h1, h2, h3 {
+      letter-spacing: -0.02em;
+    }
+  </style>
+<style data-purpose="custom-layouts">
+    .glass-card {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .shadow-premium {
+      box-shadow: 0 20px 40px -15px rgba(26, 43, 75, 0.1);
+    }
+    .dashboard-preview {
+      background: #eff4ff;
+    }
+  </style>
+</head>
+<body class="antialiased overflow-x-hidden">
+<!-- BEGIN: MainHeader -->
+<header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-outline/30" data-purpose="top-nav-bar">
+<div class="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
+<!-- Logo Section -->
+<div class="flex items-center gap-2">
+<div class="text-2xl font-extrabold text-primary flex items-center">
+          com<span class="text-secondary">réis</span>
+<div class="w-2 h-2 rounded-full bg-secondary ml-1"></div>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-sm font-bold text-secondary border-b-2 border-secondary pb-1" href="#">Início</a>
+<a class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors" href="#">Custo de Vida</a>
+<a class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors" href="#">Educação Financeira</a>
+</nav>
+<!-- CTA Section -->
+<div class="flex items-center gap-4">
+<button class="hidden sm:flex items-center gap-1 text-sm font-semibold text-on-surface-variant px-3 py-2 rounded-lg hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined text-lg">language</span>
+          PT <span class="text-[10px]">▼</span>
+</button>
+<button class="bg-primary text-white text-sm font-bold px-6 py-2.5 rounded-eight hover:opacity-90 active:scale-95 transition-all shadow-md">
+          Acessar Plataforma
+        </button>
+</div>
+</div>
+</header>
+<!-- END: MainHeader -->
+<main>
+<!-- BEGIN: HeroSection -->
+<section class="relative pt-20 pb-16 px-6 overflow-hidden">
+<div class="max-w-4xl mx-auto text-center relative z-10">
+<h1 class="text-4xl md:text-6xl font-extrabold text-primary leading-tight mb-6">
+          PF, PJ e Multimoedas no <br/>
+<span class="text-accent">Mesmo Dashboard</span>
+</h1>
+<p class="text-lg md:text-xl text-on-surface-variant max-w-2xl mx-auto mb-10 leading-relaxed">
+          Pare de alternar entre apps. Tenha controle total do seu dinheiro — pessoal, do negócio e em qualquer moeda — em um único lugar.
+        </p>
+<div class="flex flex-col sm:flex-row justify-center gap-4 mb-20">
+<button class="bg-primary text-white font-bold px-8 py-4 rounded-eight shadow-lg hover:opacity-90 transition-all active:scale-95">
+            Criar Minha Conta Grátis
+          </button>
+<button class="bg-white border border-outline text-primary font-bold px-8 py-4 rounded-eight hover:bg-surface transition-all active:scale-95">
+            Testar com Dados Demo
+          </button>
+</div>
+</div>
+<!-- Dashboard Mockup Preview -->
+<div class="max-w-5xl mx-auto relative">
+<div class="dashboard-preview rounded-2xl p-4 md:p-8 shadow-premium border border-outline/50 relative overflow-hidden">
+<!-- Decorative dots for OS feel -->
+<div class="flex gap-2 mb-6">
+<div class="w-3 h-3 rounded-full bg-red-400"></div>
+<div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+<div class="w-3 h-3 rounded-full bg-accent"></div>
+</div>
+<!-- Dashboard Header Content -->
+<div class="flex justify-between items-center mb-8">
+<div class="flex gap-1 p-1 bg-white/50 rounded-lg">
+<button class="px-4 py-1.5 text-xs font-bold bg-secondary text-white rounded-md shadow-sm">Minha Vida (PF)</button>
+<button class="px-4 py-1.5 text-xs font-medium text-on-surface-variant hover:text-primary">Consultoria (PJ)</button>
+</div>
+</div>
+<!-- Dashboard Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Balance Card -->
+<div class="bg-white p-6 rounded-xl border border-outline/20 shadow-sm">
+<span class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">Saldo Consolidado</span>
+<div class="text-2xl font-extrabold text-primary mt-1">R$ 17.290,00</div>
+<div class="text-xs font-semibold text-accent mt-2 flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-accent"></span> +12.4% este mês
+              </div>
+</div>
+<!-- Savings Card -->
+<div class="bg-white p-6 rounded-xl border border-outline/20 shadow-sm">
+<span class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">Caixinha: Reserva</span>
+<div class="text-2xl font-extrabold text-primary mt-1">R$ 4.500,00</div>
+<div class="mt-4 h-1.5 w-full bg-surface-container-low rounded-full overflow-hidden">
+<div class="bg-secondary h-full w-[45%]"></div>
+</div>
+</div>
+<!-- Currency Card -->
+<div class="bg-white p-6 rounded-xl border border-outline/20 shadow-sm">
+<div class="flex justify-between items-start">
+<span class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">Wise USD</span>
+<span class="text-xs font-bold px-2 py-0.5 bg-blue-50 text-blue-600 rounded">$</span>
+</div>
+<div class="text-2xl font-extrabold text-primary mt-1">$ 350,00</div>
+<div class="text-[11px] text-on-surface-variant mt-2 font-medium">Eq. R$ 1.890,00</div>
+</div>
+</div>
+</div>
+<!-- Background accents -->
+<div class="absolute -top-10 -right-20 w-64 h-64 bg-secondary/5 rounded-full blur-3xl -z-10"></div>
+<div class="absolute -bottom-20 -left-20 w-80 h-80 bg-accent/5 rounded-full blur-3xl -z-10"></div>
+</div>
+</section>
+<!-- END: HeroSection -->
+<!-- BEGIN: FeaturesSection -->
+<section class="py-24 px-6 bg-surface">
+<div class="max-w-6xl mx-auto">
+<div class="text-center mb-16">
+<h2 class="text-3xl md:text-4xl font-extrabold text-primary mb-4">Tudo Que Você Precisa em Um Só Lugar</h2>
+<div class="w-16 h-1 bg-secondary mx-auto rounded-full"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Feature 1 -->
+<div class="bg-white p-8 rounded-2xl shadow-sm border border-outline/10 hover:shadow-md transition-shadow group">
+<div class="w-12 h-12 bg-blue-50 text-secondary rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">work</span>
+</div>
+<h3 class="text-xl font-bold text-primary mb-3">Separe PF de PJ</h3>
+<p class="text-on-surface-variant leading-relaxed">Pare de confundir despesas pessoais com as do negócio. Tenha fluxos separados com visualização unificada.</p>
+</div>
+<!-- Feature 2 -->
+<div class="bg-white p-8 rounded-2xl shadow-sm border border-outline/10 hover:shadow-md transition-shadow group">
+<div class="w-12 h-12 bg-blue-50 text-secondary rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">language</span>
+</div>
+<h3 class="text-xl font-bold text-primary mb-3">Multi-moedas Nativo</h3>
+<p class="text-on-surface-variant leading-relaxed">Receba em dólar, pague em euro. Tudo registrado automaticamente sem necessidade de conversão manual em planilhas.</p>
+</div>
+<!-- Feature 3 -->
+<div class="bg-white p-8 rounded-2xl shadow-sm border border-outline/10 hover:shadow-md transition-shadow group">
+<div class="w-12 h-12 bg-blue-50 text-secondary rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">monitoring</span>
+</div>
+<h3 class="text-xl font-bold text-primary mb-3">Metas com Progresso Visual</h3>
+<p class="text-on-surface-variant leading-relaxed">Reserve dinheiro para objetivos específicos e acompanhe o progresso em tempo real com metas inteligentes.</p>
+</div>
+<!-- Feature 4 -->
+<div class="bg-white p-8 rounded-2xl shadow-sm border border-outline/10 hover:shadow-md transition-shadow group">
+<div class="w-12 h-12 bg-blue-50 text-secondary rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">eco</span>
+</div>
+<h3 class="text-xl font-bold text-primary mb-3">Custo de Vida Real</h3>
+<p class="text-on-surface-variant leading-relaxed">Compare seus gastos com dados oficiais do IBGE e entenda se você está vivendo conforme sua realidade financeira.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- END: FeaturesSection -->
+<!-- BEGIN: CostOfLivingSection -->
+<section class="py-24 px-6">
+<div class="max-w-5xl mx-auto">
+<div class="bg-[#e0e9f8] rounded-3xl p-8 md:p-16 relative overflow-hidden shadow-premium">
+<div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+<div>
+<h2 class="text-3xl font-extrabold text-primary mb-6">Você ganha bem para onde mora?</h2>
+<p class="text-on-surface-variant mb-8 leading-relaxed">
+                Experimente o recurso premium de inteligência geográfica. Selecione um estado e digite seu gasto estimado para ver a comparação imediata.
+              </p>
+<!-- Simple Interactive Mockup Area -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+<div>
+<label class="block text-[10px] font-bold text-primary uppercase mb-2">Quanto você gasta por mês?</label>
+<div class="relative">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm font-semibold">R$</span>
+<input class="w-full bg-white border-none rounded-eight py-3 pl-10 pr-4 text-primary font-bold focus:ring-2 focus:ring-secondary" type="text" value="0"/>
+</div>
+</div>
+<div>
+<label class="block text-[10px] font-bold text-primary uppercase mb-2">Região Comparada</label>
+<select class="w-full bg-white border-none rounded-eight py-3 px-4 text-primary font-bold focus:ring-2 focus:ring-secondary appearance-none">
+<option>São Paulo (SP)</option>
+<option>Rio de Janeiro (RJ)</option>
+<option>Curitiba (PR)</option>
+</select>
+</div>
+</div>
+</div>
+<!-- Comparison Result Card -->
+<div class="bg-white/40 backdrop-blur-md rounded-2xl p-6 border border-white/50">
+<div class="grid grid-cols-2 gap-4 mb-6">
+<div>
+<div class="text-[10px] font-bold text-on-surface-variant/60 uppercase">Salário Médio Regional</div>
+<div class="text-xl font-extrabold text-primary">R$ 3.850</div>
+</div>
+<div>
+<div class="text-[10px] font-bold text-on-surface-variant/60 uppercase">Custo Classe Média</div>
+<div class="text-xl font-extrabold text-primary">R$ 4.500</div>
+</div>
+</div>
+<div class="p-4 bg-primary/5 rounded-lg border border-primary/10">
+<p class="text-xs text-primary font-medium text-center italic">Digite um valor acima para ver a comparação em tempo real com o custo de vida local.</p>
+</div>
+</div>
+</div>
+<!-- Abstract background shapes -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full -translate-y-1/2 translate-x-1/3"></div>
+<div class="absolute bottom-0 left-0 w-48 h-48 bg-secondary/10 rounded-full translate-y-1/2 -translate-x-1/4"></div>
+</div>
+</div>
+</section>
+<!-- END: CostOfLivingSection -->
+<!-- BEGIN: CallToActionSection -->
+<section class="py-24 px-6 text-center">
+<div class="max-w-3xl mx-auto">
+<h2 class="text-3xl md:text-5xl font-extrabold text-primary mb-6">Chega de planilha. <br/> Comece a ver tudo em um só lugar.</h2>
+<p class="text-on-surface-variant mb-10">Plano gratuito sem cartão de crédito. Upgrade quando precisar de mais.</p>
+<button class="bg-primary text-white font-bold px-10 py-5 rounded-eight text-lg shadow-xl hover:opacity-90 transition-all active:scale-95">
+          Criar Minha Conta Grátis
+        </button>
+</div>
+</section>
+<!-- END: CallToActionSection -->
+<!-- BEGIN: NewsletterSection -->
+<section class="bg-indigo-50 py-16 px-6">
+<div class="max-w-4xl mx-auto text-center">
+<h3 class="text-xl font-bold text-primary mb-2">Toda semana: uma dica prática para gastar menos e guardar mais.</h3>
+<p class="text-sm text-on-surface-variant mb-8">Dicas práticas de finanças direto no seu e-mail. Sem spam, sem enrolação.</p>
+<form class="max-w-md mx-auto">
+<div class="flex flex-col sm:flex-row gap-2 mb-4">
+<input class="flex-grow rounded-eight border-outline focus:ring-secondary focus:border-secondary px-4 py-3" placeholder="seu@email.com" type="email"/>
+<button class="bg-primary text-white font-bold px-6 py-3 rounded-eight whitespace-nowrap hover:opacity-90 transition-all">
+              Quero Receber
+            </button>
+</div>
+<label class="flex items-center justify-center gap-2 text-[10px] text-on-surface-variant">
+<input class="rounded text-secondary focus:ring-secondary" type="checkbox"/>
+            Concordo com a <a class="underline" href="#">Política de Privacidade</a> e <a class="underline" href="#">Termos de Uso</a>
+</label>
+</form>
+</div>
+</section>
+<!-- END: NewsletterSection -->
+</main>
+<!-- BEGIN: Footer -->
+<footer class="bg-surface-container-lowest border-t border-outline/30" data-purpose="footer">
+<div class="max-w-7xl mx-auto px-6 py-16">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+<!-- Brand Info -->
+<div class="col-span-1 md:col-span-2">
+<div class="text-2xl font-extrabold text-primary mb-4">
+            com<span class="text-secondary">réis</span>
+</div>
+<p class="text-sm text-on-surface-variant max-w-xs leading-relaxed">
+            Controle financeiro inteligente para PF, PJ e multimoedas. Simplificando sua vida financeira desde 2024.
+          </p>
+</div>
+<!-- Links Column 1 -->
+<div>
+<h4 class="text-xs font-bold text-primary uppercase tracking-widest mb-6">Produto</h4>
+<ul class="space-y-4">
+<li><a class="text-sm text-on-surface-variant hover:text-secondary hover:underline underline-offset-4 transition-all" href="#">Planos e Preços</a></li>
+<li><a class="text-sm text-on-surface-variant hover:text-secondary hover:underline underline-offset-4 transition-all" href="#">Contato</a></li>
+<li><a class="text-sm text-on-surface-variant hover:text-secondary hover:underline underline-offset-4 transition-all" href="#">Blog</a></li>
+</ul>
+</div>
+<!-- Links Column 2 -->
+<div>
+<h4 class="text-xs font-bold text-primary uppercase tracking-widest mb-6">Legal</h4>
+<ul class="space-y-4">
+<li><a class="text-sm text-on-surface-variant hover:text-secondary hover:underline underline-offset-4 transition-all" href="#">Política de Privacidade</a></li>
+<li><a class="text-sm text-on-surface-variant hover:text-secondary hover:underline underline-offset-4 transition-all" href="#">Termos de Uso</a></li>
+</ul>
+</div>
+</div>
+<!-- Bottom Bar -->
+<div class="pt-8 border-t border-outline/20 flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-[11px] text-on-surface-variant">© 2026 Com Réis - Controle Financeiro Inteligente. Todos os direitos reservados.</p>
+<p class="text-[11px] text-on-surface-variant">Desenvolvido por <span class="font-bold text-primary">PSTec</span></p>
+</div>
+</div>
+</footer>
+<!-- END: Footer -->
+</body></html>
