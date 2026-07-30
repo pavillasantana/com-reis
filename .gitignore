@@ -82,3 +82,5 @@ migrations/
 
 # Local Netlify folder
 .netlify
+web/wrangler.toml
+web/wrangler.toml
