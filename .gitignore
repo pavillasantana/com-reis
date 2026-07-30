@@ -1,88 +1,71 @@
-# ─── Com Réis — .gitignore ─────────────────────────────────────────────────
-
-# ─── Segredos e Ambiente ───────────────────────────────────────────────────
-.env
-.env.*
-!.env.example
-*.pem
-*.p12
-*.p8
-*.jks
-*.keystore
-*.key
-*.mobileprovision
-
-# ─── Dependências ───────────────────────────────────────────────────────────
-node_modules/
-.pnp.*
-.yarn/
-
-# ─── Builds e Output ───────────────────────────────────────────────────────
-dist/
-build/
-web-build/
-*.tsbuildinfo
-expo-env.d.ts
-
-# ─── Expo / React Native (pastas geradas) ──────────────────────────────────
-.expo/
-ios/
-android/
-.kotlin/
-.metro-health-check*
-*.orig.*
-
-# ─── Supabase (pastas geradas) ─────────────────────────────────────────────
-supabase/.branches
-supabase/.temp
-
-# ─── IDEs e Editores ───────────────────────────────────────────────────────
-.vscode/
-.idea/
-*.swp
-*.swo
 *~
-
-# ─── Sistema ────────────────────────────────────────────────────────────────
-.DS_Store
-Thumbs.db
-Desktop.ini
-
-# ─── Logs e Debug ──────────────────────────────────────────────────────────
-*.log
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-pnpm-debug.*
-
 # ─── Arquivos Temporários / Pessoais ───────────────────────────────────────
-anotacoes.txt
-TASKS.md
-TASK.MD
-RELATORIOOPENCODE.TXT
-Recording_*.mp4
-Testes/
-old/
-fix_css.js
-update_colors.js
-migration.sql
-migration_*.sql
-supabase_setup.sql
-
+# ─── Builds e Output ───────────────────────────────────────────────────────
+# ─── Com Réis — .gitignore ─────────────────────────────────────────────────
 # ─── Config de AI Agents (não expor) ───────────────────────────────────────
+# ─── Dependências ───────────────────────────────────────────────────────────
+# ─── Expo / React Native (pastas geradas) ──────────────────────────────────
+# ─── IDEs e Editores ───────────────────────────────────────────────────────
+# ─── Logs e Debug ──────────────────────────────────────────────────────────
+# ─── Migrations já executadas ──────────────────────────────────────────────
+# ─── Segredos e Ambiente ───────────────────────────────────────────────────
+# ─── Sistema ────────────────────────────────────────────────────────────────
+# ─── Supabase (pastas geradas) ─────────────────────────────────────────────
 .agents/
+android/
+Android/AGENTS.md
 Android/.claude/
 Android/CLAUDE.md
-Android/AGENTS.md
-
-# ─── Migrations já executadas ──────────────────────────────────────────────
-# Se quiser versionar migrations, comente esta linha:
-supabase/migrations/
-migrations/
-
+anotacoes.txt
+build/
+Desktop.ini
+dist/
+.DS_Store
+.env
+!.env.example
+.expo/
+expo-env.d.ts
+fix_css.js
+.idea/
+ios/
+*.jks
+*.key
+*.keystore
+.kotlin/
 # Local Netlify folder
+*.log
+.metro-health-check*
+migrations/
+migration.sql
+*.mobileprovision
 .netlify
+node_modules/
+npm-debug.*
+old/
+*.orig.*
+*.p12
+*.p8
+*.pem
+.pnp.*
+pnpm-debug.*
+Recording_*.mp4
+RELATORIOOPENCODE.TXT
+# Se quiser versionar migrations, comente esta linha:
+supabase/.branches
+supabase/migrations/
+supabase_setup.sql
+supabase/.temp
+*.swo
+*.swp
+TASK.MD
+TASKS.md
+Testes/
+Thumbs.db
+*.tsbuildinfo
+update_colors.js
+.vscode/
+web-build/
 web/wrangler.toml
-web/wrangler.toml
-web/wrangler.toml
-web/wrangler.toml
+.yarn/
+yarn-debug.*
+yarn-error.*
