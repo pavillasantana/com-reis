@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   TrendingUp, TrendingDown, Plus, Trash2, Pencil,
   Search, Filter, BarChart3, DollarSign, Calendar,
   X, Check, RefreshCw, ChevronDown, ChevronRight,
   CheckSquare, Square, PieChart, Target, Award, Globe,
-  TrendingUp as TrendingUpIcon, Wallet,
+  TrendingUp as TrendingUpIcon, Wallet, Upload, Package,
 } from 'lucide-react';
 import { formatCurrency } from '../utils/currency';
 import {
   fetchTransacoesAtivos, createTransacaoAtivo,
   updateTransacaoAtivo, deleteTransacaoAtivo,
   createTransacao,
+  createTransacoesAtivosBulk,
   fetchDividendos,
 } from '../services/supabaseService';
 import type { TransacaoAtivo, Dividendo } from '../services/supabaseService';
@@ -27,6 +28,9 @@ import {
 import { useI18n } from '../i18n';
 import { useQuotes, useMarketQuotesByCategory, calcularMetricas, calcularMarketRanking } from '../hooks/useInvestments';
 import { AssetDetailModal } from './AssetDetailModal';
+import { parseInvestmentFile } from '../utils/investmentImporter';
+import type { PendingAporte, PendingAtivo } from '../utils/investmentImporter';
+import { InvestImportReviewModal } from './InvestImportReviewModal';
 
 type Tab = 'overview' | 'carteira' | 'ranking' | 'operacoes';
 
@@ -86,6 +90,13 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   const [fDivValor, setFDivValor] = useState('');
   const [fDivData, setFDivData] = useState(new Date().toISOString().split('T')[0]);
   const [fDivTipo, setFDivTipo] = useState<string>('dividendo');
+
+  const [importTypeOpen, setImportTypeOpen] = useState(false);
+  const [importMode, setImportMode] = useState<'ativos' | 'aportes'>('aportes');
+  const [pendingImport, setPendingImport] = useState<PendingAporte[] | PendingAtivo[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importSaving, setImportSaving] = useState(false);
+  const importFileRef = useRef<HTMLInputElement | null>(null);
 
   const [selectedAssetTickers, setSelectedAssetTickers] = useState<Set<string>>(new Set());
   const [rankingCategory, setRankingCategory] = useState<string | null>(null);
@@ -216,6 +227,13 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
             </p>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => setImportTypeOpen(true)} style={{
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px',
+              background: 'transparent', border: `1px solid ${CLEAN_BORDER}`,
+              borderRadius: '12px', color: CLEAN_TEXT_SECONDARY, fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
+            }}>
+              <Upload size={16} /> Importar planilha
+            </button>
             <button onClick={() => setDividendoModal(true)} style={{
               display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px',
               background: 'transparent', border: `1px solid ${CLEAN_BORDER}`,
@@ -1238,6 +1256,155 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
             onUpdate={() => { carregarTransacoes(); carregarDividendos(); }}
           />
         )}
+
+        {/* ── Modal de escolha do tipo de importação ── */}
+        {importTypeOpen && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, padding: '16px',
+          }}>
+            <div style={{
+              background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
+              borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '520px',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.12)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: CLEAN_TEXT }}>Importar planilha</h3>
+                <button onClick={() => setImportTypeOpen(false)} style={{
+                  background: 'transparent', border: `1px solid ${CLEAN_BORDER}`,
+                  borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', color: CLEAN_TEXT_MUTED,
+                }}><X size={16} /></button>
+              </div>
+              <p style={{ margin: '0 0 20px', fontSize: '0.85rem', color: CLEAN_TEXT_SECONDARY }}>
+                Escolha o que deseja importar. Formatos aceitos: <strong>.xlsx, .xls, .csv, .tsv</strong>
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <button
+                  onClick={() => { setImportMode('ativos'); setImportTypeOpen(false); requestAnimationFrame(() => importFileRef.current?.click()); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '14px', textAlign: 'left',
+                    padding: '16px', borderRadius: '14px', cursor: 'pointer',
+                    background: '#F8FAFC', border: `1px solid ${CLEAN_BORDER}`,
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <div style={{
+                    width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
+                    background: 'rgba(16,69,161,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Package size={20} color={ACCENT_BLUE} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, color: CLEAN_TEXT, fontSize: '0.95rem' }}>Importar Ativos</div>
+                    <div style={{ fontSize: '0.78rem', color: CLEAN_TEXT_SECONDARY, marginTop: '2px' }}>
+                      Posição atual: ticker, quantidade e preço médio de cada ativo.
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color={CLEAN_TEXT_MUTED} />
+                </button>
+
+                <button
+                  onClick={() => { setImportMode('aportes'); setImportTypeOpen(false); requestAnimationFrame(() => importFileRef.current?.click()); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '14px', textAlign: 'left',
+                    padding: '16px', borderRadius: '14px', cursor: 'pointer',
+                    background: '#F8FAFC', border: `1px solid ${CLEAN_BORDER}`,
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <div style={{
+                    width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
+                    background: 'rgba(16,185,129,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Upload size={20} color={ACCENT_GREEN} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, color: CLEAN_TEXT, fontSize: '0.95rem' }}>Importar Aportes</div>
+                    <div style={{ fontSize: '0.78rem', color: CLEAN_TEXT_SECONDARY, marginTop: '2px' }}>
+                      Histórico de compras/vendas: ticker, quantidade, preço unitário e data.
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color={CLEAN_TEXT_MUTED} />
+                </button>
+              </div>
+
+              <input
+                ref={importFileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv,.tsv,.txt"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!file) return;
+                  try {
+                    const buffer = await file.arrayBuffer();
+                    const parsed = parseInvestmentFile(buffer, file.name, importMode);
+                    if (parsed.length === 0) {
+                      toast.error('Nenhum registro reconhecido. Verifique se as colunas estão nomeadas (ex: ticker, quantidade, preço).');
+                      return;
+                    }
+                    setPendingImport(parsed);
+                    setImportOpen(true);
+                  } catch (err) {
+                    console.warn('Erro ao ler planilha:', err);
+                    toast.error('Não foi possível ler o arquivo.');
+                  }
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ── Modal de revisão da importação ── */}
+        <InvestImportReviewModal
+          isOpen={importOpen}
+          mode={importMode}
+          rows={pendingImport}
+          isLoading={importSaving}
+          onClose={() => { setImportOpen(false); setPendingImport([]); }}
+          onConfirm={async (rows) => {
+            setImportSaving(true);
+            try {
+              const txs: Omit<TransacaoAtivo, 'id'>[] = rows.map((r: any) => {
+                if (importMode === 'aportes') {
+                  return {
+                    id_usuario: id_usuario || '',
+                    ticker: r.ticker,
+                    tipo: r.tipo,
+                    quantidade: r.quantidade,
+                    preco_unitario: r.precoUnitario,
+                    data_transacao: r.dataTransacao,
+                    categoria: r.categoria || undefined,
+                    subcategoria: r.subcategoria || undefined,
+                  };
+                }
+                return {
+                  id_usuario: id_usuario || '',
+                  ticker: r.ticker,
+                  tipo: 'compra',
+                  quantidade: r.quantidade,
+                  preco_unitario: r.precoMedio,
+                  data_transacao: new Date().toISOString().split('T')[0],
+                  categoria: r.categoria || undefined,
+                  subcategoria: r.subcategoria || undefined,
+                };
+              });
+              const { error } = await createTransacoesAtivosBulk(txs);
+              if (error) {
+                toast.error(error);
+              } else {
+                toast.success(`Importação concluída: ${txs.length} registro(s).`);
+                setImportOpen(false);
+                setPendingImport([]);
+                await carregarTransacoes();
+              }
+            } finally {
+              setImportSaving(false);
+            }
+          }}
+        />
       </div>
     </div>
   );

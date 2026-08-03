@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../constants/config';
+import { getCategoriaByTicker } from '../utils/investmentCategories';
 
 export interface StockQuote {
   symbol: string;
@@ -82,29 +83,80 @@ async function fetchBrapiQuotes(tickers: string[]): Promise<StockQuote[]> {
       regularMarketChangePercent: q.regularMarketChangePercent || 0,
     }));
   } catch {
-    console.warn('Brapi proxy falhou, tentando fallback direto...');
-    return fetchYahooFallback(tickers);
+    console.warn('Brapi proxy falhou');
+    return [];
   }
 }
 
-async function fetchYahooFallback(tickers: string[]): Promise<StockQuote[]> {
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const idx = next++;
+      results[idx] = await fn(items[idx]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+// Fonte primária de cotações: Yahoo Finance (100% grátis, sem chave).
+// O endpoint v7/finance/quote foi descontinuado pela Yahoo (401) — v8/finance/chart
+// segue aberto e cobre tickers B3 (sufixo .SA) e internacionais (símbolo nativo).
+// Yahoo chart usa hífen para classes de ação dos EUA (BRK-B, não BRK.B).
+function toYahooSymbol(ticker: string): string {
+  const t = ticker.toUpperCase();
+  const categoria = getCategoriaByTicker(t)?.categoria;
+  if (categoria === 'internacional') {
+    return /^[A-Z0-9]+\.[A-Z]$/.test(t) ? t.replace('.', '-') : t;
+  }
+  return `${t}.SA`;
+}
+
+async function fetchYahooQuotes(tickers: string[]): Promise<StockQuote[]> {
+  if (tickers.length === 0) return [];
   try {
-    const query = tickers.map(t => `${t}.SA`).join(',');
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${query}`;
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
+    const quotes = await mapWithConcurrency(tickers, 3, async (t) => {
+      try {
+        const res = await fetch(
+          `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(toYahooSymbol(t))}?range=1d&interval=1d`,
+          { headers: { 'User-Agent': 'Mozilla/5.0' } }
+        );
+        if (!res.ok) return null;
+        const data = await res.json();
+        const meta = data?.chart?.result?.[0]?.meta;
+        if (!meta || meta.regularMarketPrice == null) return null;
+        const changePercent = meta.chartPreviousClose
+          ? ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose) * 100
+          : 0;
+        return {
+          symbol: t,
+          longName: meta.longName || meta.shortName || t,
+          regularMarketPrice: meta.regularMarketPrice,
+          regularMarketChangePercent: changePercent,
+        };
+      } catch {
+        return null;
+      }
     });
-    if (!res.ok) throw new Error('Yahoo falhou');
-    const data = await res.json();
-    return (data.quoteResponse?.result || []).map((q: any) => ({
-      symbol: (q.symbol || '').replace('.SA', ''),
-      longName: q.longName || q.shortName || q.symbol,
-      regularMarketPrice: q.regularMarketPrice || 0,
-      regularMarketChangePercent: q.regularMarketChangePercent || 0,
-    }));
+    return quotes.filter((q): q is StockQuote => q !== null);
   } catch {
     return [];
   }
+}
+
+async function fetchQuotesBatch(stocks: string[]): Promise<StockQuote[]> {
+  const yahoo = await fetchYahooQuotes(stocks);
+  const got = new Set(yahoo.map(q => q.symbol.toUpperCase()));
+  const missing = stocks.filter(t => !got.has(t.toUpperCase()));
+  if (missing.length === 0) return yahoo;
+  const brapi = await fetchBrapiQuotes(missing);
+  return [...yahoo, ...brapi];
 }
 
 async function fetchCoinGeckoTickers(tickers: string[]): Promise<StockQuote[]> {
@@ -151,7 +203,7 @@ export async function fetchQuotes(tickers: string[]): Promise<StockQuote[]> {
   }
 
   const stockResults = await Promise.all(
-    batches.map(batch => fetchBrapiQuotes(batch))
+    batches.map(batch => fetchQuotesBatch(batch))
   );
   const allStockQuotes = stockResults.flat();
   const cryptoQuotes = await fetchCoinGeckoTickers(crypto);

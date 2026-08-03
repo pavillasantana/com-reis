@@ -16,6 +16,10 @@ export const BiometricLock = ({ children }: { children: React.ReactNode }) => {
   const appState = useRef(AppState.currentState);
   const backgroundTime = useRef<number | null>(null);
 
+  // Lê o valor atualizado do store (o listener do AppState usa closure do 1º render)
+  const biometriaRef = useRef(biometria_ativada);
+  biometriaRef.current = biometria_ativada;
+
   useEffect(() => {
     (async () => {
       const hardware = await LocalAuthentication.hasHardwareAsync();
@@ -35,13 +39,17 @@ export const BiometricLock = ({ children }: { children: React.ReactNode }) => {
       if (backgroundTime.current) {
         const timeAway = Date.now() - backgroundTime.current;
         if (timeAway >= INACTIVITY_LIMIT_MS) {
-          if (biometria_ativada) {
+          if (biometriaRef.current) {
             setIsLocked(true);
           } else {
             // Force re-login if biometrics are not enabled to unlock seamlessly
-            supabase.auth.signOut().then(() => {
-              useStore.getState().clearSession();
-            });
+            supabase.auth.signOut()
+              .then(() => {
+                useStore.getState().clearSession();
+              })
+              .catch(() => {
+                useStore.getState().clearSession();
+              });
           }
         }
       }

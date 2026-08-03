@@ -33,6 +33,21 @@ import type { Espaco, Conta, Transacao, Caixinha, Cartao, TagBancaria, Transacao
 import type { MovimentoCaixinha } from '../components/CaixinhaHistoricoModal';
 import { captureError } from '../lib/sentry';
 
+/**
+ * Combina os dados vindos do Supabase com itens locais ainda não sincronizados
+ * (ids `local-`/`temp-`). Quando a resposta veio com erro (null), retorna null
+ * para que o store não seja tocado. Itens locais que já foram gravados no banco
+ * e retornaram com UUID real são descartados, evitando duplicatas.
+ */
+function mergeComLocais<T extends { id: string }>(remotas: T[] | null, atuais: T[]): T[] | null {
+  if (!remotas) return null;
+  const pendentes = atuais.filter((x) => x.id.startsWith('local-') || x.id.startsWith('temp-'));
+  if (pendentes.length === 0) return remotas;
+  const idsRemotos = new Set(remotas.map((x) => x.id));
+  const naoSincronizados = pendentes.filter((x) => !idsRemotos.has(x.id));
+  return [...remotas, ...naoSincronizados];
+}
+
 export function useSupabaseSync() {
   const {
     id_usuario,
@@ -94,14 +109,24 @@ export function useSupabaseSync() {
       });
 
       // Supabase é a fonte de verdade quando conectado.
-      // Sempre sobrescreve com dados do Supabase (mesmo vazio) — evita dados stale do localStorage.
-      if (espacosRes.data)    setEspacos(espacosRes.data);
-      if (contasRes.data)     setContas(contasRes.data);
-      if (transacoesRes.data) setTransacoes(transacoesRes.data);
-      if (caixinhasRes.data)  setCaixinhas(caixinhasRes.data);
-      if (cartoesRes.data)    setCartoes(cartoesRes.data);
-      if (tagsBancariasRes.data) setTagsBancarias(tagsBancariasRes.data);
-      if (recorrentesRes.data) setTransacoesRecorrentes(recorrentesRes.data);
+      // Preserva itens locais ainda não sincronizados (ids local-/temp-),
+      // evitando que falhas de insert sejam apagadas no próximo reload.
+      const atual = useStore.getState();
+      const espacos = mergeComLocais(espacosRes.data, atual.espacos);
+      const contas = mergeComLocais(contasRes.data, atual.contas);
+      const transacoes = mergeComLocais(transacoesRes.data, atual.transacoes);
+      const caixinhas = mergeComLocais(caixinhasRes.data, atual.caixinhas);
+      const cartoes = mergeComLocais(cartoesRes.data, atual.cartoes);
+      const tagsBancarias = mergeComLocais(tagsBancariasRes.data, atual.tagsBancarias);
+      const recorrentes = mergeComLocais(recorrentesRes.data, atual.transacoesRecorrentes);
+
+      if (espacos) setEspacos(espacos);
+      if (contas) setContas(contas);
+      if (transacoes) setTransacoes(transacoes);
+      if (caixinhas) setCaixinhas(caixinhas);
+      if (cartoes) setCartoes(cartoes);
+      if (tagsBancarias) setTagsBancarias(tagsBancarias);
+      if (recorrentes) setTransacoesRecorrentes(recorrentes);
 
       // Gerar transações do mês atual a partir de recorrências ativas
       if (recorrentesRes.data && recorrentesRes.data.length > 0) {
@@ -111,7 +136,11 @@ export function useSupabaseSync() {
           console.debug(`[sync] Geradas ${resultado.geradas} transações do mês ${mesAtual}`);
           // Recarregar transações para incluir as geradas
           const { data: novasTransacoes } = await fetchTransacoes();
-          if (novasTransacoes) setTransacoes(novasTransacoes);
+          if (novasTransacoes) {
+            const atual = useStore.getState();
+            const merged = mergeComLocais(novasTransacoes, atual.transacoes);
+            if (merged) setTransacoes(merged);
+          }
         }
       }
 
@@ -201,11 +230,12 @@ export function useSupabaseSync() {
       return tempTx;
     }
 
-    // Substitui o registro temporário pelo real (com UUID do banco)
-    // Re-adicionar não é necessário pois o ID temporário já está no store;
-    // O próximo sync de loadAll vai corrigir em sessões futuras.
+    // Substitui o registro temporário pelo real (com UUID do banco) para que
+    // o próximo loadAll não o considere "pendente" e crie duplicata.
+    storeRemoveTransacao(tempId);
+    storeAddTransacao(data);
     return data;
-  }, [id_usuario, storeAddTransacao]);
+  }, [id_usuario, storeAddTransacao, storeRemoveTransacao]);
 
   /**
    * Importação em lote — otimistic update + batch insert no banco.
@@ -213,17 +243,27 @@ export function useSupabaseSync() {
   const addTransacoesBatch = useCallback(async (
     txs: Omit<Transacao, 'id'>[]
   ): Promise<number> => {
-    // Atualiza store imediatamente
-    txs.forEach((tx) => {
-      storeAddTransacao({ ...tx, id: 'local-tx-' + Math.random().toString(36).substr(2, 9) });
+    // Atualiza store imediatamente, guardando os ids locais para substituir após o insert
+    const localIds = txs.map(() => 'local-tx-' + Math.random().toString(36).substr(2, 9));
+    localIds.forEach((id, i) => {
+      storeAddTransacao({ ...txs[i], id });
     });
 
     if (!isSupabaseConfigured || !id_usuario) return txs.length;
 
     const { data, error } = await createTransacoesBatch(txs);
-    if (error) captureError(new Error(error), { action: 'addTransacoesBatch', count: txs.length });
-    return data ?? txs.length;
-  }, [id_usuario, storeAddTransacao]);
+    if (error) {
+      captureError(new Error(error), { action: 'addTransacoesBatch', count: txs.length });
+      return txs.length;
+    }
+    if (data && data.length > 0) {
+      // Troca os ids locais pelos UUIDs reais para evitar duplicatas no próximo loadAll
+      localIds.forEach((id) => storeRemoveTransacao(id));
+      data.forEach((tx) => storeAddTransacao(tx));
+      return data.length;
+    }
+    return txs.length;
+  }, [id_usuario, storeAddTransacao, storeRemoveTransacao]);
 
   const addCaixinha = useCallback(async (
     caixinha: Omit<Caixinha, 'id'>

@@ -40,6 +40,8 @@ import { CalendarioFinanceiro } from './components/CalendarioFinanceiro';
 import { RecurringExpensesModal } from './components/RecurringExpensesModal';
 import { AnaliseGastos } from './components/AnaliseGastos';
 import { GastosCompartilhados } from './components/GastosCompartilhados';
+import { DividendosView } from './components/DividendosView';
+import { exportTransactionsToCSV, downloadBlob } from './utils/exporter';
 import { FAQModal, TermosModal } from './components/FAQTermos';
 import { useExchangeRates } from './hooks/useExchangeRates';
 import { usePremium } from './hooks/usePremium';
@@ -80,6 +82,7 @@ import {
   CheckSquare,
   Square,
   Compass,
+  Download,
 } from 'lucide-react';
 
 import { UpsellModal } from './components/UpsellModal';
@@ -181,7 +184,7 @@ export default function App() {
   const [depositGoal, setDepositGoal] = useState<{ id: string; nome: string; saved: number; target: number } | null>(null);
 
   // Local UI States
-  const [activeView, setActiveView] = useState<'dashboard' | 'costExplorer' | 'blog' | 'investimentos' | 'fluxopj' | 'inventario' | 'calendario' | 'analiseGastos' | 'compartilhados'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'costExplorer' | 'blog' | 'investimentos' | 'proventos' | 'fluxopj' | 'inventario' | 'calendario' | 'analiseGastos' | 'compartilhados'>('dashboard');
   const [landingView, setLandingView] = useState<'home' | 'costExplorer' | 'blog'>('home');
   const [activeArticle, setActiveArticle] = useState<Article | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
@@ -2851,6 +2854,7 @@ export default function App() {
                     { view: 'costExplorer' as const, label: t('web_cost_title'), icon: 'explore' },
                     { view: 'blog' as const, label: t('web_dashboard_blog'), icon: 'menu_book' },
                     { view: 'investimentos' as const, label: t('web_dashboard_investments'), icon: 'show_chart' },
+                    { view: 'proventos' as const, label: t('web_dashboard_proventos'), icon: 'payments' },
                     { view: 'inventario' as const, label: t('web_dashboard_inventory'), icon: 'inventory_2' },
                     { view: 'calendario' as const, label: t('web_dashboard_calendar'), icon: 'calendar_today' },
                     { view: 'analiseGastos' as const, label: t('web_analise_nav'), icon: 'bar_chart' },
@@ -2977,6 +2981,7 @@ export default function App() {
                 { view: 'costExplorer' as const, label: t('web_cost_title'), icon: 'explore' },
                 { view: 'blog' as const, label: t('web_dashboard_blog'), icon: 'menu_book' },
                 { view: 'investimentos' as const, label: t('web_dashboard_investments'), icon: 'show_chart' },
+                { view: 'proventos' as const, label: t('web_dashboard_proventos'), icon: 'payments' },
                 { view: 'inventario' as const, label: t('web_dashboard_inventory'), icon: 'inventory_2' },
                 { view: 'calendario' as const, label: t('web_dashboard_calendar'), icon: 'calendar_today' },
                 { view: 'analiseGastos' as const, label: t('web_analise_nav'), icon: 'bar_chart' },
@@ -4228,6 +4233,23 @@ export default function App() {
                         </button>
                       </>
                     )}
+                    <button
+                      onClick={() => {
+                        const blob = exportTransactionsToCSV(activeTransactions, activeAccounts, moeda_base, rates);
+                        downloadBlob(blob, `extrato-comreis-${new Date().toISOString().slice(0, 10)}.csv`);
+                      }}
+                      style={{
+                        marginLeft: 'auto',
+                        background: 'rgba(0,210,255,0.1)',
+                        border: '1px solid rgba(0,210,255,0.3)',
+                        borderRadius: '8px', padding: '6px 12px', cursor: 'pointer',
+                        color: 'var(--accent-cyan)', fontWeight: 700, fontSize: '0.78rem',
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                      }}
+                      title="Exportar extrato em CSV"
+                    >
+                      <Download size={13} /> Exportar CSV
+                    </button>
                   </div>
                 )}
 
@@ -4553,6 +4575,13 @@ export default function App() {
                 moedaBase={moeda_base}
                 idEspaco={id_espaco_ativo}
               />
+            </div>
+          )}
+
+          {activeView === 'proventos' && (
+            <div style={{ padding: '0 0 40px 0' }}>
+              <AdBanner adSlot="topo_proventos" />
+              <DividendosView id_usuario={id_usuario} />
             </div>
           )}
 

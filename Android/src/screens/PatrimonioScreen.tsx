@@ -23,20 +23,25 @@ import { ExtratoInvestimentosScreen } from './ExtratoInvestimentosScreen';
 import { ProventosScreen } from './ProventosScreen';
 import { formatCurrency } from '../utils/currency';
 import { AdBanner } from '../components/AdBanner';
-import { 
-  TrendingUp, 
-  Award, 
-  Activity, 
-  RefreshCw, 
-  ArrowLeft, 
-  ChevronDown, 
-  ChevronUp, 
+import { InvestmentImportModal } from '../components/InvestmentImportModal';
+import { parseInvestmentContent } from '../utils/investmentImporter';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import {
+  TrendingUp,
+  Award,
+  Activity,
+  RefreshCw,
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
   Calendar,
   Plus,
   Trash2,
   ShieldCheck,
   DollarSign,
-  Filter
+  Filter,
+  Upload
 } from 'lucide-react-native';
 
 const aplicarMascaraData = (text: string): string => {
@@ -77,6 +82,7 @@ export const PatrimonioScreen = () => {
     proventos,
     cotacoes_ativos,
     addTransacaoAtivo,
+    addTransacoesAtivosBulk,
     addProvento,
     deleteTransacaoAtivo,
     deleteProvento,
@@ -133,6 +139,11 @@ export const PatrimonioScreen = () => {
   const [provTipo, setProvTipo] = useState<'dividendo' | 'jcp' | 'rendimento'>('dividendo');
   const [provValor, setProvValor] = useState('');
   const [provData, setProvData] = useState(new Date().toISOString().split('T')[0]);
+
+  // Estados de Importação de Planilha
+  const [importMode, setImportMode] = useState<'ativos' | 'aportes' | null>(null);
+  const [importRows, setImportRows] = useState<any[]>([]);
+  const [importSaving, setImportSaving] = useState(false);
 
   const ajustarDataTx = (dias: number) => {
     let dataBase = new Date();
@@ -367,6 +378,96 @@ export const PatrimonioScreen = () => {
     showToast(t('dividend_registered'), 'success');
   };
 
+  const pickAndParse = async (mode: 'ativos' | 'aportes') => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: [
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/vnd.ms-excel',
+          'text/csv',
+          'text/comma-separated-values',
+          'text/tab-separated-values',
+          '*/*',
+        ],
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const file = result.assets[0];
+      const lower = (file.name || '').toLowerCase();
+      const isText = /\.(csv|tsv|txt)$/.test(lower);
+
+      let content: string;
+      if (isText) {
+        content = await FileSystem.readAsStringAsync(file.uri);
+      } else {
+        content = await FileSystem.readAsStringAsync(file.uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      }
+
+      const parsed = parseInvestmentContent(content, file.name || '', mode);
+      if (parsed.length === 0) {
+        showToast('Nenhum dado reconhecível encontrado. Verifique o formato do arquivo.', 'error');
+        return;
+      }
+
+      setImportRows(parsed);
+      setImportMode(mode);
+    } catch (err: any) {
+      console.error('Erro ao ler planilha:', err);
+      showToast(`Erro ao importar: ${err.message || 'Verifique o formato do arquivo.'}`, 'error');
+    }
+  };
+
+  const handleEscolherImportacao = () => {
+    Alert.alert('Importar planilha', 'Escolha o tipo de importação:', [
+      { text: 'Ativos (posição atual)', onPress: () => pickAndParse('ativos') },
+      { text: 'Aportes (histórico)', onPress: () => pickAndParse('aportes') },
+      { text: t('cancel'), style: 'cancel' },
+    ]);
+  };
+
+  const handleConfirmImport = async (selected: any[]) => {
+    if (selected.length === 0 || !importMode) return;
+    setImportSaving(true);
+    try {
+      const txs: Omit<TransacaoAtivo, 'id_usuario'>[] = selected.map((r) => {
+        const base = {
+          id: `imp-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+          ticker: String(r.ticker || '').toUpperCase().trim(),
+          quantidade: Number(r.quantidade) || 0,
+          categoria: r.categoria || 'renda_variavel_br',
+          subcategoria: r.subcategoria || 'acoes',
+        };
+        if (importMode === 'aportes') {
+          return {
+            ...base,
+            tipo: (r.tipo === 'venda' ? 'venda' : 'compra') as 'compra' | 'venda',
+            preco_unitario: Number(r.precoUnitario) || 0,
+            data_transacao: String(r.dataTransacao || new Date().toISOString().split('T')[0]),
+          };
+        }
+        return {
+          ...base,
+          tipo: 'compra' as const,
+          preco_unitario: Number(r.precoMedio) || 0,
+          data_transacao: new Date().toISOString().split('T')[0],
+        };
+      });
+
+      await addTransacoesAtivosBulk(txs);
+      setImportMode(null);
+      setImportRows([]);
+      showToast(`${txs.length} operação(ões) importada(s) com sucesso!`, 'success');
+    } catch (err: any) {
+      showToast(`Erro ao importar: ${err.message || 'Tente novamente.'}`, 'error');
+    } finally {
+      setImportSaving(false);
+    }
+  };
+
   const handleDeleteTx = (id: string) => {
     Alert.alert(
       t('confirm_deletion'),
@@ -462,6 +563,16 @@ export const PatrimonioScreen = () => {
               {loading ? t('updating_quotes') : t('update_quotes')}
             </Text>
             {!isPremium && <Text style={styles.freeBadge}>{t('free_badge')}</Text>}
+          </TouchableOpacity>
+
+          {/* Botão Importar Planilha */}
+          <TouchableOpacity
+            style={styles.importBtn}
+            onPress={handleEscolherImportacao}
+            activeOpacity={0.8}
+          >
+            <Upload size={14} color={theme.colors.primary} />
+            <Text style={styles.importBtnText}>Importar planilha</Text>
           </TouchableOpacity>
 
           {/* Card Proventos (Navegável) */}
@@ -728,8 +839,8 @@ export const PatrimonioScreen = () => {
                 >
                   <Text style={styles.cancelBtnText}>{t('cancel')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.saveBtn} 
+                <TouchableOpacity
+                  style={styles.saveBtn}
                   onPress={handleSalvarTx}
                 >
                   <Text style={styles.saveBtnText}>{t('save')}</Text>
@@ -738,6 +849,19 @@ export const PatrimonioScreen = () => {
             </View>
           </View>
         </Modal>
+
+        {/* Modal de Revisão da Importação */}
+        <InvestmentImportModal
+          visible={importMode !== null}
+          mode={importMode || 'aportes'}
+          rows={importRows}
+          isSaving={importSaving}
+          onClose={() => {
+            setImportMode(null);
+            setImportRows([]);
+          }}
+          onConfirm={handleConfirmImport}
+        />
       </SafeAreaView>
     );
   }
@@ -928,6 +1052,23 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     borderColor: '#FFC93C',
+  },
+  importBtn: {
+    backgroundColor: theme.colors.cardBg,
+    borderColor: theme.colors.primary,
+    borderWidth: 1,
+    borderRadius: 8,
+    height: 40,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 20,
+  },
+  importBtnText: {
+    color: theme.colors.primary,
+    fontWeight: 'bold',
+    fontSize: 13,
   },
   proventosCard: {
     backgroundColor: theme.colors.cardBg,

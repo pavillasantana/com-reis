@@ -735,6 +735,7 @@
   "web_dashboard_import_title": "Bank Statement Importer (CSV/OFX)",
   "web_dashboard_inventory": "Inventory",
   "web_dashboard_investments": "Investments",
+  "web_dashboard_proventos": "Dividends",
   "web_dashboard_invoice": "Invoice:",
   "web_dashboard_jars_title": "Jars (Goals)",
   "web_dashboard_limit": "Limit:",

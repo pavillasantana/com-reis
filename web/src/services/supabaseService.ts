@@ -184,6 +184,14 @@ export async function deleteConta(id: string): ServiceResult<void> {
 
 // ─── TRANSAÇÕES ───────────────────────────────────────────────────────────────
 
+function toTransacoes(rows: Transacao[]): Transacao[] {
+  return rows.map((t) => ({
+    ...t,
+    valor: Number(t.valor),
+    taxa_cambio_dia: Number(t.taxa_cambio_dia),
+  }));
+}
+
 /**
  * Busca as transações mais recentes (máximo 500).
  */
@@ -251,7 +259,7 @@ export async function createTransacao(
  */
 export async function createTransacoesBatch(
   txs: Omit<Transacao, 'id'>[]
-): ServiceResult<number> {
+): ServiceResult<Transacao[]> {
   if (!isSupabaseConfigured) return notConfigured();
   try {
     const rows = txs.map((tx) => ({
@@ -265,11 +273,29 @@ export async function createTransacoesBatch(
       moeda_transacao: tx.moeda_transacao || 'BRL',
       id_tag_bancaria: tx.id_tag_bancaria || null,
     }));
-    const { error, count } = await supabase
+    const SELECT = 'id, id_conta, tipo, valor, categoria, data_transacao, taxa_cambio_dia, descricao, moeda_transacao, id_tag_bancaria';
+    const { data, error } = await supabase
       .from('transacoes')
-      .insert(rows, { count: 'exact' });
+      .insert(rows)
+      .select(SELECT);
+    if (error && error.code === 'PGRST204') {
+      const fallbackRows = txs.map((tx) => ({
+        id_conta: tx.id_conta,
+        tipo: tx.tipo,
+        valor: tx.valor,
+        categoria: tx.categoria,
+        data_transacao: tx.data_transacao,
+        descricao: tx.descricao || null,
+      }));
+      const fallback = await supabase
+        .from('transacoes')
+        .insert(fallbackRows)
+        .select(SELECT);
+      if (fallback.error) return { data: null, error: fallback.error.message };
+      return { data: toTransacoes(fallback.data ?? []), error: null };
+    }
     if (error) return { data: null, error: error.message };
-    return { data: count ?? rows.length, error: null };
+    return { data: toTransacoes(data ?? []), error: null };
   } catch (e) {
     captureError(e, { action: 'createTransacoesBatch', count: txs.length });
     return { data: null, error: 'Erro ao importar transações.' };
@@ -285,10 +311,23 @@ export async function updateTransacao(
 ): ServiceResult<void> {
   if (!isSupabaseConfigured) return notConfigured();
   try {
-    const { error } = await supabase
+    let { error } = await supabase
       .from('transacoes')
       .update(updates)
       .eq('id', id);
+    if (error && error.code === 'PGRST204') {
+      const fallbackUpdates: Record<string, unknown> = {};
+      if (updates.id_conta !== undefined) fallbackUpdates.id_conta = updates.id_conta;
+      if (updates.descricao !== undefined) fallbackUpdates.descricao = updates.descricao;
+      if (updates.valor !== undefined) fallbackUpdates.valor = updates.valor;
+      if (updates.data_transacao !== undefined) fallbackUpdates.data_transacao = updates.data_transacao;
+      if (updates.categoria !== undefined) fallbackUpdates.categoria = updates.categoria;
+      const fallback = await supabase
+        .from('transacoes')
+        .update(fallbackUpdates)
+        .eq('id', id);
+      error = fallback.error;
+    }
     if (error) return { data: null, error: error.message };
     return { data: undefined, error: null };
   } catch (e) {
@@ -837,8 +876,7 @@ export async function fetchTransacoesAtivos(): ServiceResult<TransacaoAtivo[]> {
 
 export async function createTransacaoAtivo(
   tx: Omit<TransacaoAtivo, 'id'>
-): ServiceResult<TransacaoAtivo> {
-  if (!isSupabaseConfigured) return notConfigured();
+): ServiceResult<TransacaoAtivo> {  if (!isSupabaseConfigured) return notConfigured();
   try {
     const { data, error } = await supabase
       .from('transacoes_ativos')
@@ -900,6 +938,21 @@ export async function deleteTransacaoAtivo(id: string): ServiceResult<void> {
   } catch (e) {
     captureError(e, { action: 'deleteTransacaoAtivo', id });
     return { data: null, error: 'Erro ao deletar operação.' };
+  }
+}
+
+export async function createTransacoesAtivosBulk(
+  txs: Omit<TransacaoAtivo, 'id'>[]
+): ServiceResult<number> {
+  if (!isSupabaseConfigured) return notConfigured();
+  if (txs.length === 0) return { data: 0, error: null };
+  try {
+    const { error } = await supabase.from('transacoes_ativos').insert(txs);
+    if (error) return { data: null, error: error.message };
+    return { data: txs.length, error: null };
+  } catch (e) {
+    captureError(e, { action: 'createTransacoesAtivosBulk', count: txs.length });
+    return { data: null, error: 'Erro ao importar operações.' };
   }
 }
 

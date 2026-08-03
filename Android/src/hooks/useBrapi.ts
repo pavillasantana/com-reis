@@ -13,7 +13,7 @@ export interface BrapiAtivo {
 
 /** Tipo de cada dividendo individual na resposta da Brapi */
 export interface BrapiDividendo {
-  /** AAAA-MM-DD */
+  /** AAAA-MM-DD (ou ISO completo) */
   paymentDate: string;
   /** Valor por ação (em BRL) */
   rate: number;
@@ -26,6 +26,62 @@ export interface BrapiDividendo {
   /** Razão de desdobramento (geralmente 1) */
   relatedTo?: string;
   description?: string;
+  /** Aliases da API v2 (proxy normaliza label→type, lastDatePrior→exDividendDate, remarks→description) */
+  label?: string;
+  lastDatePrior?: string;
+  remarks?: string;
+  approvedOn?: string | null;
+  isinCode?: string;
+}
+
+/** Fonte primária de cotações: Yahoo Finance v8/chart (100% grátis, sem chave).
+ *  O endpoint v7/finance/quote foi descontinuado pela Yahoo (401).
+ *  Retorna null se o ticker falhar. */
+const SUFIXOS_EXCHANGE = new Set(['SA', 'MC', 'PA', 'DE', 'AS', 'L', 'SW', 'MI', 'BA', 'MX', 'SN']);
+
+function toYahooSymbol(ticker: string): string {
+  const t = ticker.toUpperCase();
+  const dot = t.lastIndexOf('.');
+  if (dot !== -1) {
+    const sufixo = t.slice(dot + 1);
+    if (SUFIXOS_EXCHANGE.has(sufixo)) return t;
+    if (/^[A-Z]$/.test(sufixo)) return `${t.slice(0, dot)}-${sufixo}`;
+    return `${t}.SA`;
+  }
+  return /\d/.test(t) ? `${t}.SA` : t;
+}
+
+async function fetchYahooQuote(ticker: string): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(toYahooSymbol(ticker))}?range=1d&interval=1d`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const meta = data?.chart?.result?.[0]?.meta;
+    return meta?.regularMarketPrice != null ? Number(meta.regularMarketPrice) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Executa fn sobre items respeitando um limite de concorrência. */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const idx = next++;
+      results[idx] = await fn(items[idx]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 /**
@@ -85,14 +141,20 @@ export function useBrapi() {
       };
     } catch (error: any) {
       console.warn(`[useBrapi] Erro ao buscar dados de "${ticker}":`, error.message);
-      return null;
+      // Fallback de preço via Yahoo (dividendos ficam vazios)
+      const preco = await fetchYahooQuote(t);
+      return preco != null
+        ? { precoAtual: preco, nome: t, logo: null, dividendos: [] }
+        : null;
     } finally {
       setLoading(false);
     }
   }, []);
 
   /**
-   * Busca cotações de múltiplos ativos de uma vez (endpoint batch da Brapi).
+   * Busca cotações de múltiplos ativos de uma vez.
+   * Fonte primária: Yahoo Finance v8/chart (100% grátis, sem chave).
+   * Fallback por ticker: Edge Function brapi-proxy (cobre tickers que o Yahoo não retornou).
    * @param tickers  Array de tickers SEM o sufixo .SA
    * @returns  Map de ticker → preço atual
    */
@@ -102,12 +164,25 @@ export function useBrapi() {
 
     const result: Record<string, number> = {};
     try {
+      const upper = [...new Set(tickers.map(t => t.trim().toUpperCase()))];
+
+      // 1) Yahoo Finance primeiro
+      const yahooPrices = await mapWithConcurrency(upper, 3, async (t) => ({
+        t,
+        price: await fetchYahooQuote(t),
+      }));
+      for (const { t, price } of yahooPrices) {
+        if (price != null) result[t] = price;
+      }
+
+      // 2) Fallback via Brapi proxy apenas para os que falharam
+      const missing = upper.filter(t => result[t] == null);
+      if (missing.length === 0) return result;
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Sem sessão');
 
-      const tickerStr = tickers.join(',');
-      const url = `${SUPABASE_URL}/functions/v1/brapi-proxy?tickers=${encodeURIComponent(tickerStr)}`;
-
+      const url = `${SUPABASE_URL}/functions/v1/brapi-proxy?tickers=${encodeURIComponent(missing.join(','))}`;
       const response = await fetch(url, {
         headers: {
           'Accept': 'application/json',
@@ -116,19 +191,14 @@ export function useBrapi() {
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} ao buscar cotações em batch`);
-      }
-
-      const data = await response.json();
-
-      if (data.error || !data.results?.length) {
-        throw new Error(data.message || 'Resposta inválida da Brapi');
-      }
-
-      for (const item of data.results) {
-        if (item.symbol && item.regularMarketPrice != null) {
-          result[item.symbol.toUpperCase()] = Number(item.regularMarketPrice.toFixed(2));
+      if (response.ok) {
+        const data = await response.json();
+        if (!data.error && data.results?.length) {
+          for (const item of data.results) {
+            if (item.symbol && item.regularMarketPrice != null && result[item.symbol.toUpperCase()] == null) {
+              result[item.symbol.toUpperCase()] = Number(item.regularMarketPrice.toFixed(2));
+            }
+          }
         }
       }
     } catch (error: any) {

@@ -69,3 +69,10 @@ web/wrangler.toml
 .yarn/
 yarn-debug.*
 yarn-error.*
+
+# ─── Referências de design e artefatos locais ────────────────────────────────
+.abacusai/
+Ideia portal investidos/
+Layout/
+screencapture-*.png
+unnamed.jpg

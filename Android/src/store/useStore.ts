@@ -98,6 +98,8 @@ export interface TransacaoAtivo {
   quantidade: number;
   preco_unitario: number;
   data_transacao: string;
+  categoria?: string;
+  subcategoria?: string;
 }
 
 export interface Provento {
@@ -198,6 +200,7 @@ interface AppState {
   deleteRegraTag: (id: string) => Promise<void>;
   updateTransacaoTag: (transacaoId: string, idTag: string | null) => Promise<void>;
   addTransacaoAtivo: (tx: Omit<TransacaoAtivo, 'id_usuario'>) => Promise<void>;
+  addTransacoesAtivosBulk: (txs: Omit<TransacaoAtivo, 'id_usuario'>[]) => Promise<void>;
   addProvento: (p: Omit<Provento, 'id_usuario'>) => Promise<void>;
   deleteTransacaoAtivo: (id: string) => Promise<void>;
   updateTransacaoAtivo: (id: string, updates: Partial<Omit<TransacaoAtivo, 'id' | 'id_usuario'>>) => Promise<void>;
@@ -891,7 +894,9 @@ export const useStore = create<AppState>()(
               tipo: novaTx.tipo,
               quantidade: novaTx.quantidade,
               preco_unitario: novaTx.preco_unitario,
-              data_transacao: novaTx.data_transacao
+              data_transacao: novaTx.data_transacao,
+              categoria: novaTx.categoria ?? null,
+              subcategoria: novaTx.subcategoria ?? null
             });
             if (error) throw error;
           } catch (err) {
@@ -901,6 +906,36 @@ export const useStore = create<AppState>()(
 
         set((state) => ({
           transacoes_ativos: [novaTx, ...state.transacoes_ativos]
+        }));
+      },
+
+      addTransacoesAtivosBulk: async (txs) => {
+        const id_usuario = get().id_usuario || 'demo-user-123';
+        const novasTxs = txs.map((tx) => ({ ...tx, id_usuario }));
+
+        if (get().id_usuario && novasTxs.length > 0) {
+          try {
+            const { error } = await supabase.from('transacoes_ativos').insert(
+              novasTxs.map((tx) => ({
+                id: tx.id,
+                id_usuario,
+                ticker: tx.ticker,
+                tipo: tx.tipo,
+                quantidade: tx.quantidade,
+                preco_unitario: tx.preco_unitario,
+                data_transacao: tx.data_transacao,
+                categoria: tx.categoria ?? null,
+                subcategoria: tx.subcategoria ?? null
+              }))
+            );
+            if (error) throw error;
+          } catch (err) {
+            console.warn('Erro ao salvar transações de ativos em lote no Supabase:', err);
+          }
+        }
+
+        set((state) => ({
+          transacoes_ativos: [...novasTxs, ...state.transacoes_ativos]
         }));
       },
 
@@ -1357,7 +1392,9 @@ export const useStore = create<AppState>()(
                     tipo: t.tipo as 'compra' | 'venda',
                     quantidade: Number(t.quantidade),
                     preco_unitario: Number(t.preco_unitario),
-                    data_transacao: t.data_transacao
+                    data_transacao: t.data_transacao,
+                    categoria: t.categoria || undefined,
+                    subcategoria: t.subcategoria || undefined
                   }));
                   set({ transacoes_ativos: listTxAtivos });
                 }

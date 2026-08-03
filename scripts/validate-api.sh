@@ -30,13 +30,13 @@ check() {
     
     if echo "$expected_codes" | grep -qw "$response"; then
         echo -e "${GREEN}✅ $response OK${NC}"
-        ((PASS++))
+        ((PASS=PASS+1))
     elif [ "$response" = "000" ]; then
         echo -e "${RED}❌ TIMEOUT/ERRO DE CONEXÃO${NC}"
-        ((FAIL++))
+        ((FAIL=FAIL+1))
     else
         echo -e "${YELLOW}⚠️  $response (esperado: $expected_codes)${NC}"
-        ((WARN++))
+        ((WARN=WARN+1))
     fi
 }
 
@@ -83,10 +83,21 @@ echo ""
 
 echo "── 3. Brapi API (Cotações) ─────────────────────────────"
 if [ -n "$BRAPI_TOKEN" ]; then
-    check "Brapi: PETR4 quote" "https://brapi.dev/api/quote/PETR4?token=$BRAPI_TOKEN" "200"
+    printf "  %-50s" "Brapi: PETR4 quote (v2 + Bearer)"
+    response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 -H "Authorization: Bearer $BRAPI_TOKEN" "https://brapi.dev/api/v2/stocks/quote?symbols=PETR4" 2>/dev/null || echo "000")
+    if echo "200" | grep -qw "$response"; then
+        echo -e "${GREEN}✅ $response OK${NC}"
+        ((PASS=PASS+1))
+    elif [ "$response" = "000" ]; then
+        echo -e "${RED}❌ TIMEOUT/ERRO DE CONEXÃO${NC}"
+        ((FAIL=FAIL+1))
+    else
+        echo -e "${YELLOW}⚠️  $response (esperado: 200)${NC}"
+        ((WARN=WARN+1))
+    fi
 else
     echo "  ⚠️  BRAPI_TOKEN não encontrado no .env — pulando testes Brapi"
-    ((WARN++))
+    ((WARN=WARN+1))
 fi
 echo ""
 
@@ -94,8 +105,8 @@ echo "── 4. AwesomeAPI (Exchange Rates) ────────────
 check "AwesomeAPI: USD-BRL" "https://economia.awesomeapi.com.br/json/last/USD-BRL" "200"
 echo ""
 
-echo "── 5. Yahoo Finance (Fallback Cotações) ────────────────"
-check "Yahoo Finance: PETR4.SA" "https://query1.finance.yahoo.com/v7/finance/quote?symbols=PETR4.SA" "200 401 403"
+echo "── 5. Yahoo Finance (Fonte Primária de Cotações) ────────"
+check "Yahoo v8: chart PETR4.SA" "https://query2.finance.yahoo.com/v8/finance/chart/PETR4.SA?range=1d&interval=1d" "200 401 403"
 echo ""
 
 echo "══════════════════════════════════════════════════════════"

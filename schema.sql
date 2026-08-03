@@ -764,15 +764,15 @@ BEGIN
     v_uid := auth.uid();
     IF TG_OP = 'DELETE' THEN
         INSERT INTO public.audit_log (tabela, operacao, id_registro, dados_antigos, id_usuario)
-        VALUES (TG_TABLE_NAME, 'DELETE', OLD.id, row_to_jsonb(OLD), v_uid);
+        VALUES (TG_TABLE_NAME, 'DELETE', OLD.id, to_jsonb(OLD), v_uid);
         RETURN OLD;
     ELSIF TG_OP = 'UPDATE' THEN
         INSERT INTO public.audit_log (tabela, operacao, id_registro, dados_antigos, dados_novos, id_usuario)
-        VALUES (TG_TABLE_NAME, 'UPDATE', NEW.id, row_to_jsonb(OLD), row_to_jsonb(NEW), v_uid);
+        VALUES (TG_TABLE_NAME, 'UPDATE', NEW.id, to_jsonb(OLD), to_jsonb(NEW), v_uid);
         RETURN NEW;
     ELSIF TG_OP = 'INSERT' THEN
         INSERT INTO public.audit_log (tabela, operacao, id_registro, dados_novos, id_usuario)
-        VALUES (TG_TABLE_NAME, 'INSERT', NEW.id, row_to_jsonb(NEW), v_uid);
+        VALUES (TG_TABLE_NAME, 'INSERT', NEW.id, to_jsonb(NEW), v_uid);
         RETURN NEW;
     END IF;
     RETURN NULL;

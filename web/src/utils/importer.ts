@@ -9,7 +9,7 @@ export function autoCategorize(description: string): string {
   if (desc.includes('transferencia') || desc.includes('transferência') || desc.includes('transfer') || desc.includes('ted entre') || desc.includes('pix entre') || desc.includes('entre contas')) {
     return 'Transferência';
   }
-  if (desc.includes('investimento') || desc.includes('invest') || desc.includes('aplicacao') || desc.includes('aplicação') || desc.includes('rendimento fixa') || desc.includes('cdb') || desc.includes('lci') || desc.includes('lca') || desc.includes('tesouro') || desc.includes('fundos') || desc.includes('bolsa') || desc.includes('acao') || desc.includes('ação') || desc.includes('cripto') || desc.includes('bitcoin') || desc.includes('etf')) {
+  if (desc.includes('investimento') || desc.includes('invest') || desc.includes('aplicacao') || desc.includes('aplicação') || desc.includes('rendimento fixa') || desc.includes('cdb') || desc.includes('lci') || desc.includes('lca') || desc.includes('tesouro') || desc.includes('fundos') || desc.includes('bolsa') || desc.includes('acao') || desc.includes('ação') || desc.includes('cripto') || desc.includes('bitcoin') || /\betf\b/.test(desc)) {
     return 'Investimentos';
   }
   if (desc.includes('uber') || desc.includes('99app') || desc.includes('posto') || desc.includes('combustivel')) {
@@ -162,7 +162,7 @@ export function parseOFX(text: string, idConta: string): Omit<Transacao, 'id'>[]
  * Interpreta arquivos XLSX e extrai transações.
  */
 /** Tenta parsear um valor para número, aceitando formato BR (1.500,00) e US (1500.50) */
-function parseValor(v: unknown): number {
+export function parseValor(v: unknown): number {
   if (typeof v === 'number') return Math.abs(v);
   if (v == null || v === '') return 0;
   const str = String(v).replace(/[R$\s]/g, '').trim();
@@ -176,7 +176,7 @@ function parseValor(v: unknown): number {
 }
 
 /** Tenta converter um valor para data ISO (YYYY-MM-DD) */
-function parseData(v: unknown): string {
+export function parseData(v: unknown): string {
   if (v == null || v === '') return new Date().toISOString().split('T')[0];
   if (typeof v === 'number') {
     const d = new Date((v - 25569) * 86400 * 1000); // Excel epoch
@@ -188,6 +188,73 @@ function parseData(v: unknown): string {
   const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
   return new Date().toISOString().split('T')[0];
+}
+
+export type PrevisaoDividendoRow = {
+  ticker: string;
+  tipo: string;
+  tipoEvento: string;
+  dataPrevisao: string;
+  instituicao: string;
+  quantidade: number;
+  precoUnitario: number;
+  valorLiquido: number;
+};
+
+export function parseDividendXLSX(arrayBuffer: ArrayBuffer): PrevisaoDividendoRow[] {
+  const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: false });
+  const sheetName = wb.SheetNames[0];
+  const sheet = wb.Sheets[sheetName];
+
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+  if (rows.length === 0) return [];
+
+  const stripAccents = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+  const keys = Object.keys(rows[0]);
+  const findKey = (...names: string[]): string | null => {
+    for (const n of names) {
+      const nl = n.toLowerCase();
+      const found = keys.find((k) => stripAccents(k).includes(nl) || nl.includes(stripAccents(k)));
+      if (found) return found;
+    }
+    return null;
+  };
+
+  const produtoKey = findKey('produto', 'ticker', 'ativo', 'papel', 'codigo', 'nome ativo');
+  const tipoEventoKey = findKey('tipo de evento', 'evento', 'tipo evento', 'tipo');
+  const dataKey = findKey('previsao de pagamento', 'previsão de pagamento', 'pagamento', 'data previsao', 'data', 'vencimento', 'data pagamento', 'data recebimento');
+  const instituicaoKey = findKey('instituicao', 'instituição', 'corretora', 'banco');
+  const qtdKey = findKey('quantidade', 'qtd', 'qtde', 'quant');
+  const puKey = findKey('preco unitario', 'preço unitário', 'pu', 'preco', 'preço', 'valor unitario');
+  const vlKey = findKey('valor liquido', 'valor líquido', 'valor', 'liquido', 'liquído', 'total', 'vlr liquido', 'credito');
+
+  return rows.map((row) => {
+    const ticker = produtoKey ? String(row[produtoKey] || '').trim().toUpperCase() : '';
+    const tipoEvento = tipoEventoKey ? String(row[tipoEventoKey] || '').trim() : '';
+    const rawData = dataKey ? String(row[dataKey] || '').trim() : '';
+    const instituicao = instituicaoKey ? String(row[instituicaoKey] || '').trim() : '';
+    const quantidade = qtdKey ? parseValor(row[qtdKey]) : 0;
+    const precoUnitario = puKey ? parseValor(row[puKey]) : 0;
+    const valorLiquido = vlKey ? parseValor(row[vlKey]) : 0;
+
+    let dataPrevisao = new Date().toISOString().split('T')[0];
+    if (rawData) {
+      const parsed = parseData(rawData);
+      if (parsed) dataPrevisao = parsed;
+    }
+
+    return {
+      ticker,
+      tipo: '',
+      tipoEvento,
+      dataPrevisao,
+      instituicao,
+      quantidade,
+      precoUnitario,
+      valorLiquido,
+    };
+  }).filter((r) => r.valorLiquido > 0 && r.ticker.length > 0);
 }
 
 export function parseXLSX(arrayBuffer: ArrayBuffer, idConta: string): Omit<Transacao, 'id'>[] {
