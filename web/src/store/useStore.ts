@@ -83,6 +83,18 @@ interface AppState {
   avatar_url: string | null;
   isAuthLoading: boolean;
 
+  // Perfil Completo (Fase 12 — Grupo 2)
+  renda_principal: number;
+  sobrenome: string | null;
+  profissao: string | null;
+  fonte_renda: string | null;
+  data_nascimento: string | null;
+  documento: string | null;
+  endereco: string | null;
+  telefone: string | null;
+  sexo: string | null;
+  nacionalidade: string | null;
+
   // Active States
   id_espaco_ativo: string | null;
   isCheckoutModalVisible: boolean;
@@ -102,6 +114,7 @@ interface AppState {
   setMoedaBase: (moeda: string) => void;
   setIdEspacoAtivo: (id: string | null) => void;
   updateAvatarUrl: (url: string | null) => void;
+  setPerfilDados: (dados: Partial<Pick<AppState, 'renda_principal' | 'sobrenome' | 'profissao' | 'fonte_renda' | 'data_nascimento' | 'documento' | 'endereco' | 'telefone' | 'sexo' | 'nacionalidade' | 'nome_usuario' | 'email_usuario' | 'avatar_url'>>) => void;
   setAuthLoading: (loading: boolean) => void;
   toggleCheckoutModal: (visible: boolean) => void;
 
@@ -155,6 +168,16 @@ const INITIAL_STATE = {
   plano_usuario: 'free' as const,
   moeda_base: 'BRL',
   avatar_url: null,
+  renda_principal: 0,
+  sobrenome: null,
+  profissao: null,
+  fonte_renda: null,
+  data_nascimento: null,
+  documento: null,
+  endereco: null,
+  telefone: null,
+  sexo: null,
+  nacionalidade: null,
   id_espaco_ativo: null,
   isCheckoutModalVisible: false,
   espacos: [],
@@ -179,6 +202,7 @@ export const useStore = create<AppState>()(
       setMoedaBase: (moeda) => set({ moeda_base: moeda }),
       setIdEspacoAtivo: (id) => set({ id_espaco_ativo: id }),
       updateAvatarUrl: (url) => set({ avatar_url: url }),
+      setPerfilDados: (dados) => set(dados),
       setAuthLoading: (loading) => set({ isAuthLoading: loading }),
       toggleCheckoutModal: (visible) => set({ isCheckoutModalVisible: visible }),
 
@@ -260,6 +284,16 @@ export const useStore = create<AppState>()(
         plano_usuario: 'free' as const,
         moeda_base: 'BRL',
         avatar_url: null,
+        renda_principal: 0,
+        sobrenome: null,
+        profissao: null,
+        fonte_renda: null,
+        data_nascimento: null,
+        documento: null,
+        endereco: null,
+        telefone: null,
+        sexo: null,
+        nacionalidade: null,
         isCheckoutModalVisible: false,
         isAuthLoading: true,
         // NÃO reseta id_espaco_ativo nem dados — preserva estado do localStorage

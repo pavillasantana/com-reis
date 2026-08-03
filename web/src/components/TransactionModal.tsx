@@ -121,7 +121,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
           <div>
             <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('web_tx_currency_label')}</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
               {['BRL', 'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'CHF', 'AUD', 'CNY', 'MXN', 'ARS'].map(m => {
                 const isSelected = txMoeda === m;
                 return (
@@ -130,7 +130,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     type="button"
                     onClick={() => setTxMoeda(m)}
                     style={{
-                      flex: 1,
                       padding: '10px 0',
                       border: '1px solid',
                       borderColor: isSelected ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.1)',

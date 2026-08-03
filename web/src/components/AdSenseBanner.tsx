@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { usePremium } from '../hooks/usePremium';
 import { ADSENSE_CLIENT_ID } from '../constants/config';
 
@@ -10,14 +10,21 @@ interface AdSenseBannerProps {
 
 export function AdSenseBanner({ style, className, adSlot }: AdSenseBannerProps) {
   const { showAds } = usePremium();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pushed = useRef(false);
 
   useEffect(() => {
     if (!showAds) return;
+    if (pushed.current) return;
+    pushed.current = true;
+
     try {
-      if (window) {
-        // @ts-ignore
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-      }
+      if (!containerRef.current) return;
+      const ins = containerRef.current.querySelector('ins.adsbygoogle');
+      if (!ins) return;
+      if (ins.getAttribute('data-adsbygoogle-status') === 'done') return;
+      (window as unknown as { adsbygoogle?: unknown[] }).adsbygoogle = (window as unknown as { adsbygoogle?: unknown[] }).adsbygoogle || [];
+      ((window as unknown as { adsbygoogle: unknown[] }).adsbygoogle as unknown[]).push({});
     } catch (e) {
       console.error('AdSense banner failed to load:', e);
     }
@@ -32,7 +39,7 @@ export function AdSenseBanner({ style, className, adSlot }: AdSenseBannerProps) 
   if (!adSlot || !/^\d+$/.test(adSlot)) return null;
 
   return (
-    <div style={{ overflow: 'hidden', textAlign: 'center', ...style }} className={className}>
+    <div ref={containerRef} style={{ overflow: 'hidden', textAlign: 'center', ...style }} className={className}>
       <ins
         className="adsbygoogle"
         style={{ display: 'block', minHeight: '90px' }}

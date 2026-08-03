@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, Cell, PieChart, Pie
@@ -6,6 +6,10 @@ import {
 import { useI18n } from '../i18n';
 import { formatCurrency, convertCurrency } from '../utils/currency';
 import type { Transacao, Conta } from '../store/useStore';
+import { fetchTransacoesAtivos } from '../services/supabaseService';
+import type { TransacaoAtivo } from '../services/supabaseService';
+import { useQuotes } from '../hooks/useInvestments';
+import { RecurringExpensesModal } from './RecurringExpensesModal';
 import { AdBanner } from './AdBanner';
 
 interface AnaliseGastosProps {
@@ -32,6 +36,47 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>('despesa');
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [drillDown, setDrillDown] = useState<string | null>(null);
+
+  // ─── Ativos (lista opcional) ────────────────────────────────────────────────
+  const [showAtivos, setShowAtivos] = useState(false);
+  const [ativosTxs, setAtivosTxs] = useState<TransacaoAtivo[]>([]);
+  const [ativosLoading, setAtivosLoading] = useState(false);
+  const [showRecurring, setShowRecurring] = useState(false);
+
+  useEffect(() => {
+    if (!showAtivos) return;
+    let cancelled = false;
+    (async () => {
+      setAtivosLoading(true);
+      const { data } = await fetchTransacoesAtivos();
+      if (!cancelled) {
+        setAtivosTxs(data || []);
+        setAtivosLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showAtivos]);
+
+  const ativosPosicoes = useMemo(() => {
+    const map: Record<string, { ticker: string; qtd: number; custoTotal: number; categoria: string; subcategoria: string }> = {};
+    ativosTxs.forEach((t) => {
+      const vol = t.quantidade * t.preco_unitario;
+      if (!map[t.ticker]) {
+        map[t.ticker] = { ticker: t.ticker, qtd: 0, custoTotal: 0, categoria: t.categoria || 'Outros', subcategoria: t.subcategoria || '' };
+      }
+      if (t.tipo === 'compra') {
+        map[t.ticker].qtd += t.quantidade;
+        map[t.ticker].custoTotal += vol;
+      } else {
+        map[t.ticker].qtd -= t.quantidade;
+        map[t.ticker].custoTotal -= vol;
+      }
+    });
+    return Object.values(map).filter(p => Math.abs(p.qtd) > 0.0001);
+  }, [ativosTxs]);
+
+  const ativosTickers = useMemo(() => ativosPosicoes.map(p => p.ticker), [ativosPosicoes]);
+  const { data: ativosQuotes = [] } = useQuotes(ativosTickers, showAtivos && ativosTickers.length > 0);
 
   const dateRange = useMemo(() => {
     const now = new Date();
@@ -212,6 +257,34 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
           <button onClick={() => navigateMonth(1)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--accent-blue)' }}>▶</button>
         </div>
       )}
+
+      {/* Toggle Ativos */}
+      <button
+        onClick={() => setShowAtivos(s => !s)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px',
+          border: '1px solid var(--accent-blue)', background: showAtivos ? 'var(--accent-blue)' : 'transparent',
+          color: showAtivos ? '#fff' : 'var(--accent-blue)', fontWeight: 700, fontSize: '0.85rem',
+          cursor: 'pointer', marginBottom: '24px', transition: 'all 0.2s',
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>show_chart</span>
+        {showAtivos ? t('web_analise_hide_assets') : t('web_analise_show_assets')}
+      </button>
+
+      {/* Lançamentos Recorrentes */}
+      <button
+        onClick={() => setShowRecurring(true)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px',
+          border: '1px solid var(--accent-cyan)', background: 'transparent',
+          color: 'var(--accent-cyan)', fontWeight: 700, fontSize: '0.85rem',
+          cursor: 'pointer', marginBottom: '24px', marginLeft: '12px', transition: 'all 0.2s',
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>repeat</span>
+        {t('web_recurring_title') || 'Lançamentos Recorrentes'}
+      </button>
 
       {/* Total Card */}
       <div style={{
@@ -415,6 +488,60 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
         )}
       </div>
 
+      {/* Assets List (optional) */}
+      {showAtivos && (
+        <div style={{
+          background: 'var(--card-bg, #fff)', borderRadius: '16px', padding: '24px',
+          border: '1px solid var(--border-color, #e2e8f0)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: '24px',
+        }}>
+          <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            📈 {t('web_analise_assets_title')}
+          </h3>
+          {ativosLoading ? (
+            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '24px 0' }}>
+              {t('web_analise_loading_assets')}
+            </p>
+          ) : ativosPosicoes.length === 0 ? (
+            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '24px 0' }}>
+              {t('web_analise_no_assets')}
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                <span style={{ flex: 1 }}>{t('web_analise_asset_ticker')}</span>
+                <span style={{ width: 80, textAlign: 'right' }}>{t('web_analise_asset_qty')}</span>
+                <span style={{ width: 100, textAlign: 'right' }}>{t('web_analise_asset_avg')}</span>
+                <span style={{ width: 110, textAlign: 'right' }}>{t('web_analise_asset_total')}</span>
+                <span style={{ width: 90, textAlign: 'right' }}>{t('web_analise_asset_ret')}</span>
+              </div>
+              {ativosPosicoes.map((p) => {
+                const q = ativosQuotes.find(qu => qu.symbol.toUpperCase() === p.ticker.toUpperCase());
+                const precoAtual = q?.regularMarketPrice || (p.qtd > 0 ? p.custoTotal / p.qtd : 0);
+                const totalAtual = precoAtual * p.qtd;
+                const ret = p.custoTotal > 0 ? ((totalAtual - p.custoTotal) / p.custoTotal) * 100 : 0;
+                const pm = p.qtd > 0 ? p.custoTotal / p.qtd : 0;
+                return (
+                  <div key={p.ticker} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '10px', background: 'var(--bg-secondary, #f1f5f9)' }}>
+                    <span style={{ flex: 1, fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }} title={p.categoria}>
+                      {p.ticker}
+                      <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                        {p.categoria}{p.subcategoria ? ` · ${p.subcategoria}` : ''}
+                      </span>
+                    </span>
+                    <span style={{ width: 80, textAlign: 'right', fontSize: '0.85rem', color: 'var(--text-primary)' }}>{p.qtd.toFixed(2)}</span>
+                    <span style={{ width: 100, textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{formatCurrency(pm, moedaBase)}</span>
+                    <span style={{ width: 110, textAlign: 'right', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(p.custoTotal, moedaBase)}</span>
+                    <span style={{ width: 90, textAlign: 'right', fontSize: '0.8rem', fontWeight: 700, color: ret >= 0 ? 'var(--accent-green, #10B981)' : 'var(--negative, #EF4444)' }}>
+                      {ret.toFixed(1)}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Shared Expenses */}
       {totalCompartilhado > 0 && (
         <div style={{
@@ -450,6 +577,11 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
       )}
 
       <AdBanner adSlot="analise_gastos_rodape" />
+
+      <RecurringExpensesModal
+        isOpen={showRecurring}
+        onClose={() => setShowRecurring(false)}
+      />
     </div>
   );
 };

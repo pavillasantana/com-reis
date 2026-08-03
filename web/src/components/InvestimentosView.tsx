@@ -7,6 +7,9 @@ import {
   TrendingUp as TrendingUpIcon, Wallet, Upload, Package,
 } from 'lucide-react';
 import { formatCurrency } from '../utils/currency';
+
+const formatQtd = (q: number): string =>
+  q.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 6 });
 import {
   fetchTransacoesAtivos, createTransacaoAtivo,
   updateTransacaoAtivo, deleteTransacaoAtivo,
@@ -940,7 +943,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                                       </span>
                                     ) : <span style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED }}>—</span>}
                                   </td>
-                                  <td style={{ padding: '14px 16px', color: CLEAN_TEXT }}>{tx.quantidade}</td>
+                                  <td style={{ padding: '14px 16px', color: CLEAN_TEXT }}>{formatQtd(tx.quantidade)}</td>
                                   <td style={{ padding: '14px 16px', textAlign: 'right', color: CLEAN_TEXT }}>{formatCurrency(tx.preco_unitario, moedaBase)}</td>
                                   <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700, color: isCompra ? ACCENT_RED : ACCENT_GREEN }}>
                                     {isCompra ? '-' : '+'} {formatCurrency(total, moedaBase)}
@@ -1281,7 +1284,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <button
-                  onClick={() => { setImportMode('ativos'); setImportTypeOpen(false); requestAnimationFrame(() => importFileRef.current?.click()); }}
+                  onClick={() => { setImportMode('ativos'); setImportTypeOpen(false); importFileRef.current?.click(); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '14px', textAlign: 'left',
                     padding: '16px', borderRadius: '14px', cursor: 'pointer',
@@ -1305,7 +1308,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                 </button>
 
                 <button
-                  onClick={() => { setImportMode('aportes'); setImportTypeOpen(false); requestAnimationFrame(() => importFileRef.current?.click()); }}
+                  onClick={() => { setImportMode('aportes'); setImportTypeOpen(false); importFileRef.current?.click(); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '14px', textAlign: 'left',
                     padding: '16px', borderRadius: '14px', cursor: 'pointer',

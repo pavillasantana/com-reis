@@ -247,12 +247,37 @@ export function CostExplorer({
         'rio de janeiro': [-22.9068, -43.1729], 'brasilia': [-15.7975, -47.8919],
         'sydney': [-33.8688, 151.2093], 'melbourne': [-37.8136, 144.9631], 'auckland': [-36.8485, 174.7633]
       };
-      const glCoords = globalCoords[selectedCity?.toLowerCase()] || [20, 0];
-      if (glCoords) {
-        mapRef.current.setView(glCoords, 5);
+      const countryCoords: Record<string, [number, number]> = {
+        'brazil': [-10.75, -52.95], 'brasil': [-10.75, -52.95], 'usa': [39.8283, -98.5795],
+        'united states': [39.8283, -98.5795], 'canada': [56.1304, -106.3468], 'mexico': [23.6345, -102.5528],
+        'argentina': [-38.4161, -63.6167], 'chile': [-35.6751, -71.5430], 'colombia': [4.5709, -74.2973],
+        'peru': [-9.1900, -75.0152], 'venezuela': [6.4238, -66.5897], 'uruguay': [-32.5228, -55.7658],
+        'paraguay': [-23.4425, -58.4438], 'bolivia': [-16.2902, -63.5887], 'ecuador': [-1.8312, -78.1834],
+        'united kingdom': [55.3781, -3.4360], 'uk': [55.3781, -3.4360], 'england': [52.3555, -1.1743],
+        'france': [46.2276, 2.2137], 'germany': [51.1657, 10.4515], 'spain': [40.4637, -3.7492],
+        'italy': [41.8719, 12.5674], 'portugal': [39.3999, -8.2245], 'netherlands': [52.1326, 5.2913],
+        'belgium': [50.5039, 4.4699], 'austria': [47.5162, 14.5501], 'switzerland': [46.8182, 8.2275],
+        'sweden': [60.1282, 18.6435], 'norway': [60.4720, 8.4689], 'denmark': [56.2639, 9.5018],
+        'finland': [61.9241, 25.7482], 'ireland': [53.4129, -8.2439], 'greece': [39.0742, 21.8243],
+        'russia': [61.5240, 105.3188], 'turkey': [38.9637, 35.2433], 'japan': [36.2048, 138.2529],
+        'china': [35.8617, 104.1954], 'india': [20.5937, 78.9629], 'thailand': [15.8700, 100.9925],
+        'south korea': [35.9078, 127.7669], 'korea': [35.9078, 127.7669], 'singapore': [1.3521, 103.8198],
+        'taiwan': [23.6978, 120.9605], 'hong kong': [22.3193, 114.1694], 'indonesia': [-0.7893, 113.9213],
+        'malaysia': [4.2105, 101.9758], 'philippines': [12.8797, 121.7740], 'vietnam': [14.0583, 108.2772],
+        'uae': [23.4241, 53.8478], 'united arab emirates': [23.4241, 53.8478], 'saudi arabia': [23.8859, 45.0792],
+        'israel': [31.0461, 34.8516], 'south africa': [-30.5595, 22.9375], 'egypt': [26.8206, 30.8025],
+        'kenya': [-0.0236, 37.9062], 'nigeria': [9.0820, 8.6753], 'morocco': [31.7917, -7.0926],
+        'australia': [-25.2744, 133.7751], 'new zealand': [-40.9006, 174.8860]
+      };
+      const cityCoords = globalCoords[selectedCity?.toLowerCase()];
+      if (cityCoords) {
+        mapRef.current.setView(cityCoords, 11);
+      } else {
+        const countryCoord = countryCoords[selectedCountry.toLowerCase()];
+        mapRef.current.setView(countryCoord || [20, 0], countryCoord ? 5 : 3);
       }
     }
-  }, [selectedUf, selectedCity, isBrazil]);
+  }, [selectedUf, selectedCity, selectedCountry, isBrazil]);
 
   const handleOpenExternal = async () => {
     let token = jwtToken || '';

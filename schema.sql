@@ -15,6 +15,13 @@ CREATE TABLE public.usuarios (
     celular TEXT,
     codigo_identificacao TEXT UNIQUE,
     renda_principal NUMERIC(15, 2) DEFAULT 0.00 NOT NULL,
+    sobrenome TEXT,
+    profissao TEXT,
+    fonte_renda TEXT,
+    endereco TEXT,
+    telefone TEXT,
+    sexo TEXT,
+    nacionalidade TEXT,
     onboarding_completo BOOLEAN DEFAULT FALSE NOT NULL,
     avatar_url TEXT DEFAULT NULL,
     status TEXT DEFAULT 'ativo' CHECK (status IN ('ativo', 'pendente_exclusao')) NOT NULL,
@@ -421,11 +428,15 @@ BEGIN
         ON CONFLICT DO NOTHING;
     END IF;
 
-    -- Tags bancárias padrão
+    -- Tags bancárias padrão (categorias de despesa)
     IF NOT EXISTS (SELECT 1 FROM public.tags_bancarias WHERE id_usuario = new.id LIMIT 1) THEN
         INSERT INTO public.tags_bancarias (id_usuario, nome, cor) VALUES
-        (new.id, 'Investimentos', '#10B981'),
-        (new.id, 'Salário', '#3B82F6')
+        (new.id, 'Alimentação', '#F59E0B'),
+        (new.id, 'Assinaturas', '#8B5CF6'),
+        (new.id, 'Saúde', '#EF4444'),
+        (new.id, 'Lazer', '#10B981'),
+        (new.id, 'Transporte', '#3B82F6'),
+        (new.id, 'Moradia', '#06B6D4')
         ON CONFLICT DO NOTHING;
     END IF;
 

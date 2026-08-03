@@ -32,7 +32,7 @@ export interface UseAuthReturn {
 
 export function useAuth(): UseAuthReturn {
   const [isLoading, setIsLoading] = useState(true);
-  const { id_usuario, setUsuario, clearSession, setAuthLoading } = useStore();
+  const { id_usuario, setUsuario, clearSession, setAuthLoading, setPerfilDados } = useStore();
 
   // ─── Sincroniza sessão ativa no refresh da página ───────────────────────────
   useEffect(() => {
@@ -125,6 +125,18 @@ export function useAuth(): UseAuthReturn {
           perfil.moeda_base,
           avatar
         );
+        setPerfilDados({
+          renda_principal: perfil.renda_principal ?? 0,
+          sobrenome: perfil.sobrenome ?? null,
+          profissao: perfil.profissao ?? null,
+          fonte_renda: perfil.fonte_renda ?? null,
+          data_nascimento: perfil.data_nascimento ?? null,
+          documento: perfil.documento ?? null,
+          endereco: perfil.endereco ?? null,
+          telefone: perfil.telefone ?? null,
+          sexo: perfil.sexo ?? null,
+          nacionalidade: perfil.nacionalidade ?? null,
+        });
       } else {
         // Se fetchPerfil falhou (coluna avatar_url pode não existir), ler do auth metadata
         let avatar = null;

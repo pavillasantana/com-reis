@@ -237,7 +237,7 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Repeat size={20} color="var(--accent-cyan)" />
             <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {t('web_recurring_title') || 'Despesas Recorrentes'}
+              {t('web_recurring_title') || 'Lançamentos Recorrentes'}
             </h2>
           </div>
           <button
@@ -289,7 +289,7 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
                 <div style={{ textAlign: 'center', padding: '48px 28px', color: 'var(--text-muted)' }}>
                   <Repeat size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
                   <p style={{ margin: 0, fontSize: '0.9rem' }}>
-                    {t('web_recurring_empty') || 'Nenhuma despesa recorrente cadastrada'}
+                    {t('web_recurring_empty') || 'Nenhum lançamento recorrente cadastrado'}
                   </p>
                 </div>
               ) : (

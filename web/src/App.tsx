@@ -13,7 +13,7 @@ import { useAuth } from './hooks/useAuth';
 import { useSupabaseSync } from './hooks/useSupabaseSync';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { SUPABASE_URL } from './constants/config';
-import { updatePerfil, createTransacaoAtivo } from './services/supabaseService';
+import { updatePerfil, createTransacaoAtivo, createTagBancaria, updateTagBancariaRemote, deleteTagBancaria } from './services/supabaseService';
 import { formatCurrency, addMoney, subtractMoney, multiplyMoney, convertCurrency } from './utils/currency';
 import { parseCSV, parseOFX, parseXLSX, parsePDF, detectInvestmentSubtype } from './utils/importer';
 import { getCategoriaByTicker } from './utils/investmentCategories';
@@ -37,10 +37,15 @@ import { CaixinhaHistoricoModal } from './components/CaixinhaHistoricoModal';
 import { FechamentoMensalModal } from './components/FechamentoMensalModal';
 import { InventarioView } from './components/InventarioView';
 import { CalendarioFinanceiro } from './components/CalendarioFinanceiro';
-import { RecurringExpensesModal } from './components/RecurringExpensesModal';
+
 import { AnaliseGastos } from './components/AnaliseGastos';
 import { GastosCompartilhados } from './components/GastosCompartilhados';
 import { DividendosView } from './components/DividendosView';
+import { AvatarModal } from './components/AvatarModal';
+import { AccountSettingsModal, type AccountSettingsData } from './components/AccountSettingsModal';
+import { TagsManagerModal } from './components/TagsManagerModal';
+import { ExportarRelatoriosModal } from './components/ExportarRelatoriosModal';
+import { ConfiguracoesView } from './components/ConfiguracoesView';
 import { exportTransactionsToCSV, downloadBlob } from './utils/exporter';
 import { FAQModal, TermosModal } from './components/FAQTermos';
 import { useExchangeRates } from './hooks/useExchangeRates';
@@ -140,6 +145,20 @@ export default function App() {
     setPlanoUsuario,
     setIdEspacoAtivo,
     setMoedaBase,
+    setPerfilDados,
+    renda_principal,
+    sobrenome,
+    profissao,
+    fonte_renda,
+    data_nascimento,
+    documento,
+    endereco,
+    telefone,
+    sexo,
+    nacionalidade,
+    addTagBancaria,
+    updateTagBancaria,
+    removeTagBancaria,
     getTransacoesEspacoAtivo,
     getContasEspacoAtivo,
     getCaixinhasEspacoAtivo,
@@ -184,15 +203,20 @@ export default function App() {
   const [depositGoal, setDepositGoal] = useState<{ id: string; nome: string; saved: number; target: number } | null>(null);
 
   // Local UI States
-  const [activeView, setActiveView] = useState<'dashboard' | 'costExplorer' | 'blog' | 'investimentos' | 'proventos' | 'fluxopj' | 'inventario' | 'calendario' | 'analiseGastos' | 'compartilhados'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'costExplorer' | 'blog' | 'investimentos' | 'proventos' | 'fluxopj' | 'inventario' | 'calendario' | 'analiseGastos' | 'compartilhados' | 'configuracoes'>('dashboard');
   const [landingView, setLandingView] = useState<'home' | 'costExplorer' | 'blog'>('home');
   const [activeArticle, setActiveArticle] = useState<Article | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileNameInput, setProfileNameInput] = useState('');
   const [profileAvatarInput, setProfileAvatarInput] = useState('');
-  const [profileAvatarFile, setProfileAvatarFile] = useState<File | null>(null);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [showAccountSettingsModal, setShowAccountSettingsModal] = useState(false);
+  const [showTagsManagerModal, setShowTagsManagerModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [rendaInput, setRendaInput] = useState('');
+  const [profissaoInput, setProfissaoInput] = useState('');
+  const [fonteRendaInput, setFonteRendaInput] = useState('');
   const [avatarLoadError, setAvatarLoadError] = useState(false);
   const [showLandingPage, setShowLandingPage] = useState(true);
   const [sandboxExpense, setSandboxExpense] = useState(0);
@@ -231,7 +255,6 @@ export default function App() {
   // ─── Phase 1: FAQ & Termos LGPD ────────────────────────────────────────────
   const [showFAQModal, setShowFAQModal] = useState(false);
   const [showTermosModal, setShowTermosModal] = useState(false);
-  const [showRecurringModal, setShowRecurringModal] = useState(false);
 
   // ─── Phase 3: Edição de Transação ──────────────────────────────────────────
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
@@ -618,6 +641,7 @@ export default function App() {
   const saldoMesAtual = receitasMesAtual - despesasMesAtual;
 
   const openAddTransactionModal = () => {
+    setEditingTxId(null);
     if (activeAccounts.length > 0) {
       const defaultAccount = activeAccounts[0];
       setTxContaId(defaultAccount.id);
@@ -627,6 +651,21 @@ export default function App() {
       setTxMoeda(moeda_base || 'BRL');
     }
     setTxCartaoId('');
+    setShowAddTransactionModal(true);
+  };
+
+  // Abre o modal de transação em modo edição (usado pelo AnaliseGastos etc.)
+  const openEditTransactionModal = (tx: Transacao) => {
+    setEditingTxId(tx.id);
+    setTxDesc(tx.descricao || tx.categoria);
+    setTxVal(String(tx.valor));
+    setTxDate(tx.data_transacao);
+    setTxTipo(tx.tipo === 'receita' ? 'receita' : 'despesa');
+    setTxContaId(tx.id_conta);
+    setTxMoeda(tx.moeda_transacao || contas.find(c => c.id === tx.id_conta)?.moeda_conta || moeda_base);
+    setTxCat(tx.categoria);
+    setTxCartaoId('');
+    setTxTagBancariaId(tx.id_tag_bancaria ?? null);
     setShowAddTransactionModal(true);
   };
 
@@ -799,6 +838,35 @@ export default function App() {
   // Add Transaction
   const handleAddTransactionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Modo edição: atualiza a transação existente no lugar de criar outra
+    if (editingTxId) {
+      const newVal = parseFloat(txVal);
+      if (!txDesc.trim() || isNaN(newVal) || newVal <= 0) {
+        toast.error(t('web_tx_invalid_data'), t('web_tx_invalid_data_desc'));
+        return;
+      }
+      useStore.setState(state => ({
+        transacoes: state.transacoes.map(t =>
+          t.id === editingTxId
+            ? {
+                ...t,
+                descricao: txDesc.trim(),
+                valor: newVal,
+                data_transacao: txDate || t.data_transacao,
+                tipo: txTipo,
+                categoria: txCat,
+                id_conta: txContaId || t.id_conta,
+              }
+            : t
+        )
+      }));
+      setShowAddTransactionModal(false);
+      setEditingTxId(null);
+      toast.success('Transação Atualizada', 'A transação foi editada com sucesso.');
+      return;
+    }
+
     const descCleaned = txDesc.trim();
     if (!descCleaned) {
       toast.error(t('web_tx_desc_required'), t('web_tx_desc_required_desc'));
@@ -1329,7 +1397,29 @@ export default function App() {
   const handleOpenProfileModal = () => {
     setProfileNameInput(nome_usuario || '');
     setProfileAvatarInput(avatar_url || '');
+    setRendaInput(renda_principal ? String(renda_principal) : '');
+    setProfissaoInput(profissao || '');
+    setFonteRendaInput(fonte_renda || '');
     setShowProfileModal(true);
+  };
+
+  const handleOpenAvatarModal = () => {
+    setShowAvatarModal(true);
+  };
+
+  const handleSaveAvatar = (url: string | null) => {
+    const finalUrl = url;
+    setUsuario(id_usuario, email_usuario, nome_usuario, plano_usuario, moeda_base, finalUrl);
+    setProfileAvatarInput(finalUrl || '');
+    if (id_usuario && isSupabaseConfigured) {
+      supabase.auth.updateUser({ data: { avatar_url: finalUrl } }).then(({ error }: { error: any }) => {
+        if (error) console.error("Error updating avatar meta:", error);
+      });
+      updatePerfil(id_usuario, { avatar_url: finalUrl }).then(({ error }) => {
+        if (error) console.error("Error updating avatar table:", error);
+      });
+    }
+    toast.success(t('web_profile_updated'), t('web_avatar_saved'));
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -1338,38 +1428,14 @@ export default function App() {
       toast.error(t('web_profile_name_empty'), t('web_profile_name_empty_desc'));
       return;
     }
-    
+
     let finalAvatarUrl = profileAvatarInput;
-
-    if (profileAvatarFile) {
-      setIsUploadingAvatar(true);
-      try {
-        const fileExt = profileAvatarFile.name.split('.').pop();
-        const fileName = `${id_usuario}_${Date.now()}.${fileExt}`;
-        const filePath = `${id_usuario}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(filePath, profileAvatarFile);
-
-        if (uploadError) {
-          throw uploadError;
-        }
-
-        const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-        finalAvatarUrl = data.publicUrl;
-        setProfileAvatarInput(finalAvatarUrl);
-      } catch (error) {
-        toast.error(t('web_profile_upload_error'), t('web_profile_upload_error_desc'));
-        console.error(error);
-        setIsUploadingAvatar(false);
-        return;
-      }
-      setIsUploadingAvatar(false);
-    }
+    const rendaValor = parseFloat(String(rendaInput).replace(',', '.')) || 0;
+    const nomeCompleto = [profileNameInput.trim(), sobrenome || ''].filter(Boolean).join(' ');
 
     setUsuario(id_usuario, email_usuario, profileNameInput.trim(), plano_usuario, moeda_base, finalAvatarUrl);
-    
+    setPerfilDados({ renda_principal: rendaValor, profissao: profissaoInput.trim() || null, fonte_renda: fonteRendaInput || null });
+
     // Atualizar no Supabase para refletir instantaneamente no Mobile
     if (id_usuario && isSupabaseConfigured) {
       // 1. Atualiza metadados do auth (para persistência de sessão)
@@ -1381,7 +1447,10 @@ export default function App() {
       // 2. Atualiza a tabela pública 'usuarios' para leitura unificada
       updatePerfil(id_usuario, {
         avatar_url: finalAvatarUrl,
-        nome_completo: profileNameInput.trim()
+        nome_completo: nomeCompleto,
+        renda_principal: rendaValor,
+        profissao: profissaoInput.trim() || null,
+        fonte_renda: fonteRendaInput || null,
       }).then(({ error }) => {
         if (error) console.error("Error updating usuarios table:", error);
       });
@@ -1389,7 +1458,72 @@ export default function App() {
 
     toast.success(t('web_profile_updated'), t('web_profile_changes_saved'));
     setShowProfileModal(false);
-    setProfileAvatarFile(null);
+  };
+
+  const handleSaveAccountSettings = async (data: AccountSettingsData) => {
+    const nomeCompleto = [data.nome.trim(), data.sobrenome.trim()].filter(Boolean).join(' ') || null;
+    setPerfilDados({
+      nome_usuario: data.nome.trim() || null,
+      sobrenome: data.sobrenome.trim() || null,
+      data_nascimento: data.data_nascimento || null,
+      documento: data.documento.trim() || null,
+      endereco: data.endereco.trim() || null,
+      telefone: data.telefone.trim() || null,
+      sexo: data.sexo || null,
+      nacionalidade: data.nacionalidade.trim() || null,
+    });
+    if (id_usuario && isSupabaseConfigured) {
+      const { error } = await updatePerfil(id_usuario, {
+        nome_completo: nomeCompleto || undefined,
+        sobrenome: data.sobrenome.trim() || null,
+        data_nascimento: data.data_nascimento || null,
+        documento: data.documento.trim() || null,
+        endereco: data.endereco.trim() || null,
+        telefone: data.telefone.trim() || null,
+        sexo: data.sexo || null,
+        nacionalidade: data.nacionalidade.trim() || null,
+      });
+      if (error) {
+        toast.error(t('web_account_settings_save_error'), error);
+        return;
+      }
+      supabase.auth.updateUser({ data: { nome: data.nome.trim() } }).then(({ error: authErr }: { error: any }) => {
+        if (authErr) console.error("Error updating user meta:", authErr);
+      });
+    }
+    toast.success(t('web_profile_updated'), t('web_account_settings_saved'));
+    setShowAccountSettingsModal(false);
+  };
+
+  const handleCreateTag = async (nome: string, cor: string) => {
+    if (!id_usuario) return;
+    const res = await createTagBancaria({ id_usuario, nome, cor });
+    if (res.error) {
+      toast.error(t('web_tags_manager_error'), res.error);
+      return;
+    }
+    if (res.data) addTagBancaria(res.data);
+    toast.success(t('web_tags_manager_created'));
+  };
+
+  const handleUpdateTag = async (id: string, nome: string, cor: string) => {
+    const res = await updateTagBancariaRemote(id, nome, cor);
+    if (res.error) {
+      toast.error(t('web_tags_manager_error'), res.error);
+      return;
+    }
+    updateTagBancaria(id, nome, cor);
+    toast.success(t('web_tags_manager_updated'));
+  };
+
+  const handleDeleteTag = async (id: string) => {
+    const res = await deleteTagBancaria(id);
+    if (res.error) {
+      toast.error(t('web_tags_manager_error'), res.error);
+      return;
+    }
+    removeTagBancaria(id);
+    toast.success(t('web_tags_manager_deleted'));
   };
 
   // ─── User Menu Handlers ──────────────────────────────────────────────
@@ -2859,6 +2993,7 @@ export default function App() {
                     { view: 'calendario' as const, label: t('web_dashboard_calendar'), icon: 'calendar_today' },
                     { view: 'analiseGastos' as const, label: t('web_analise_nav'), icon: 'bar_chart' },
                     { view: 'compartilhados' as const, label: t('gastos_compartilhados_title'), icon: 'group' },
+                    { view: 'configuracoes' as const, label: t('web_settings_title'), icon: 'settings' },
                   ]).map(item => (
                     <button
                       key={item.view}
@@ -2909,49 +3044,6 @@ export default function App() {
                     </button>
                   )}
                 </nav>
-                <button
-                  onClick={() => { setShowAddAccountModal(true); setShowMobileSidebar(false); }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    padding: '14px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: 'var(--accent-blue)',
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    marginTop: '16px'
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
-                  Nova Conta
-                </button>
-                <button
-                  onClick={() => { setShowRecurringModal(true); setShowMobileSidebar(false); }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: 'transparent',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                    fontSize: '0.9rem',
-                    textAlign: 'left',
-                    width: '100%',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>repeat</span>
-                  {t('web_recurring_title') || 'Despesas Recorrentes'}
-                </button>
               </aside>
             </>
           )}
@@ -2986,6 +3078,7 @@ export default function App() {
                 { view: 'calendario' as const, label: t('web_dashboard_calendar'), icon: 'calendar_today' },
                 { view: 'analiseGastos' as const, label: t('web_analise_nav'), icon: 'bar_chart' },
                 { view: 'compartilhados' as const, label: t('gastos_compartilhados_title'), icon: 'group' },
+                { view: 'configuracoes' as const, label: t('web_settings_title'), icon: 'settings' },
               ]).map(item => (
                 <button
                   key={item.view}
@@ -3036,51 +3129,6 @@ export default function App() {
                 </button>
               )}
             </nav>
-
-            <button
-              onClick={() => setShowAddAccountModal(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '14px',
-                borderRadius: '12px',
-                border: 'none',
-                background: 'var(--accent-blue)',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                marginTop: '16px',
-                transition: 'opacity 0.2s'
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
-              Nova Conta
-            </button>
-            <button
-              onClick={() => setShowRecurringModal(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '12px 16px',
-                borderRadius: '12px',
-                border: 'none',
-                background: 'transparent',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                fontWeight: 500,
-                fontSize: '0.9rem',
-                textAlign: 'left',
-                width: '100%',
-                transition: 'all 0.2s',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>repeat</span>
-              {t('web_recurring_title') || 'Despesas Recorrentes'}
-            </button>
           </aside>
 
           {/* MAIN CONTENT AREA */}
@@ -3104,7 +3152,7 @@ export default function App() {
             }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
               <div
-                onClick={handleOpenProfileModal}
+                onClick={handleOpenAvatarModal}
                 style={{
                   width: '40px',
                   height: '40px',
@@ -3120,7 +3168,7 @@ export default function App() {
                 }}
                 onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                 onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                title="Editar Perfil"
+                title={t('web_change_profile_photo') || 'Alterar Foto de Perfil'}
               >
                 {(avatar_url && avatar_url.startsWith('http') && !avatarLoadError) ? (
                     <img
@@ -3252,6 +3300,30 @@ export default function App() {
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>key</span>
                         {t('web_user_menu_change_password')}
+                      </button>
+
+                      <button
+                        onClick={() => { setShowUserMenu(false); setActiveView('configuracoes'); }}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '10px 12px',
+                          background: 'transparent',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          color: 'var(--text-primary)',
+                          textAlign: 'left',
+                          transition: 'background 0.15s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-border)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>settings</span>
+                        {t('web_user_menu_settings') || 'Configurações'}
                       </button>
 
                       <button
@@ -4604,13 +4676,7 @@ export default function App() {
                 contas={activeAccounts}
                 moedaBase={moeda_base}
                 rates={rates}
-                onEditTx={(tx) => {
-                  setEditingTxId(tx.id);
-                  setEditTxDescricao(tx.descricao || tx.categoria);
-                  setEditTxValor(String(tx.valor));
-                  setEditTxData(tx.data_transacao);
-                  setActiveView('dashboard');
-                }}
+                onEditTx={(tx) => openEditTransactionModal(tx)}
                 onDeleteTx={handleDeleteTransacao}
               />
             </div>
@@ -4626,6 +4692,20 @@ export default function App() {
                 onDeleteTx={handleDeleteTransacao}
               />
             </div>
+          )}
+
+          {activeView === 'configuracoes' && (
+            <ConfiguracoesView
+              nome={nome_usuario}
+              email={email_usuario}
+              avatarUrl={avatar_url}
+              plano={plano_usuario}
+              onOpenEditProfile={handleOpenProfileModal}
+              onOpenAccountSettings={() => setShowAccountSettingsModal(true)}
+              onOpenChangePassword={() => setShowPasswordModal(true)}
+              onOpenTagsManager={() => setShowTagsManagerModal(true)}
+              onOpenExport={() => setShowExportModal(true)}
+            />
           )}
 
           {activeView === 'blog' && (
@@ -4676,7 +4756,7 @@ export default function App() {
       {/* MODAL: NOVA TRANSAÇÃO */}
       <TransactionModal
         isOpen={showAddTransactionModal}
-        onClose={() => setShowAddTransactionModal(false)}
+        onClose={() => { setShowAddTransactionModal(false); setEditingTxId(null); }}
         editingTxId={editingTxId}
         txDesc={txDesc}
         setTxDesc={setTxDesc}
@@ -4850,12 +4930,6 @@ export default function App() {
         contaId={activeAccounts[0]?.id || ''}
       />
 
-      <RecurringExpensesModal
-        isOpen={showRecurringModal}
-        onClose={() => setShowRecurringModal(false)}
-      />
-
-      {/* MODAL ALTERAR SENHA */}
       {showPasswordModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -5052,16 +5126,47 @@ export default function App() {
             boxSizing: 'border-box'
           }} className="fade-in">
             <h2 style={{ fontSize: '1.5rem', fontWeight: '800', margin: '0 0 8px 0', letterSpacing: '-0.5px'}}>
-              Editar Perfil
+              {t('web_profile_modal_title') || 'Editar Perfil'}
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '0 0 24px 0'}}>
-              Personalize seu nome e avatar que aparecem no Com Réis.
+              {t('web_profile_modal_subtitle') || 'Seu nome e informações profissionais/financeiras.'}
             </p>
 
-            <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '30px'}}>
+            <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '24px'}}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden',
+                  background: 'linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-green) 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  border: '1px solid var(--card-border)'
+                }}>
+                  {avatar_url && avatar_url.startsWith('http') && !avatarLoadError ? (
+                    <img src={avatar_url} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setAvatarLoadError(true)} />
+                  ) : (
+                    <span className="text-dark-mangos" style={{ fontSize: '26px', fontWeight: 'bold' }}>
+                      {avatar_url && !avatar_url.startsWith('http') ? avatar_url : (nome_usuario || 'M').charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t('web_profile_avatar_label') || 'Foto de Perfil'}</div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAvatarModal(true)}
+                    style={{
+                      marginTop: '6px', background: 'rgba(0,210,255,0.1)', border: '1px solid rgba(0,210,255,0.3)',
+                      color: 'var(--accent-blue)', padding: '8px 14px', borderRadius: '10px',
+                      fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer'
+                    }}
+                  >
+                    {t('web_profile_change_photo') || 'Alterar Foto'}
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                  Seu Nome
+                  {t('web_profile_name') || 'Seu Nome'}
                 </label>
                 <TextInput
                   type="text"
@@ -5074,88 +5179,51 @@ export default function App() {
 
               <div>
                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                  Escolha um Avatar (Preset)
+                  {t('web_profile_income') || 'Renda Mensal'}
                 </label>
-                <div className="rg-4col" style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
-                  gap: '18px',
-                  marginBottom: '16px'
-                }}>
-                  {['🐱', '🐵', '🐶', '🦁', '🐼', '🦝', '🦊', '🐰'].map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => setProfileAvatarInput(emoji)}
-                      style={{
-                        background: profileAvatarInput === emoji ? 'rgba(0, 210, 255, 0.15)' : 'var(--card-border)',
-                        border: profileAvatarInput === emoji ? '2px solid var(--accent-blue)' : '1px solid var(--card-border)',
-                        borderRadius: '16px',
-                        padding: '18px',
-                        fontSize: '1.6rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      onMouseOver={(e) => {
-                        if (profileAvatarInput !== emoji) e.currentTarget.style.borderColor = 'var(--card-border)';
-                      }}
-                      onMouseOut={(e) => {
-                        if (profileAvatarInput !== emoji) e.currentTarget.style.borderColor = 'var(--card-border)';
-                      }}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
+                <TextInput
+                  type="number"
+                  placeholder="0,00"
+                  value={rendaInput}
+                  onChange={(e) => setRendaInput(e.target.value)}
+                  step="0.01"
+                  min="0"
+                />
               </div>
 
               <div>
                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                  Fazer Upload de Foto (Nova)
-                </label>
-                <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files.length > 0) {
-                        setProfileAvatarFile(e.target.files[0]);
-                        setProfileAvatarInput(''); // Reseta o texto se enviou arquivo
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '15px 14px',
-                      background: 'var(--bg-color)',
-                      border: '1px solid var(--card-border)',
-                      borderRadius: '12px',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.95rem',
-                      cursor: 'pointer'
-                    }}
-                  />
-                </div>
-                {profileAvatarFile && (
-                  <p style={{ color: 'var(--accent-green)', fontSize: '0.8rem', marginTop: '4px' }}>
-                    Arquivo selecionado: {profileAvatarFile.name}
-                  </p>
-                )}
-                
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginTop: '16px', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                  Ou use uma URL de Imagem Customizada
+                  {t('web_profile_occupation') || 'Profissão'}
                 </label>
                 <TextInput
-                  type="url"
-                  placeholder="https://exemplo.com/suafoto.jpg"
-                  value={profileAvatarInput && profileAvatarInput.startsWith('http') ? profileAvatarInput : ''}
-                  onChange={(e) => {
-                    setProfileAvatarInput(e.target.value);
-                    setProfileAvatarFile(null); // Reseta o arquivo se digitou URL
-                  }}
+                  type="text"
+                  placeholder={t('web_profile_occupation_placeholder') || 'Ex: Engenheiro, Designer, Autônomo...'}
+                  value={profissaoInput}
+                  onChange={(e) => setProfissaoInput(e.target.value)}
                 />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                  {t('web_profile_income_source') || 'Fonte de Renda'}
+                </label>
+                <select
+                  value={fonteRendaInput}
+                  onChange={(e) => setFonteRendaInput(e.target.value)}
+                  style={{
+                    width: '100%', padding: '15px 14px', background: 'var(--bg-color)',
+                    border: '1px solid var(--card-border)', borderRadius: '12px',
+                    color: 'var(--text-primary)', fontSize: '0.95rem', boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="">{t('web_profile_income_source_choose') || 'Selecione...'}</option>
+                  <option value="autonomo_vinculo">{t('web_profile_source_autonomo_vinculo') || 'Autônomo c/ vínculo'}</option>
+                  <option value="autonomo_sem_vinculo">{t('web_profile_source_autonomo_sem_vinculo') || 'Autônomo s/ vínculo'}</option>
+                  <option value="clt">{t('web_profile_source_clt') || 'CLT'}</option>
+                  <option value="aposentado">{t('web_profile_source_aposentado') || 'Aposentado'}</option>
+                  <option value="desempregado">{t('web_profile_source_desempregado') || 'Desempregado'}</option>
+                  <option value="pensionista">{t('web_profile_source_pensionista') || 'Pensionista'}</option>
+                </select>
               </div>
 
               <div style={{ display: 'flex', gap: '18px', marginTop: '12px'}}>
@@ -5176,16 +5244,59 @@ export default function App() {
                   onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-border)'}
                   onMouseOut={(e) => e.currentTarget.style.background = 'var(--card-border)'}
                 >
-                  Cancelar
+                  {t('web_logout_cancel') || 'Cancelar'}
                 </button>
-                <PrimaryButton type="submit" style={{ flex: 1, borderRadius: '12px'}} disabled={isUploadingAvatar}>
-                  {isUploadingAvatar ? 'Enviando...' : 'Salvar Alterações'}
+                <PrimaryButton type="submit" style={{ flex: 1, borderRadius: '12px'}}>
+                  {t('web_profile_save') || 'Salvar Alterações'}
                 </PrimaryButton>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      <AvatarModal
+        open={showAvatarModal}
+        onClose={() => setShowAvatarModal(false)}
+        currentAvatar={avatar_url}
+        idUsuario={id_usuario}
+        onSave={handleSaveAvatar}
+      />
+
+      <AccountSettingsModal
+        open={showAccountSettingsModal}
+        onClose={() => setShowAccountSettingsModal(false)}
+        initial={{
+          email: email_usuario || '',
+          nome: nome_usuario || '',
+          sobrenome: sobrenome || '',
+          data_nascimento: data_nascimento || '',
+          documento: documento || '',
+          endereco: endereco || '',
+          telefone: telefone || '',
+          sexo: sexo || '',
+          nacionalidade: nacionalidade || '',
+        }}
+        onSave={handleSaveAccountSettings}
+      />
+
+      <TagsManagerModal
+        open={showTagsManagerModal}
+        onClose={() => setShowTagsManagerModal(false)}
+        tags={tagsBancarias.map((tag) => ({ id: tag.id, nome: tag.nome, cor: tag.cor }))}
+        onCreate={handleCreateTag}
+        onUpdate={handleUpdateTag}
+        onDelete={handleDeleteTag}
+      />
+
+      <ExportarRelatoriosModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        transactions={activeTransactions}
+        accounts={activeAccounts}
+        moedaBase={moeda_base}
+        rates={rates}
+      />
     </div>
       } />
     </Routes>

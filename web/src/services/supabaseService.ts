@@ -28,8 +28,21 @@ export interface UsuarioPerfil {
   plano: 'free' | 'premium';
   moeda_base: string;
   avatar_url?: string | null;
+  renda_principal?: number | null;
+  sobrenome?: string | null;
+  profissao?: string | null;
+  fonte_renda?: string | null;
+  data_nascimento?: string | null;
+  documento?: string | null;
+  endereco?: string | null;
+  telefone?: string | null;
+  sexo?: string | null;
+  nacionalidade?: string | null;
   deleted_at?: string | null;
 }
+
+const PERFIL_BASE_COLUMNS = 'id, email, nome_completo, plano, moeda_base, avatar_url, deleted_at';
+const PERFIL_EXTRA_COLUMNS = 'renda_principal, sobrenome, profissao, fonte_renda, data_nascimento, documento, endereco, telefone, sexo, nacionalidade';
 
 /**
  * Busca o perfil do usuário logado na tabela public.usuarios.
@@ -38,17 +51,17 @@ export interface UsuarioPerfil {
 export async function fetchPerfil(userId: string): ServiceResult<UsuarioPerfil> {
   if (!isSupabaseConfigured) return notConfigured();
   try {
-    // Tentar com avatar_url primeiro
+    // Tentar com as colunas completas do perfil primeiro
     let { data, error } = await supabase
       .from('usuarios')
-      .select('id, email, nome_completo, plano, moeda_base, avatar_url, deleted_at')
+      .select(`${PERFIL_BASE_COLUMNS}, ${PERFIL_EXTRA_COLUMNS}`)
       .eq('id', userId)
       .single();
-    // Se a query falhou (coluna avatar_url pode não existir), tentar sem ela
-    if (error && error.message?.includes('avatar_url')) {
+    // Se a query falhou (colunas novas podem não existir no DB), tentar sem elas
+    if (error) {
       const result = await supabase
         .from('usuarios')
-        .select('id, email, nome_completo, plano, moeda_base, deleted_at')
+        .select(PERFIL_BASE_COLUMNS)
         .eq('id', userId)
         .single();
       data = result.data;
@@ -67,7 +80,7 @@ export async function fetchPerfil(userId: string): ServiceResult<UsuarioPerfil> 
  */
 export async function updatePerfil(
   userId: string,
-  updates: Partial<Pick<UsuarioPerfil, 'plano' | 'moeda_base' | 'nome_completo' | 'avatar_url'>>
+  updates: Partial<Omit<UsuarioPerfil, 'id'>>
 ): ServiceResult<void> {
   if (!isSupabaseConfigured) return notConfigured();
   try {
@@ -1205,13 +1218,15 @@ export async function gerarTransacoesDoMes(
     const dia = Math.min(rec.dia_vencimento, 28); // Usar 28 para evitar problemas com meses diferentes
     const dataTransacao = `${mesAno}-${String(dia).padStart(2, '0')}`;
     
+    const descricaoGerada = `[Recorrente] ${rec.descricao?.trim() || rec.categoria}`;
+
     // Verificar se já existe transação para esta recorrência neste mês
     const { data: existente } = await supabase
       .from('transacoes')
       .select('id')
       .eq('id_conta', rec.id_conta)
       .eq('data_transacao', dataTransacao)
-      .eq('descricao', `[Recorrente] ${rec.categoria}`)
+      .eq('descricao', descricaoGerada)
       .limit(1);
     
     if (existente && existente.length > 0) {
@@ -1228,7 +1243,7 @@ export async function gerarTransacoesDoMes(
         valor: rec.valor,
         categoria: rec.categoria,
         data_transacao: dataTransacao,
-        descricao: `[Recorrente] ${rec.categoria}`,
+        descricao: descricaoGerada,
         moeda_transacao: rec.moeda_transacao,
       });
     

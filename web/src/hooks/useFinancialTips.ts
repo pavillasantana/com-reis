@@ -56,8 +56,8 @@ const MOCK_ARTICLES: Article[] = [
 
 async function fetchFinancialTips(page: number): Promise<Article[]> {
   try {
-    // Tenta conectar no Strapi local ou demo
-    const res = await fetch(`http://localhost:1337/api/articles?populate=*&pagination[page]=${page}&pagination[pageSize]=2`);
+    // Tenta conectar no CMS de produção
+    const res = await fetch(`https://cms.comreis.com/api/articles?populate=*&pagination[page]=${page}&pagination[pageSize]=2`);
     if (!res.ok) throw new Error('Strapi não disponível');
     const data = await res.json();
     
