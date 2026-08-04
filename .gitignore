@@ -21,40 +21,27 @@ build/
 Desktop.ini
 dist/
 .DS_Store
-.env
-!.env.example
 .expo/
 expo-env.d.ts
 fix_css.js
 .idea/
 ios/
-*.jks
-*.key
-*.keystore
 .kotlin/
 # Local Netlify folder
 *.log
 .metro-health-check*
+.migration_already_run
 migrations/
-migration.sql
-*.mobileprovision
+.mobileprovision
 .netlify
 node_modules/
 npm-debug.*
 old/
 *.orig.*
-*.p12
-*.p8
-*.pem
 .pnp.*
 pnpm-debug.*
 Recording_*.mp4
 RELATORIOOPENCODE.TXT
-# Se quiser versionar migrations, comente esta linha:
-supabase/.branches
-supabase/migrations/
-supabase_setup.sql
-supabase/.temp
 *.swo
 *.swp
 TASK.MD
@@ -76,3 +63,31 @@ Ideia portal investidos/
 Layout/
 screencapture-*.png
 unnamed.jpg
+
+# ─── Backend / Infra: mantidos APENAS localmente (fora do GitHub) ─────────────
+# Segredos nunca versionar
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.p8
+*.jks
+*.keystore
+*.key
+*.mobileprovision
+supabase/.temp
+supabase/.branches
+supabase_setup.sql
+migration.sql
+
+# Codigo de backend/schema/CLI que ficam so no HD
+/schema.sql
+/migration_*.sql
+/sql/
+/supabase/
+/scripts/
+/package.json
+/package-lock.json
+/AUDITORIA_SEGURANCA_COMPLETA.md
+.migration_already_run
