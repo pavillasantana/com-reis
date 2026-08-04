@@ -67,14 +67,14 @@ export const FechamentoMensalModal: React.FC<FechamentoMensalProps> = ({
   // Gera texto para compartilhar
   const gerarTexto = () => {
     const linhas = [
-      `📊 *${t('web_closing_title')} — ${mesNome}/${anoSel}*`,
+      `*${t('web_closing_title')} — ${mesNome}/${anoSel}*`,
       `${t('web_closing_total_expenses')}: ${fmt(totalSel)}`,
       `${t('web_closing_each_share')}: ${fmt(parteIgual)}`,
       '',
-      `📋 *${t('web_closing_selected_expenses')}:*`,
+      `*${t('web_closing_selected_expenses')}:*`,
       ...txsSelecionadas.map(t => `• ${t.descricao || t.categoria}: ${fmt(t.valor)} (${responsaveis[t.id] || participantes[0]})`),
       '',
-      `⚖️ *${t('web_closing_generate')}:*`,
+      `*${t('web_closing_generate')}:*`,
       ...participantes.map(p => {
         const a = ajustes[p];
         if (a > 0.01) return `• ${p} ${t('web_closing_paid', { amount: fmt(splitPorParticipante[p]) })} → ${t('web_closing_owes', { amount: fmt(a) })}`;

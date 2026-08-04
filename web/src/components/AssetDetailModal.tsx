@@ -7,6 +7,7 @@ import type { StockQuote } from '../hooks/useInvestments';
 import { getTickerName, getCategoriaInfo, getNomeSubcategoria } from '../utils/investmentCategories';
 import { useToast } from './Toast';
 import { useI18n } from '../i18n';
+import { ConfirmModal } from './ConfirmModal';
 
 interface AssetDetailModalProps {
   ticker: string;
@@ -66,6 +67,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
 
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkConfirm, setBulkConfirm] = useState<{ title: string; message: string } | null>(null);
 
   const handleDelete = async (id: string) => {
     if (!id.startsWith('local-')) {
@@ -78,8 +80,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
-    if (!window.confirm(`Excluir permanentemente ${selectedIds.size} lote(s)?`)) return;
-
+    const total = selectedIds.size;
     let erros = 0;
     for (const id of selectedIds) {
       if (!id.startsWith('local-')) {
@@ -91,7 +92,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
     if (erros > 0) {
       toast.error(`Falha ao excluir ${erros} lote(s).`);
     } else {
-      toast.success(`${selectedIds.size} lote(s) excluído(s)!`);
+      toast.success(`${total} lote(s) excluído(s)!`);
     }
     setSelectedIds(new Set());
     onUpdate();
@@ -195,7 +196,13 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
                 {allTxs.length} {t('web_invest_detail_lots')}
               </h3>
             {selectedIds.size > 0 && (
-              <button onClick={handleBulkDelete} style={{
+              <button onClick={() => {
+                const total = selectedIds.size;
+                setBulkConfirm({
+                  title: 'Excluir Lotes',
+                  message: `Excluir permanentemente ${total} lote(s)?`,
+                });
+              }} style={{
                 background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
                 borderRadius: '8px', padding: '6px 14px', cursor: 'pointer',
                 color: ACCENT_RED, fontWeight: 700, fontSize: '0.78rem',
@@ -287,6 +294,16 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {bulkConfirm && (
+        <ConfirmModal
+          isOpen={true}
+          title={bulkConfirm.title}
+          message={bulkConfirm.message}
+          onConfirm={() => { setBulkConfirm(null); handleBulkDelete(); }}
+          onCancel={() => setBulkConfirm(null)}
+        />
       )}
     </div>
   );

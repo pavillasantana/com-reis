@@ -72,32 +72,33 @@ export function TagsManagerModal({ open, onClose, tags, onCreate, onUpdate, onDe
         </p>
 
         <label style={labelStyle}>{t('web_tags_manager_new') || 'Nova Tag'}</label>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
-          <div style={{ flex: 1 }}>
-            <TextInput
-              type="text"
-              placeholder={t('web_tags_manager_name_placeholder') || 'Ex: Mercado, Saúde, Lazer...'}
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-            />
+        <div style={{ marginBottom: '24px' }}>
+          <TextInput
+            type="text"
+            placeholder={t('web_tags_manager_name_placeholder') || 'Ex: Mercado, Saúde, Lazer...'}
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            style={{ width: '100%', fontSize: '0.95rem', padding: '12px 14px', marginBottom: '14px' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCor(c)}
+                  style={{
+                    width: '26px', height: '26px', borderRadius: '8px', background: c, border: 'none',
+                    cursor: 'pointer', outline: cor === c ? '2px solid var(--accent-blue)' : '1px solid var(--card-border)',
+                    outlineOffset: '2px'
+                  }}
+                />
+              ))}
+            </div>
+            <PrimaryButton type="button" onClick={handleCreate} style={{ borderRadius: '12px', padding: '12px 18px' }}>
+              {t('web_tags_manager_add') || 'Adicionar'}
+            </PrimaryButton>
           </div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setCor(c)}
-                style={{
-                  width: '26px', height: '26px', borderRadius: '8px', background: c, border: 'none',
-                  cursor: 'pointer', outline: cor === c ? '2px solid var(--accent-blue)' : '1px solid var(--card-border)',
-                  outlineOffset: '2px'
-                }}
-              />
-            ))}
-          </div>
-          <PrimaryButton type="button" onClick={handleCreate} style={{ borderRadius: '12px', padding: '12px 18px' }}>
-            {t('web_tags_manager_add') || 'Adicionar'}
-          </PrimaryButton>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
@@ -115,30 +116,37 @@ export function TagsManagerModal({ open, onClose, tags, onCreate, onUpdate, onDe
             >
               <span style={{ width: '14px', height: '14px', borderRadius: '4px', background: tag.cor, flexShrink: 0 }} />
               {editId === tag.id ? (
-                <>
-                  <div style={{ flex: 1 }}>
-                    <TextInput type="text" value={editNome} onChange={(e) => setEditNome(e.target.value)} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                      <TextInput
+                        type="text"
+                        value={editNome}
+                        onChange={(e) => setEditNome(e.target.value)}
+                        style={{ width: '100%', fontSize: '0.95rem', padding: '10px 12px' }}
+                      />
+                    </div>
+                    <button type="button" onClick={() => handleUpdate(tag.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-green)', padding: '8px' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>check</span>
+                    </button>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     {COLORS.map((c) => (
                       <button
                         key={c}
                         type="button"
                         onClick={() => setEditCor(c)}
                         style={{
-                          width: '20px', height: '20px', borderRadius: '6px', background: c, border: 'none', cursor: 'pointer',
+                          width: '22px', height: '22px', borderRadius: '6px', background: c, border: 'none', cursor: 'pointer',
                           outline: editCor === c ? '2px solid var(--accent-blue)' : '1px solid var(--card-border)', outlineOffset: '1px'
                         }}
                       />
                     ))}
                   </div>
-                  <button type="button" onClick={() => handleUpdate(tag.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-green)' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>check</span>
-                  </button>
-                </>
+                </div>
               ) : (
                 <>
-                  <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', flex: 1 }}>{tag.nome}</span>
+                  <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>{tag.nome}</span>
                   <button
                     type="button"
                     onClick={() => { setEditId(tag.id); setEditNome(tag.nome); setEditCor(tag.cor); }}

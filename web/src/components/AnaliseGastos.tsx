@@ -1,5 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
+  Pencil, Trash2, Share2, BarChart3, Handshake, TrendingUp as TrendingUpIcon
+} from 'lucide-react';
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, Cell, PieChart, Pie
 } from 'recharts';
@@ -11,6 +14,7 @@ import type { TransacaoAtivo } from '../services/supabaseService';
 import { useQuotes } from '../hooks/useInvestments';
 import { RecurringExpensesModal } from './RecurringExpensesModal';
 import { AdBanner } from './AdBanner';
+import { ConfirmModal } from './ConfirmModal';
 
 interface AnaliseGastosProps {
   transacoes: Transacao[];
@@ -42,6 +46,7 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
   const [ativosTxs, setAtivosTxs] = useState<TransacaoAtivo[]>([]);
   const [ativosLoading, setAtivosLoading] = useState(false);
   const [showRecurring, setShowRecurring] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Transacao | null>(null);
 
   useEffect(() => {
     if (!showAtivos) return;
@@ -189,9 +194,9 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
   const tipoColor = tipoFilter === 'receita' ? 'var(--accent-green, #10B981)' : 'var(--negative, #EF4444)';
 
   const shareReport = async () => {
-    let text = `📊 *${t('web_analise_title')}*\n`;
-    text += `📅 ${getPeriodLabel()}\n`;
-    text += `💰 ${tipoLabel}: ${formatCurrency(totalDespesas, moedaBase)}\n\n`;
+    let text = `*${t('web_analise_title')}*\n`;
+    text += `${getPeriodLabel()}\n`;
+    text += `${tipoLabel}: ${formatCurrency(totalDespesas, moedaBase)}\n\n`;
     text += `*${t('web_analise_by_category')}*\n`;
     porCategoria.forEach((c) => {
       text += `• ${c.categoria}: ${formatCurrency(c.valor, moedaBase)} (${c.percentual.toFixed(1)}%)\n`;
@@ -212,8 +217,8 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0, letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>
-            📊 {t('web_analise_title')}
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0, letterSpacing: '-0.5px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <BarChart3 size={26} /> {t('web_analise_title')}
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '4px 0 0 0' }}>
             {getPeriodLabel()}
@@ -227,7 +232,7 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
             fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
           }}
         >
-          📋 {t('web_analise_share_report')}
+          <Share2 size={16} /> {t('web_analise_share_report')}
         </button>
       </div>
 
@@ -459,16 +464,16 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: 'var(--accent-blue)', padding: '2px 4px' }}
                                 title={t('edit')}
                               >
-                                ✏️
+                                <Pencil size={14} />
                               </button>
                             )}
                             {onDeleteTx && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); if (confirm(t('web_analise_confirm_delete'))) onDeleteTx(tx.id); }}
+                                onClick={(e) => { e.stopPropagation(); setDeleteTarget(tx); }}
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: 'var(--color-danger)', padding: '2px 4px' }}
                                 title={t('delete')}
                               >
-                                🗑️
+                                <Trash2 size={14} />
                               </button>
                             )}
                           </div>
@@ -494,8 +499,8 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
           background: 'var(--card-bg, #fff)', borderRadius: '16px', padding: '24px',
           border: '1px solid var(--border-color, #e2e8f0)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: '24px',
         }}>
-          <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            📈 {t('web_analise_assets_title')}
+          <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <TrendingUpIcon size={16} /> {t('web_analise_assets_title')}
           </h3>
           {ativosLoading ? (
             <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '24px 0' }}>
@@ -548,8 +553,8 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
           background: 'var(--card-bg, #fff)', borderRadius: '16px', padding: '24px',
           border: '1px solid var(--accent-blue, #1045A1)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: '24px',
         }}>
-          <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-blue)', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            🤝 {t('web_dashboard_shared_only')} — {t('web_analise_shared_expenses')}
+          <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-blue)', margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Handshake size={16} /> {t('web_dashboard_shared_only')} — {t('web_analise_shared_expenses')}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
             <div>
@@ -582,6 +587,16 @@ export const AnaliseGastos = ({ transacoes, contas, moedaBase, rates, onEditTx, 
         isOpen={showRecurring}
         onClose={() => setShowRecurring(false)}
       />
+
+      {deleteTarget && (
+        <ConfirmModal
+          isOpen={true}
+          title={t('web_dashboard_delete_tx_title')}
+          message={t('web_analise_confirm_delete')}
+          onConfirm={() => { onDeleteTx?.(deleteTarget.id); setDeleteTarget(null); }}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 };

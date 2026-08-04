@@ -96,6 +96,7 @@ CREATE TABLE public.caixinhas (
     nome TEXT NOT NULL,
     valor_alvo NUMERIC(15, 2) NOT NULL CHECK (valor_alvo > 0),
     saldo_guardado NUMERIC(15, 2) DEFAULT 0.00 NOT NULL CHECK (saldo_guardado >= 0),
+    prazo_meses INTEGER DEFAULT NULL CHECK (prazo_meses IS NULL OR prazo_meses BETWEEN 1 AND 1200),
     data_criacao TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
 );

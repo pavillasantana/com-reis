@@ -39,6 +39,7 @@ export interface Caixinha {
   nome: string;
   valor_alvo: number;
   saldo_guardado: number;
+  prazo_meses?: number | null;
 }
 
 export interface Cartao {
@@ -131,7 +132,7 @@ interface AppState {
   addCaixinha: (caixinha: Caixinha) => void;
   addCartao: (cartao: Cartao) => void;
   updateCaixinhaSaldo: (caixinhaId: string, novoSaldo: number) => void;
-  updateCaixinha: (id: string, nome: string, valor_alvo: number) => void;
+  updateCaixinha: (id: string, nome: string, valor_alvo: number, prazo_meses?: number | null) => void;
   updateCartao: (id: string, nome: string, limite: number, fatura_atual: number) => void;
   updateTransacaoConta: (txId: string, novaContaId: string) => void;
   removeConta: (id: string) => void;
@@ -235,8 +236,8 @@ export const useStore = create<AppState>()(
         caixinhas: state.caixinhas.map((c) => c.id === caixinhaId ? { ...c, saldo_guardado: novoSaldo } : c),
       })),
 
-      updateCaixinha: (id, nome, valor_alvo) => set((state) => ({
-        caixinhas: state.caixinhas.map((c) => c.id === id ? { ...c, nome, valor_alvo } : c),
+      updateCaixinha: (id, nome, valor_alvo, prazo_meses) => set((state) => ({
+        caixinhas: state.caixinhas.map((c) => c.id === id ? { ...c, nome, valor_alvo, prazo_meses } : c),
       })),
 
       updateCartao: (id, nome, limite, fatura_atual) => set((state) => ({

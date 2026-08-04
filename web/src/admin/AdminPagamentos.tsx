@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from './adminSupabase';
 import { Search, RefreshCw, DollarSign, Clock, CheckCircle, XCircle, Ban, AlertTriangle } from 'lucide-react';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 interface Pagamento {
   id: string;
@@ -23,6 +24,7 @@ export function AdminPagamentos() {
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'active' | 'expired' | 'cancelled'>('todos');
   const [cancelandoId, setCancelandoId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<{ userId: string; assinaturaId: string } | null>(null);
 
   useEffect(() => { loadPagamentos(); }, []);
 
@@ -114,7 +116,6 @@ export function AdminPagamentos() {
   }
 
   async function cancelarAssinatura(userId: string, assinaturaId: string) {
-    if (!confirm('Tem certeza que deseja cancelar esta assinatura? O usuário manterá acesso Premium até a data de fim.')) return;
     setCancelandoId(assinaturaId);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -311,7 +312,7 @@ export function AdminPagamentos() {
                     <td>
                       {p.status === 'active' && (
                         <button
-                          onClick={() => cancelarAssinatura(p.id_usuario, p.id)}
+                          onClick={() => setCancelTarget({ userId: p.id_usuario, assinaturaId: p.id })}
                           disabled={cancelandoId === p.id}
                           className="admin-btn admin-btn-sm admin-btn-danger"
                           style={{ gap: '4px', fontSize: '0.75rem' }}
@@ -334,6 +335,21 @@ export function AdminPagamentos() {
           </table>
         </div>
       </div>
+
+      {cancelTarget && (
+        <ConfirmModal
+          isOpen={true}
+          title="Cancelar Assinatura"
+          message="Tem certeza que deseja cancelar esta assinatura? O usuário manterá acesso Premium até a data de fim."
+          confirmText="Cancelar"
+          onConfirm={() => {
+            const target = cancelTarget;
+            setCancelTarget(null);
+            cancelarAssinatura(target.userId, target.assinaturaId);
+          }}
+          onCancel={() => setCancelTarget(null)}
+        />
+      )}
     </div>
   );
 }

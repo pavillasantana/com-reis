@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PiggyBank } from 'lucide-react';
 import { TextInput } from './TextInput';
 import { PrimaryButton } from './PrimaryButton';
 import { useI18n } from '../i18n';
@@ -67,12 +68,12 @@ export function DepositModal({
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px'}}>
           <div style={{
-            width: '36px, height: 36px, borderRadius: 50%',
+            width: '36px', height: '36px', borderRadius: '50%',
             background: 'rgba(0, 245, 160, 0.12)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '18px',
           }}>
-            🐷
+            <PiggyBank size={20} style={{ color: 'var(--accent-green)' }} />
           </div>
           <div>
             <h3 id="deposit-title" style={{ margin: 0, fontSize: '1.1rem' }}>

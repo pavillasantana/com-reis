@@ -374,7 +374,7 @@ export async function fetchCaixinhas(): ServiceResult<Caixinha[]> {
   try {
     const { data, error } = await supabase
       .from('caixinhas')
-      .select('id, id_espaco, nome, valor_alvo, saldo_guardado')
+      .select('id, id_espaco, nome, valor_alvo, saldo_guardado, prazo_meses')
       .is('deleted_at', null)
       .order('data_criacao', { ascending: true });
     if (error) return { data: null, error: error.message };
@@ -383,6 +383,7 @@ export async function fetchCaixinhas(): ServiceResult<Caixinha[]> {
         ...c,
         valor_alvo: Number(c.valor_alvo),
         saldo_guardado: Number(c.saldo_guardado),
+        prazo_meses: c.prazo_meses == null ? null : Number(c.prazo_meses),
       })),
       error: null,
     };
@@ -407,13 +408,14 @@ export async function createCaixinha(
         nome: caixinha.nome,
         valor_alvo: caixinha.valor_alvo,
         saldo_guardado: caixinha.saldo_guardado ?? 0,
+        prazo_meses: caixinha.prazo_meses ?? null,
       })
-      .select('id, id_espaco, nome, valor_alvo, saldo_guardado')
+      .select('id, id_espaco, nome, valor_alvo, saldo_guardado, prazo_meses')
       .single();
     if (error) return { data: null, error: error.message };
     const raw = data as Caixinha;
     return {
-      data: { ...raw, valor_alvo: Number(raw.valor_alvo), saldo_guardado: Number(raw.saldo_guardado) },
+      data: { ...raw, valor_alvo: Number(raw.valor_alvo), saldo_guardado: Number(raw.saldo_guardado), prazo_meses: raw.prazo_meses == null ? null : Number(raw.prazo_meses) },
       error: null,
     };
   } catch (e) {
@@ -449,13 +451,14 @@ export async function updateCaixinhaSaldoRemote(
 export async function updateCaixinhaRemote(
   id: string,
   nome: string,
-  valor_alvo: number
+  valor_alvo: number,
+  prazo_meses?: number | null
 ): ServiceResult<void> {
   if (!isSupabaseConfigured) return notConfigured();
   try {
     const { error } = await supabase
       .from('caixinhas')
-      .update({ nome, valor_alvo })
+      .update({ nome, valor_alvo, prazo_meses: prazo_meses ?? null })
       .eq('id', id);
     if (error) return { data: null, error: error.message };
     return { data: null, error: null };
@@ -1214,8 +1217,10 @@ export async function gerarTransacoesDoMes(
     // Verificar se a data de fim é posterior ao mês (se definida)
     if (rec.data_fim && rec.data_fim < mesAno + '-01') continue;
     
-    // Calcular a data da transação
-    const dia = Math.min(rec.dia_vencimento, 28); // Usar 28 para evitar problemas com meses diferentes
+    // Calcular a data da transação usando o último dia real do mês (28/29/30/31)
+    const [ano, mes] = mesAno.split('-').map(Number);
+    const ultimoDia = new Date(ano, mes, 0).getDate();
+    const dia = Math.min(rec.dia_vencimento, ultimoDia);
     const dataTransacao = `${mesAno}-${String(dia).padStart(2, '0')}`;
     
     const descricaoGerada = `[Recorrente] ${rec.descricao?.trim() || rec.categoria}`;

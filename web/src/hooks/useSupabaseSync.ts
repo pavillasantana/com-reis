@@ -302,13 +302,14 @@ export function useSupabaseSync() {
   const updateCaixinha = useCallback(async (
     id: string,
     nome: string,
-    valor_alvo: number
+    valor_alvo: number,
+    prazo_meses?: number | null
   ): Promise<void> => {
     // Atualiza store imediatamente
-    storeUpdateCaixinha(id, nome, valor_alvo);
+    storeUpdateCaixinha(id, nome, valor_alvo, prazo_meses ?? null);
 
     if (isSupabaseConfigured && id_usuario && !id.startsWith('local-')) {
-      const { error } = await updateCaixinhaRemote(id, nome, valor_alvo);
+      const { error } = await updateCaixinhaRemote(id, nome, valor_alvo, prazo_meses ?? null);
       if (error) captureError(new Error(error), { action: 'updateCaixinha', id });
     }
   }, [id_usuario, storeUpdateCaixinha]);

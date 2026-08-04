@@ -31,6 +31,7 @@ import {
 import { useI18n } from '../i18n';
 import { useQuotes, useMarketQuotesByCategory, calcularMetricas, calcularMarketRanking } from '../hooks/useInvestments';
 import { AssetDetailModal } from './AssetDetailModal';
+import { ConfirmModal } from './ConfirmModal';
 import { parseInvestmentFile } from '../utils/investmentImporter';
 import type { PendingAporte, PendingAtivo } from '../utils/investmentImporter';
 import { InvestImportReviewModal } from './InvestImportReviewModal';
@@ -102,6 +103,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   const importFileRef = useRef<HTMLInputElement | null>(null);
 
   const [selectedAssetTickers, setSelectedAssetTickers] = useState<Set<string>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
   const [rankingCategory, setRankingCategory] = useState<string | null>(null);
   const [rankingFilter, setRankingFilter] = useState<'todos' | 'domestico' | 'internacional'>('todos');
   const [searchMarket, setSearchMarket] = useState('');
@@ -400,23 +402,29 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                 <span style={{ fontSize: '0.85rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 600 }}>
                   {selectedAssetTickers.size} ativo(s) selecionado(s)
                 </span>
-                <button onClick={async () => {
+                <button onClick={() => {
                   if (selectedAssetTickers.size === 0) return;
-                  if (!window.confirm(`Excluir permanentemente TODOS os lotes de ${selectedAssetTickers.size} ativo(s)?`)) return;
-                  let erros = 0;
-                  for (const ticker of selectedAssetTickers) {
-                    const txsToDelete = txs.filter(t => t.ticker.toUpperCase() === ticker);
-                    for (const tx of txsToDelete) {
-                      if (!tx.id.startsWith('local-')) {
-                        const { error } = await deleteTransacaoAtivo(tx.id);
-                        if (error) erros++;
+                  const total = selectedAssetTickers.size;
+                  setDeleteConfirm({
+                    title: 'Excluir Ativos',
+                    message: `Excluir permanentemente TODOS os lotes de ${total} ativo(s)?`,
+                    onConfirm: async () => {
+                      let erros = 0;
+                      for (const ticker of selectedAssetTickers) {
+                        const txsToDelete = txs.filter(t => t.ticker.toUpperCase() === ticker);
+                        for (const tx of txsToDelete) {
+                          if (!tx.id.startsWith('local-')) {
+                            const { error } = await deleteTransacaoAtivo(tx.id);
+                            if (error) erros++;
+                          }
+                        }
                       }
-                    }
-                  }
-                  setSelectedAssetTickers(new Set());
-                  await carregarTransacoes();
-                  if (erros > 0) toast.error(`Falha ao excluir ${erros} lote(s).`);
-                  else toast.success(`${selectedAssetTickers.size} ativo(s) excluído(s)!`);
+                      setSelectedAssetTickers(new Set());
+                      await carregarTransacoes();
+                      if (erros > 0) toast.error(`Falha ao excluir ${erros} lote(s).`);
+                      else toast.success(`${total} ativo(s) excluído(s)!`);
+                    },
+                  });
                 }} style={{
                   background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
                   borderRadius: '8px', padding: '8px 16px', cursor: 'pointer',
@@ -537,7 +545,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                                         <div style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED }}>{q?.longName || getTickerName(p.ticker) || p.ticker}</div>
                                       </div>
                                       <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: CLEAN_TEXT }}>{p.qtd.toFixed(2)}</div>
+                                        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: CLEAN_TEXT }}>{formatQtd(p.qtd)}</div>
                                         <div style={{ fontSize: '0.72rem', color: ACCENT_GREEN }}>PM {formatCurrency(p.custoTotal / p.qtd, moedaBase)}</div>
                                       </div>
                                       <div style={{ textAlign: 'right', minWidth: '80px' }}>
@@ -612,7 +620,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                             {getNomeSubcategoria(p.categoria, p.subcategoria || '')}
                           </div>
                         )}
-                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: CLEAN_TEXT }}>{p.qtd.toFixed(2)} cotas</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: CLEAN_TEXT }}>{formatQtd(p.qtd)} cotas</div>
                         <div style={{ fontSize: '0.8rem', color: ACCENT_GREEN }}>PM {formatCurrency(p.custoTotal / p.qtd, moedaBase)}</div>
                         {currentVal !== null && (
                           <div style={{ fontSize: '0.8rem', color: CLEAN_TEXT, marginTop: '4px' }}>
@@ -847,20 +855,26 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                             <span style={{ fontSize: '0.85rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 600 }}>
                               {selectedIds.size} selecionada(s)
                             </span>
-                            <button onClick={async () => {
+                            <button onClick={() => {
                               if (selectedIds.size === 0) return;
-                              if (!window.confirm(`Excluir permanentemente ${selectedIds.size} operação(ões)?`)) return;
-                              let erros = 0;
-                              for (const id of selectedIds) {
-                                if (!id.startsWith('local-')) {
-                                  const { error } = await deleteTransacaoAtivo(id);
-                                  if (error) erros++;
-                                }
-                              }
-                              setTxs(prev => prev.filter(t => !selectedIds.has(t.id)));
-                              setSelectedIds(new Set());
-                              if (erros > 0) toast.error(`Falha ao excluir ${erros} operação(ões).`);
-                              else toast.success(`${selectedIds.size} operação(ões) excluída(s)!`);
+                              const total = selectedIds.size;
+                              setDeleteConfirm({
+                                title: 'Excluir Operações',
+                                message: `Excluir permanentemente ${total} operação(ões)?`,
+                                onConfirm: async () => {
+                                  let erros = 0;
+                                  for (const id of selectedIds) {
+                                    if (!id.startsWith('local-')) {
+                                      const { error } = await deleteTransacaoAtivo(id);
+                                      if (error) erros++;
+                                    }
+                                  }
+                                  setTxs(prev => prev.filter(t => !selectedIds.has(t.id)));
+                                  setSelectedIds(new Set());
+                                  if (erros > 0) toast.error(`Falha ao excluir ${erros} operação(ões).`);
+                                  else toast.success(`${total} operação(ões) excluída(s)!`);
+                                },
+                              });
                             }} style={{
                               background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
                               borderRadius: '8px', padding: '8px 16px', cursor: 'pointer',
@@ -1059,7 +1073,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                     color: fTipo === tipo ? (tipo === 'compra' ? ACCENT_RED : ACCENT_GREEN) : CLEAN_TEXT_SECONDARY,
                     transition: 'all 0.15s',
                   }}>
-                    {tipo === 'compra' ? `📉 ${t('web_invest_buy')}` : `📈 ${t('web_invest_sell')}`}
+                    {tipo === 'compra' ? <><TrendingDown size={16} /> {t('web_invest_buy')}</> : <><TrendingUp size={16} /> {t('web_invest_sell')}</>}
                   </button>
                 ))}
               </div>
@@ -1408,6 +1422,16 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
             }
           }}
         />
+
+      {deleteConfirm && (
+        <ConfirmModal
+          isOpen={true}
+          title={deleteConfirm.title}
+          message={deleteConfirm.message}
+          onConfirm={() => { deleteConfirm.onConfirm(); setDeleteConfirm(null); }}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
       </div>
     </div>
   );

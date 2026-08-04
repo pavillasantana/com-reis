@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
+import { Handshake, Trash2 } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { formatCurrency, convertCurrency } from '../utils/currency';
 import type { Transacao, Conta } from '../store/useStore';
 import { AdBanner } from './AdBanner';
+import { ConfirmModal } from './ConfirmModal';
 
 interface GastosCompartilhadosProps {
   transacoes: Transacao[];
@@ -26,6 +28,7 @@ export const GastosCompartilhados = ({
   const { t } = useI18n();
   const [period, setPeriod] = useState<FilterPeriod>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pago' | 'pendente'>('all');
+  const [deleteTarget, setDeleteTarget] = useState<Transacao | null>(null);
 
   const sharedTransactions = useMemo(() => {
     return transacoes.filter((tx) => {
@@ -119,8 +122,8 @@ export const GastosCompartilhados = ({
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0, letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>
-            🤝 {t('gastos_compartilhados_title')}
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0, letterSpacing: '-0.5px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Handshake size={26} /> {t('gastos_compartilhados_title')}
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '4px 0 0 0' }}>
             {sharedTransactions.length} {t('web_analise_transactions')}
@@ -297,14 +300,14 @@ export const GastosCompartilhados = ({
                     {onDeleteTx && (
                       <button
                         onClick={() => {
-                          if (confirm(t('web_analise_confirm_delete'))) onDeleteTx(tx.id);
+                          setDeleteTarget(tx);
                         }}
                         style={{
                           padding: '6px 8px', borderRadius: '8px', border: 'none', cursor: 'pointer',
                           background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', fontWeight: 600, fontSize: '0.75rem',
                         }}
                       >
-                        🗑️
+                        <Trash2 size={14} />
                       </button>
                     )}
                   </div>
@@ -316,6 +319,16 @@ export const GastosCompartilhados = ({
       </div>
 
       <AdBanner adSlot="gastos_compartilhados_rodape" />
+
+      {deleteTarget && (
+        <ConfirmModal
+          isOpen={true}
+          title={t('web_dashboard_delete_tx_title')}
+          message={t('web_analise_confirm_delete')}
+          onConfirm={() => { onDeleteTx?.(deleteTarget.id); setDeleteTarget(null); }}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 };

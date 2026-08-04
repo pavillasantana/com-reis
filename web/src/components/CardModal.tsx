@@ -86,9 +86,7 @@ export const CardModal: React.FC<CardModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm(t('web_card_delete_confirm', { name: cardToEdit.nome }))) {
-                    onDelete(cardToEdit.id);
-                  }
+                  onDelete(cardToEdit.id);
                 }}
                 style={{
                   background: 'var(--color-danger)',

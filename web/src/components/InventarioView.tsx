@@ -10,6 +10,7 @@ import {
 } from '../services/supabaseService';
 import { useI18n } from '../i18n';
 import { useToast } from './Toast';
+import { ConfirmModal } from './ConfirmModal';
 
 interface Bem {
   id: string;
@@ -37,6 +38,7 @@ export const InventarioView: React.FC<Props> = ({ moedaBase, idEspaco }) => {
   const [busca, setBusca] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [bulkConfirm, setBulkConfirm] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const [fNome, setFNome] = useState('');
@@ -110,11 +112,6 @@ export const InventarioView: React.FC<Props> = ({ moedaBase, idEspaco }) => {
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
     
-    const confirmMessage = t('bulk_delete_confirm', { count: selectedIds.size }) || 
-      `Tem certeza que deseja excluir permanentemente ${selectedIds.size} item(ns)?`;
-    
-    if (!window.confirm(confirmMessage)) return;
-    
     for (const id of selectedIds) {
       await deleteBemPatrimonio(id);
     }
@@ -179,7 +176,10 @@ export const InventarioView: React.FC<Props> = ({ moedaBase, idEspaco }) => {
                   {selectedIds.size} selecionado(s)
                 </span>
                 <button
-                  onClick={handleBulkDelete}
+                  onClick={() => {
+                    const total = selectedIds.size;
+                    setBulkConfirm(t('bulk_delete_confirm', { count: total }) || `Tem certeza que deseja excluir permanentemente ${total} item(ns)?`);
+                  }}
                   style={{
                     background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
                     borderRadius: '8px', padding: '8px 16px', cursor: 'pointer',
@@ -304,6 +304,16 @@ export const InventarioView: React.FC<Props> = ({ moedaBase, idEspaco }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {bulkConfirm && (
+        <ConfirmModal
+          isOpen={true}
+          title={t('bulk_delete_title')}
+          message={bulkConfirm}
+          onConfirm={() => { setBulkConfirm(null); handleBulkDelete(); }}
+          onCancel={() => setBulkConfirm(null)}
+        />
       )}
     </div>
   );

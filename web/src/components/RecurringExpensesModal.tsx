@@ -6,6 +6,7 @@ import { useSupabaseSync } from '../hooks/useSupabaseSync';
 import { gerarTransacoesDoMes } from '../services/supabaseService';
 import { useToast } from './Toast';
 import type { TransacaoRecorrente } from '../store/useStore';
+import { ConfirmModal } from './ConfirmModal';
 
 const CATEGORIAS = [
   'Alimentação',
@@ -80,6 +81,7 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
   const { addTransacaoRecorrente, updateTransacaoRecorrente, removeTransacaoRecorrente } = useSupabaseSync();
 
   const [mode, setMode] = useState<Mode>('list');
+  const [deleteTarget, setDeleteTarget] = useState<TransacaoRecorrente | null>(null);
   const [form, setForm] = useState(defaultForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -341,13 +343,13 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
                         }
                       </div>
 
-                      {/* Categoria + conta */}
+                      {/* Nome + categoria/conta */}
                       <div>
                         <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                          {rec.categoria}
+                          {rec.descricao?.trim() || rec.categoria}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          {getContaName(rec.id_conta)}
+                          {rec.categoria}{rec.descricao?.trim() ? ` • ${getContaName(rec.id_conta)}` : ''}
                         </div>
                       </div>
 
@@ -415,7 +417,7 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
                         </button>
 
                         <button
-                          onClick={() => handleDelete(rec.id)}
+                          onClick={() => setDeleteTarget(rec)}
                           style={{
                             background: 'none', border: 'none', cursor: 'pointer', padding: '6px',
                             color: 'var(--text-muted)', borderRadius: '6px',
@@ -678,6 +680,16 @@ export const RecurringExpensesModal: React.FC<RecurringExpensesModalProps> = ({ 
           </div>
         )}
       </div>
+
+      {deleteTarget && (
+        <ConfirmModal
+          isOpen={true}
+          title={t('web_recurring_delete') || 'Excluir Recorrência'}
+          message={`${t('web_recurring_delete_confirm') || 'Tem certeza que deseja excluir a recorrência'} ${deleteTarget.descricao}?`}
+          onConfirm={() => { handleDelete(deleteTarget.id); setDeleteTarget(null); }}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 };

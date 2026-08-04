@@ -44,6 +44,7 @@ import { DividendosView } from './components/DividendosView';
 import { AvatarModal } from './components/AvatarModal';
 import { AccountSettingsModal, type AccountSettingsData } from './components/AccountSettingsModal';
 import { TagsManagerModal } from './components/TagsManagerModal';
+import { ConfirmModal } from './components/ConfirmModal';
 import { ExportarRelatoriosModal } from './components/ExportarRelatoriosModal';
 import { ConfiguracoesView } from './components/ConfiguracoesView';
 import { exportTransactionsToCSV, downloadBlob } from './utils/exporter';
@@ -88,6 +89,8 @@ import {
   Square,
   Compass,
   Download,
+  Home,
+  AlertTriangle,
 } from 'lucide-react';
 
 import { UpsellModal } from './components/UpsellModal';
@@ -280,16 +283,31 @@ export default function App() {
 
   const handleBulkDelete = async () => {
     if (selectedTxIds.size === 0) return;
-    if (!window.confirm(t('bulk_delete_confirm', { count: selectedTxIds.size }))) return;
-    for (const txId of selectedTxIds) {
-      await handleDeleteTransacao(txId);
-    }
-    setSelectedTxIds(new Set());
+    setConfirmState({
+      title: t('bulk_delete_title'),
+      message: t('bulk_delete_confirm', { count: selectedTxIds.size }),
+      confirmText: t('bulk_delete_btn') || 'Excluir',
+      onConfirm: async () => {
+        for (const txId of selectedTxIds) {
+          await handleDeleteTransacao(txId);
+        }
+        setSelectedTxIds(new Set());
+      },
+    });
   };
 
   // ─── Phase 4.2 & 4: Caixinha Historico & Fechamento Mensal ──────────────
   const [showCaixinhaHistorico, setShowCaixinhaHistorico] = useState<Caixinha | null>(null);
   const [showFechamentoMensal, setShowFechamentoMensal] = useState(false);
+
+  // ─── Confirmation popups (todas as ações de exclusão) ──────────────────
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // ─── Mobile Sidebar Toggle ─────────────────────────────────────────────
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
@@ -601,6 +619,7 @@ export default function App() {
   // Goal Form State
   const [goalName, setGoalName] = useState('');
   const [goalTarget, setGoalTarget] = useState('');
+  const [goalPrazo, setGoalPrazo] = useState('');
 
   // Space Form State
   const [spaceName, setSpaceName] = useState('');
@@ -1113,10 +1132,19 @@ export default function App() {
     setCardToEdit(null);
   };
 
+  const requestCardDelete = (id: string, nome: string) => {
+    setConfirmState({
+      title: t('web_card_delete_title'),
+      message: t('web_card_delete_confirm', { name: nome }),
+      onConfirm: () => handleCardDelete(id),
+    });
+  };
+
   const handleEditCaixinhaClick = (caixinha: Caixinha) => {
     setEditingCaixinhaId(caixinha.id);
     setGoalName(caixinha.nome);
     setGoalTarget(caixinha.valor_alvo.toString());
+    setGoalPrazo(caixinha.prazo_meses ? caixinha.prazo_meses.toString() : '');
     setShowAddCaixinhaModal(true);
   };
 
@@ -1125,6 +1153,7 @@ export default function App() {
     setEditingCaixinhaId(null);
     setGoalName('');
     setGoalTarget('');
+    setGoalPrazo('');
   };
 
   // Add/Edit Caixinha (Goal)
@@ -1155,8 +1184,17 @@ export default function App() {
       return;
     }
 
+    let prazoNum: number | null = null;
+    if (goalPrazo.trim() !== '') {
+      prazoNum = parseInt(goalPrazo, 10);
+      if (isNaN(prazoNum) || prazoNum < 1 || prazoNum > 1200) {
+        toast.error(t('web_jar_prazo_invalid'), t('web_jar_prazo_invalid_desc'));
+        return;
+      }
+    }
+
     if (editingCaixinhaId) {
-      updateCaixinha(editingCaixinhaId, nameCleaned, targetNum);
+      updateCaixinha(editingCaixinhaId, nameCleaned, targetNum, prazoNum);
       handleCaixinhaModalClose();
       toast.success(t('web_jar_updated'), `${t('web_jar_meta_for')} ${nameCleaned} ${formatCurrency(targetNum, moeda_base)}.`);
       return;
@@ -1175,13 +1213,15 @@ export default function App() {
       id_espaco: id_espaco_ativo,
       nome: nameCleaned,
       valor_alvo: targetNum,
-      saldo_guardado: 0
+      saldo_guardado: 0,
+      prazo_meses: prazoNum
     };
 
     addCaixinha(newCaixinha);
     setShowAddCaixinhaModal(false);
     setGoalName('');
     setGoalTarget('');
+    setGoalPrazo('');
     toast.success(t('web_jar_created'), `Meta de ${formatCurrency(targetNum, moeda_base)} definida para ${nameCleaned}.`);
   };
 
@@ -1517,13 +1557,20 @@ export default function App() {
   };
 
   const handleDeleteTag = async (id: string) => {
-    const res = await deleteTagBancaria(id);
-    if (res.error) {
-      toast.error(t('web_tags_manager_error'), res.error);
-      return;
-    }
-    removeTagBancaria(id);
-    toast.success(t('web_tags_manager_deleted'));
+    const tag = tagsBancarias.find((tg) => tg.id === id);
+    setConfirmState({
+      title: t('web_tags_manager_delete'),
+      message: `${t('web_tags_manager_delete_confirm')} ${tag?.nome || ''}?`,
+      onConfirm: async () => {
+        const res = await deleteTagBancaria(id);
+        if (res.error) {
+          toast.error(t('web_tags_manager_error'), res.error);
+          return;
+        }
+        removeTagBancaria(id);
+        toast.success(t('web_tags_manager_deleted'));
+      },
+    });
   };
 
   // ─── User Menu Handlers ──────────────────────────────────────────────
@@ -3709,8 +3756,8 @@ export default function App() {
                     {formatCurrency(saldoMesAtual, moeda_base)}
                   </h2>
                   {saldoMesAtual < 0 && !privacyMode && (
-                    <span className="badge-danger-mangos" style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: '8px', fontWeight: 700 }}>
-                      ⚠ {t('web_dashboard_negative')}
+                    <span className="badge-danger-mangos" style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: '8px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <AlertTriangle size={12} /> {t('web_dashboard_negative')}
                     </span>
                   )}
                 </div>
@@ -3741,13 +3788,13 @@ export default function App() {
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {[
-                      { label: 'Necessidades (50%)', target: regra502030.necessidades, color: 'var(--accent-blue)', icon: '🏠' },
-                      { label: 'Desejos (30%)', target: regra502030.desejos, color: 'var(--color-warning)', icon: '🎉' },
-                      { label: 'Investimentos (20%)', target: regra502030.investimentos, color: 'var(--accent-green)', icon: '📈' }
+                      { label: 'Necessidades (50%)', target: regra502030.necessidades, color: 'var(--accent-blue)', icon: <Home size={14} /> },
+                      { label: 'Desejos (30%)', target: regra502030.desejos, color: 'var(--color-warning)', icon: <Sparkles size={14} /> },
+                      { label: 'Investimentos (20%)', target: regra502030.investimentos, color: 'var(--accent-green)', icon: <TrendingUp size={14} /> }
                     ].map((item) => (
                       <div key={item.label}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.85rem' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>{item.icon} {item.label}</span>
+                          <span style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>{item.icon} {item.label}</span>
                           <span style={{ color: item.color, fontWeight: 700, filter: privacyMode ? 'blur(5px)' : 'none', transition: 'filter 0.3s' }}>
                             {formatCurrency(item.target, moeda_base)}
                           </span>
@@ -3890,9 +3937,11 @@ export default function App() {
                             </span>
                             <button 
                               onClick={() => {
-                                if (window.confirm(`${t('web_dashboard_confirm_delete_account')} ${conta.nome_instituicao}?`)) {
-                                  removeConta(conta.id);
-                                }
+                                setConfirmState({
+                                  title: t('web_dashboard_delete_account_title'),
+                                  message: `${t('web_dashboard_confirm_delete_account')} ${conta.nome_instituicao}?`,
+                                  onConfirm: () => removeConta(conta.id),
+                                });
                               }}
                               style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                               title="Excluir Conta"
@@ -3984,9 +4033,7 @@ export default function App() {
                             </button>
                             <button 
                               onClick={() => {
-                                if (window.confirm(`${t('web_dashboard_confirm_delete_card')} ${card.nome}?`)) {
-                                  handleCardDelete(card.id);
-                                }
+                                requestCardDelete(card.id, card.nome);
                               }}
                               style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                               title="Excluir Cartão"
@@ -4022,6 +4069,10 @@ export default function App() {
                   ) : (
                     activeCaixinhas.map(goal => {
                       const pct = Math.min(Math.round((goal.saldo_guardado / goal.valor_alvo) * 100), 100);
+                      const faltante = Math.max(goal.valor_alvo - goal.saldo_guardado, 0);
+                      const mensalSugerido = goal.prazo_meses && goal.prazo_meses > 0
+                        ? faltante / goal.prazo_meses
+                        : null;
                       return (
                         <div key={goal.id} style={{
                           padding: '21px',
@@ -4037,6 +4088,12 @@ export default function App() {
                           <div style={{ width: '100%', height: '8px', background: 'var(--card-border)', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px'}}>
                             <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent-green)', boxShadow: '0 0 10px rgba(0, 245, 160, 0.5)' }}></div>
                           </div>
+
+                          {goal.prazo_meses && goal.prazo_meses > 0 && mensalSugerido !== null && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                              {t('web_jar_suggestion')} {formatCurrency(mensalSugerido, moeda_base)}/mês em {goal.prazo_meses} {goal.prazo_meses === 1 ? 'mês' : 'meses'}
+                            </div>
+                          )}
 
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -4089,9 +4146,11 @@ export default function App() {
                               </button>
                               <button
                                 onClick={() => {
-                                  if (window.confirm(`Tem certeza que deseja excluir a caixinha ${goal.nome}?`)) {
-                                    removeCaixinha(goal.id);
-                                  }
+                                  setConfirmState({
+                                    title: t('web_jar_delete_title'),
+                                    message: `Tem certeza que deseja excluir a caixinha ${goal.nome}?`,
+                                    onConfirm: () => removeCaixinha(goal.id),
+                                  });
                                 }}
                                 style={{
                                   background: 'transparent',
@@ -4129,7 +4188,7 @@ export default function App() {
                 <h3 style={{ fontSize: '1.1rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {t('web_dashboard_expense_division')}
                   <span style={{ fontSize: '0.7rem', color: 'var(--accent-blue)', fontWeight: 600, opacity: 0.6 }}>Este mês</span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', fontWeight: 500 }}>→ {t('web_analise_nav')}</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ChevronRight size={14} /> {t('web_analise_nav')}</span>
                 </h3>
                 
                 {chartData.length === 0 ? (
@@ -4473,9 +4532,12 @@ export default function App() {
                                 </button>
                                 <button 
                                   onClick={() => {
-                                    if (window.confirm('Tem certeza que deseja excluir esta transação?')) {
-                                      handleDeleteTransacao(tx.id);
-                                    }
+                                    const txAtual = transacoes.find((tr) => tr.id === tx.id);
+                                    setConfirmState({
+                                      title: t('web_dashboard_delete_tx_title'),
+                                      message: `Tem certeza que deseja excluir ${txAtual?.descricao || 'esta transação'}?`,
+                                      onConfirm: () => handleDeleteTransacao(tx.id),
+                                    });
                                   }}
                                   style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                                   title="Excluir Transação"
@@ -4814,7 +4876,10 @@ export default function App() {
           setCardToEdit(null);
         }}
         onSubmit={handleCardSubmit}
-        onDelete={handleCardDelete}
+        onDelete={(id) => {
+          const c = cardToEdit;
+          requestCardDelete(id, c?.nome || '');
+        }}
         cardToEdit={cardToEdit}
       />
 
@@ -4826,6 +4891,8 @@ export default function App() {
         setGoalName={setGoalName}
         goalTarget={goalTarget}
         setGoalTarget={setGoalTarget}
+        goalPrazo={goalPrazo}
+        setGoalPrazo={setGoalPrazo}
         moedaBase={moeda_base}
         onSubmit={handleAddCaixinhaSubmit}
         title={editingCaixinhaId ? 'Editar Caixinha (Meta)' : 'Criar Nova Caixinha (Meta)'}
@@ -5297,6 +5364,18 @@ export default function App() {
         moedaBase={moeda_base}
         rates={rates}
       />
+
+      {confirmState && (
+        <ConfirmModal
+          isOpen={true}
+          title={confirmState.title}
+          message={confirmState.message}
+          confirmText={confirmState.confirmText}
+          cancelText={confirmState.cancelText}
+          onConfirm={() => { confirmState.onConfirm(); setConfirmState(null); }}
+          onCancel={() => setConfirmState(null)}
+        />
+      )}
     </div>
       } />
     </Routes>
