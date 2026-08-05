@@ -39,7 +39,6 @@ export const CATEGORIAS_INVESTIMENTO: CategoriaInvestimento[] = [
       { id: 'fiis', nome: 'FIIs', descricao: 'Fundos Imobiliários — cotas de imóveis com renda de aluguéis' },
       { id: 'fiagro', nome: 'FIAGRO', descricao: 'Fundos de Investimento do Agronegócio' },
       { id: 'etfs_br', nome: 'ETFs', descricao: 'Fundos de Índice que copiam o mercado (BOVA11, SMAL11)' },
-      { id: 'bdrs', nome: 'BDRs', descricao: 'Recibos de ações de empresas estrangeiras negociados no Brasil' },
       { id: 'derivativos', nome: 'Opções / Derivativos', descricao: 'Contratos de opções e derivativos de alto risco' },
     ],
   },
@@ -49,9 +48,14 @@ export const CATEGORIAS_INVESTIMENTO: CategoriaInvestimento[] = [
     cor: '#8B5CF6',
     subcategorias: [
       { id: 'stocks', nome: 'Stocks', descricao: 'Ações diretas em bolsas americanas/europeias' },
+      { id: 'bdrs', nome: 'BDRs', descricao: 'Recibos de ações estrangeiras negociados na B3 (ex: AAPL34, MSFT34)' },
+      { id: 'adrs', nome: 'ADRs', descricao: 'Recibos de ações negociados nos EUA (ex: VALE, PBR, BABA)' },
       { id: 'reits', nome: 'REITs', descricao: 'Fundos Imobiliários dos EUA e global' },
       { id: 'bonds', nome: 'Bonds', descricao: 'Renda fixa internacional (governos e empresas)' },
       { id: 'etfs_intl', nome: 'ETFs Internacionais', descricao: 'Fundos de índice globais (S&P 500, NASDAQ, etc)' },
+      { id: 'fundos_internacionais', nome: 'Fundos Internacionais', descricao: 'Fundos de investimento no exterior (Fundos de Ações Globais, ETFs wrapper)' },
+      { id: 'commodities', nome: 'Commodities', descricao: 'Ouro, petróleo e matérias-primas (físico ou ETFs)' },
+      { id: 'crypto_etf', nome: 'ETFs de Cripto (EUA)', descricao: 'ETFs de criptomoedas listados nos EUA (IBIT, FBTC, BITO, GBTC)' },
     ],
   },
   {
@@ -303,6 +307,59 @@ const TICKER_CATEGORY_MAP: Record<string, TickerMapEntry> = {
   'EEM':  { categoria: 'internacional', subcategoria: 'etfs_intl' },
   'VWO':  { categoria: 'internacional', subcategoria: 'etfs_intl' },
 
+  // Internacional — BDRs (negociados na B3)
+  'AAPL34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'MSFT34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'GOOGL34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'GOGL34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'AMZN34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'TSLA34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'META34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'NVDA34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'NVDC34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'BABA34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'NFLX34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'DISB34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'KO34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'SBUB34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'MGMM34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'P1DD34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'INTB34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'ORCL34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'PYPL34': { categoria: 'internacional', subcategoria: 'bdrs' },
+  'XOM34': { categoria: 'internacional', subcategoria: 'bdrs' },
+
+  // Internacional — ADRs (Brasileiras negociadas nos EUA)
+  'VALE': { categoria: 'internacional', subcategoria: 'adrs' },
+  'PBR':  { categoria: 'internacional', subcategoria: 'adrs' },
+  'ITUB': { categoria: 'internacional', subcategoria: 'adrs' },
+  'BBD':  { categoria: 'internacional', subcategoria: 'adrs' },
+  'ABEV': { categoria: 'internacional', subcategoria: 'adrs' },
+  'GGB':  { categoria: 'internacional', subcategoria: 'adrs' },
+  'SID':  { categoria: 'internacional', subcategoria: 'adrs' },
+  'ERJ':  { categoria: 'internacional', subcategoria: 'adrs' },
+  'BAK':  { categoria: 'internacional', subcategoria: 'adrs' },
+  'VIV':  { categoria: 'internacional', subcategoria: 'adrs' },
+  'BRFS': { categoria: 'internacional', subcategoria: 'adrs' },
+  'TIMB': { categoria: 'internacional', subcategoria: 'adrs' },
+  'CSAN': { categoria: 'internacional', subcategoria: 'adrs' },
+  'BSBR': { categoria: 'internacional', subcategoria: 'adrs' },
+
+  // Internacional — Commodities (ETFs)
+  'GLD':  { categoria: 'internacional', subcategoria: 'commodities' },
+  'SLV':  { categoria: 'internacional', subcategoria: 'commodities' },
+  'IAU':  { categoria: 'internacional', subcategoria: 'commodities' },
+  'USO':  { categoria: 'internacional', subcategoria: 'commodities' },
+  'DBC':  { categoria: 'internacional', subcategoria: 'commodities' },
+  'COPX': { categoria: 'internacional', subcategoria: 'commodities' },
+
+  // Internacional — ETFs de Cripto (EUA)
+  'IBIT': { categoria: 'internacional', subcategoria: 'crypto_etf' },
+  'FBTC': { categoria: 'internacional', subcategoria: 'crypto_etf' },
+  'BITO': { categoria: 'internacional', subcategoria: 'crypto_etf' },
+  'GBTC': { categoria: 'internacional', subcategoria: 'crypto_etf' },
+  'ETHE': { categoria: 'internacional', subcategoria: 'crypto_etf' },
+
   // Alternativos — Criptomoedas
   'BTC':   { categoria: 'alternativos', subcategoria: 'crypto' },
   'ETH':   { categoria: 'alternativos', subcategoria: 'crypto' },
@@ -319,12 +376,71 @@ const TICKER_CATEGORY_MAP: Record<string, TickerMapEntry> = {
   'ATOM':  { categoria: 'alternativos', subcategoria: 'crypto' },
   'LTC':   { categoria: 'alternativos', subcategoria: 'crypto' },
   'BNB':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'TRX':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'FIL':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'NEAR':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'APT':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ARB':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'OP':    { categoria: 'alternativos', subcategoria: 'crypto' },
+  'SUI':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'SEI':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'INJ':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'RENDER': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'FET':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'WLD':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'TIA':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'JUP':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'PEPE':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'WIF':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'BONK':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'FLOKI': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'MANA':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'SAND':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'AXS':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'GALA':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'IMX':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ENJ':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'CHZ':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'THETA': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'HBAR':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'VET':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ICP':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ALGO':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'XLM':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'EOS':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'BCH':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ETC':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'AAVE':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'CRV':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'MKR':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'COMP':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'SNX':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  '1INCH': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'YFI':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'SUSHI': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'USDT':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'USDC':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'DAI':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'TON':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'KAS':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'STX':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'AR':    { categoria: 'alternativos', subcategoria: 'crypto' },
+  'GRT':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'LDO':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ENS':   { categoria: 'alternativos', subcategoria: 'crypto' },
 };
 
 // ─── Funções Auxiliares ──────────────────────────────────────────
 
 export function getCategoriaByTicker(ticker: string): TickerMapEntry | null {
-  return TICKER_CATEGORY_MAP[ticker.toUpperCase()] || null;
+  const t = ticker.toUpperCase();
+  const direct = TICKER_CATEGORY_MAP[t];
+  if (direct) return direct;
+  // BDRs negociados na B3 terminam em 31-39 (ex: AAPL34, MSFT34, GOOGL34, BIVB39).
+  if (/^[A-Z0-9]{4,7}(3[1-9])$/.test(t)) {
+    return { categoria: 'internacional', subcategoria: 'bdrs' };
+  }
+  return null;
 }
 
 export function getCategoriaInfo(categoriaId: string): CategoriaInvestimento | undefined {
@@ -535,6 +651,31 @@ export const TICKER_DB: Record<string, string> = {
   'ETC': 'Ethereum Classic', 'AAVE': 'Aave', 'CRV': 'Curve DAO',
   'MKR': 'Maker', 'COMP': 'Compound', 'SNX': 'Synthetix',
   '1INCH': '1inch', 'YFI': 'yearn.finance', 'SUSHI': 'SushiSwap',
+  'USDT': 'Tether', 'USDC': 'USD Coin', 'DAI': 'Dai Stablecoin',
+  'TON': 'Toncoin', 'KAS': 'Kaspa', 'STX': 'Stacks',
+  'AR': 'Arweave', 'GRT': 'The Graph', 'LDO': 'Lido DAO', 'ENS': 'Ethereum Name Service',
+
+  // ── Internacional — BDRs ──
+  'AAPL34': 'Apple Inc. BDR', 'MSFT34': 'Microsoft Corp. BDR', 'GOOGL34': 'Alphabet BDR',
+  'GOGL34': 'Alphabet BDR', 'AMZN34': 'Amazon.com BDR', 'TSLA34': 'Tesla BDR',
+  'META34': 'Meta Platforms BDR', 'NVDA34': 'NVIDIA BDR', 'NVDC34': 'NVIDIA BDR',
+  'BABA34': 'Alibaba BDR', 'NFLX34': 'Netflix BDR', 'DISB34': 'Walt Disney BDR',
+  'KO34': 'Coca-Cola BDR', 'SBUB34': 'Starbucks BDR', 'MGMM34': 'MGM Resorts BDR',
+  'P1DD34': 'Prada BDR', 'INTB34': 'Intel BDR', 'ORCL34': 'Oracle BDR',
+  'PYPL34': 'PayPal BDR', 'XOM34': 'ExxonMobil BDR',
+
+  // ── Internacional — ADRs (Brasileiras nos EUA) ──
+  'VALE': 'Vale S.A. (ADR)', 'PBR': 'Petrobras (ADR)', 'ITUB': 'Itaú Unibanco (ADR)',
+  'BBD': 'Bradesco (ADR)', 'ABEV': 'Ambev (ADR)', 'GGB': 'Gerdau (ADR)',
+  'SID': 'CSN (ADR)', 'ERJ': 'Embraer (ADR)', 'BAK': 'Braskem (ADR)',
+  'VIV': 'Telefônica Brasil (ADR)', 'BRFS': 'BRF (ADR)', 'TIMB': 'TIM (ADR)',
+  'CSAN': 'Cosan (ADR)', 'BSBR': 'Santander Brasil (ADR)',
+
+  // ── Internacional — Commodities (ETFs) ──
+  'USO': 'United States Oil Fund', 'COPX': 'Global X Copper Miners',
+
+  // ── Internacional — ETFs de Cripto (EUA) ──
+  'FBTC': 'Fidelity Wise Origin Bitcoin', 'ETHE': 'Grayscale Ethereum Trust',
 
   // ── Renda Fixa Nacional (Títulos) ──
   'TESOURO IPCA+': 'Tesouro IPCA+ (NTN-B)', 'TESOURO SELIC': 'Tesouro Selic (LFT)',

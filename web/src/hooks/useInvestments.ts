@@ -111,8 +111,10 @@ async function mapWithConcurrency<T, R>(
 // Yahoo chart usa hífen para classes de ação dos EUA (BRK-B, não BRK.B).
 function toYahooSymbol(ticker: string): string {
   const t = ticker.toUpperCase();
-  const categoria = getCategoriaByTicker(t)?.categoria;
-  if (categoria === 'internacional') {
+  const cat = getCategoriaByTicker(t);
+  if (cat?.categoria === 'internacional') {
+    // BDRs (AAPL34, MSFT34) são negociados na B3 e no Yahoo usam sufixo .SA
+    if (cat.subcategoria === 'bdrs') return `${t}.SA`;
     return /^[A-Z0-9]+\.[A-Z]$/.test(t) ? t.replace('.', '-') : t;
   }
   return `${t}.SA`;

@@ -187,6 +187,24 @@ describe('parseAtivosCSV()', () => {
     expect(r[0].dataTransacao).toBe('2026-03-01');
     expect(r[1].dataTransacao).toBe('2026-03-02');
   });
+
+  it('categoriza BDR automaticamente como internacional/bdrs', () => {
+    const r = parseAtivosCSV(csv(`
+      ticker,quantidade,preco medio
+      AAPL34,50,52.40
+      MSFT34,30,95.10
+    `));
+    expect(r[0]).toMatchObject({ categoria: 'internacional', subcategoria: 'bdrs' });
+    expect(r[1]).toMatchObject({ categoria: 'internacional', subcategoria: 'bdrs' });
+  });
+
+  it('categoriza criptomoeda como alternativos/crypto', () => {
+    const r = parseAtivosCSV(csv(`
+      ticker,quantidade,preco medio
+      BTC,0.5,200000
+    `));
+    expect(r[0]).toMatchObject({ categoria: 'alternativos', subcategoria: 'crypto' });
+  });
 });
 
 // ─── parseXLSX (via XLSX.build) ───────────────────────────────────────────────
