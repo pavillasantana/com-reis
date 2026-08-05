@@ -1345,34 +1345,36 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                   <ChevronRight size={18} color={CLEAN_TEXT_MUTED} />
                 </button>
               </div>
-
-              <input
-                ref={importFileRef}
-                type="file"
-                accept=".xlsx,.xls,.csv,.tsv,.txt"
-                style={{ display: 'none' }}
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = '';
-                  if (!file) return;
-                  try {
-                    const buffer = await file.arrayBuffer();
-                    const parsed = parseInvestmentFile(buffer, file.name, importMode);
-                    if (parsed.length === 0) {
-                      toast.error('Nenhum registro reconhecido. Verifique se as colunas estão nomeadas (ex: ticker, quantidade, preço).');
-                      return;
-                    }
-                    setPendingImport(parsed);
-                    setImportOpen(true);
-                  } catch (err) {
-                    console.warn('Erro ao ler planilha:', err);
-                    toast.error('Não foi possível ler o arquivo.');
-                  }
-                }}
-              />
             </div>
           </div>
         )}
+
+        {/* Input de arquivo SEMPRE montado: precisa ficar fora do modal para o
+            diálogo nativo abrir (remover do DOM ao clicar cancela o file picker). */}
+        <input
+          ref={importFileRef}
+          type="file"
+          accept=".xlsx,.xls,.csv,.tsv,.txt"
+          style={{ display: 'none' }}
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = '';
+            if (!file) return;
+            try {
+              const buffer = await file.arrayBuffer();
+              const parsed = parseInvestmentFile(buffer, file.name, importMode);
+              if (parsed.length === 0) {
+                toast.error('Nenhum registro reconhecido. Verifique se as colunas estão nomeadas (ex: ticker, quantidade, preço).');
+                return;
+              }
+              setPendingImport(parsed);
+              setImportOpen(true);
+            } catch (err) {
+              console.warn('Erro ao ler planilha:', err);
+              toast.error('Não foi possível ler o arquivo.');
+            }
+          }}
+        />
 
         {/* ── Modal de revisão da importação ── */}
         <InvestImportReviewModal
