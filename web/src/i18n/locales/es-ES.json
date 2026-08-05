@@ -1029,6 +1029,8 @@
   "web_card_limit_label": "Límite",
   "web_card_name_label": "Nombre de la Tarjeta",
   "web_card_name_placeholder": "Ej: Nubank, Inter Gold",
+  "web_card_bandeira_label": "Marca de la Tarjeta",
+  "web_card_bandeira_placeholder": "Ej: Visa, Mastercard",
   "web_card_new_title": "Nueva Tarjeta de Crédito",
   "web_closing_add_button": "+ Agregar",
   "web_closing_balanced": "✓ equilibrado",

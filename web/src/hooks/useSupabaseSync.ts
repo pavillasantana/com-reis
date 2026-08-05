@@ -377,12 +377,13 @@ export function useSupabaseSync() {
     id: string,
     nome: string,
     limite: number,
-    fatura_atual: number
+    fatura_atual: number,
+    bandeira?: string
   ): Promise<void> => {
-    storeUpdateCartao(id, nome, limite, fatura_atual);
+    storeUpdateCartao(id, nome, limite, fatura_atual, bandeira);
 
     if (isSupabaseConfigured && id_usuario && !id.startsWith('local-')) {
-      const { error } = await updateCartaoRemote(id, nome, limite, fatura_atual);
+      const { error } = await updateCartaoRemote(id, nome, limite, fatura_atual, bandeira);
       if (error) captureError(new Error(error), { action: 'updateCartao', id });
     }
   }, [id_usuario, storeUpdateCartao]);

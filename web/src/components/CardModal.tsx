@@ -9,7 +9,7 @@ interface CardModalProps {
   isOpen: boolean;
   onClose: () => void;
   cardToEdit: Cartao | null;
-  onSubmit: (nome: string, limite: number, fatura_atual: number) => void;
+  onSubmit: (nome: string, limite: number, fatura_atual: number, bandeira?: string) => void;
   onDelete?: (id: string) => void;
 }
 
@@ -22,16 +22,19 @@ export const CardModal: React.FC<CardModalProps> = ({
 }) => {
   const { t } = useI18n();
   const [nome, setNome] = useState('');
+  const [bandeira, setBandeira] = useState('');
   const [limite, setLimite] = useState('');
   const [faturaAtual, setFaturaAtual] = useState('');
 
   useEffect(() => {
     if (cardToEdit) {
       setNome(cardToEdit.nome);
+      setBandeira(cardToEdit.bandeira ?? '');
       setLimite(cardToEdit.limite.toString());
       setFaturaAtual(cardToEdit.fatura_atual.toString());
     } else {
       setNome('');
+      setBandeira('');
       setLimite('');
       setFaturaAtual('0');
     }
@@ -45,7 +48,7 @@ export const CardModal: React.FC<CardModalProps> = ({
     if (!cleanNome) return;
     const limitVal = parseFloat(limite) || 0;
     const faturaVal = parseFloat(faturaAtual) || 0;
-    onSubmit(cleanNome, limitVal, faturaVal);
+    onSubmit(cleanNome, limitVal, faturaVal, bandeira.trim() || undefined);
   };
 
   return (
@@ -65,6 +68,13 @@ export const CardModal: React.FC<CardModalProps> = ({
               {t('web_card_name_label')}
             </label>
             <TextInput value={nome} onChange={e => setNome(e.target.value)} placeholder={t('web_card_name_placeholder')} required />
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+              {t('web_card_bandeira_label')}
+            </label>
+            <TextInput value={bandeira} onChange={e => setBandeira(e.target.value)} placeholder={t('web_card_bandeira_placeholder')} />
           </div>
 
           <div>

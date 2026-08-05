@@ -30,8 +30,13 @@ export interface Cartao {
   id: string;
   id_espaco: string;
   nome: string;
+  bandeira?: string;
   limite: number;
   fatura_atual: number;
+  data_fechamento?: number;
+  data_vencimento?: number;
+  moeda?: string;
+  ativo?: boolean;
 }
 
 export interface Transacao {

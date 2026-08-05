@@ -46,8 +46,13 @@ export interface Cartao {
   id: string;
   id_espaco: string;
   nome: string;
+  bandeira?: string;
   limite: number;
   fatura_atual: number;
+  data_fechamento?: number;
+  data_vencimento?: number;
+  moeda?: string;
+  ativo?: boolean;
 }
 
 export interface TagBancaria {
@@ -133,7 +138,7 @@ interface AppState {
   addCartao: (cartao: Cartao) => void;
   updateCaixinhaSaldo: (caixinhaId: string, novoSaldo: number) => void;
   updateCaixinha: (id: string, nome: string, valor_alvo: number, prazo_meses?: number | null) => void;
-  updateCartao: (id: string, nome: string, limite: number, fatura_atual: number) => void;
+  updateCartao: (id: string, nome: string, limite: number, fatura_atual: number, bandeira?: string) => void;
   updateTransacaoConta: (txId: string, novaContaId: string) => void;
   removeConta: (id: string) => void;
   removeTransacao: (id: string) => void;
@@ -240,8 +245,8 @@ export const useStore = create<AppState>()(
         caixinhas: state.caixinhas.map((c) => c.id === id ? { ...c, nome, valor_alvo, prazo_meses } : c),
       })),
 
-      updateCartao: (id, nome, limite, fatura_atual) => set((state) => ({
-        cartoes: state.cartoes.map((c) => c.id === id ? { ...c, nome, limite, fatura_atual } : c),
+      updateCartao: (id, nome, limite, fatura_atual, bandeira) => set((state) => ({
+        cartoes: state.cartoes.map((c) => c.id === id ? { ...c, nome, limite, fatura_atual, ...(bandeira !== undefined ? { bandeira } : {}) } : c),
       })),
 
       updateTransacaoConta: (txId, novaContaId) => set((state) => ({

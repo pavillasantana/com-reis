@@ -1126,16 +1126,17 @@ export default function App() {
     );
   };
 
-  const handleCardSubmit = async (nome: string, limite: number, fatura_atual: number) => {
+  const handleCardSubmit = async (nome: string, limite: number, fatura_atual: number, bandeira?: string) => {
     if (!id_espaco_ativo) return;
 
     if (cardToEdit) {
-      await updateCartao(cardToEdit.id, nome, limite, fatura_atual);
+      await updateCartao(cardToEdit.id, nome, limite, fatura_atual, bandeira);
       toast.success(t('web_card_updated'), t('web_card_updated_desc'));
     } else {
       const newCard = {
         id_espaco: id_espaco_ativo,
         nome,
+        bandeira,
         limite,
         fatura_atual
       };

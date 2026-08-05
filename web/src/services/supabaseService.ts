@@ -493,14 +493,16 @@ export async function fetchCartoes(): ServiceResult<Cartao[]> {
   try {
     const { data, error } = await supabase
       .from('cartoes')
-      .select('id, id_espaco, nome, limite, fatura_atual')
+      .select('id, id_espaco, nome, bandeira, limite, fatura_atual, data_fechamento, data_vencimento, moeda, ativo')
       .order('data_criacao', { ascending: true });
     if (error) return { data: null, error: error.message };
     
     const mapped = (data || []).map((raw: any) => ({
       ...raw,
       limite: Number(raw.limite),
-      fatura_atual: Number(raw.fatura_atual)
+      fatura_atual: Number(raw.fatura_atual),
+      data_fechamento: raw.data_fechamento != null ? Number(raw.data_fechamento) : undefined,
+      data_vencimento: raw.data_vencimento != null ? Number(raw.data_vencimento) : undefined,
     })) as Cartao[];
 
     return { data: mapped, error: null };
@@ -523,10 +525,15 @@ export async function createCartao(
       .insert({
         id_espaco: cartao.id_espaco,
         nome: cartao.nome,
+        bandeira: cartao.bandeira ?? null,
         limite: cartao.limite,
         fatura_atual: cartao.fatura_atual ?? 0,
+        data_fechamento: cartao.data_fechamento ?? 1,
+        data_vencimento: cartao.data_vencimento ?? 10,
+        moeda: cartao.moeda ?? 'BRL',
+        ativo: cartao.ativo ?? true,
       })
-      .select('id, id_espaco, nome, limite, fatura_atual')
+      .select('id, id_espaco, nome, bandeira, limite, fatura_atual, data_fechamento, data_vencimento, moeda, ativo')
       .single();
     if (error) return { data: null, error: error.message };
     
@@ -535,7 +542,9 @@ export async function createCartao(
       data: {
         ...raw,
         limite: Number(raw.limite),
-        fatura_atual: Number(raw.fatura_atual)
+        fatura_atual: Number(raw.fatura_atual),
+        data_fechamento: raw.data_fechamento != null ? Number(raw.data_fechamento) : undefined,
+        data_vencimento: raw.data_vencimento != null ? Number(raw.data_vencimento) : undefined,
       },
       error: null,
     };
@@ -552,13 +561,19 @@ export async function updateCartaoRemote(
   id: string,
   nome: string,
   limite: number,
-  fatura_atual: number
+  fatura_atual: number,
+  bandeira?: string
 ): ServiceResult<void> {
   if (!isSupabaseConfigured) return notConfigured();
   try {
     const { error } = await supabase
       .from('cartoes')
-      .update({ nome, limite, fatura_atual })
+      .update({
+        nome,
+        limite,
+        fatura_atual,
+        ...(bandeira !== undefined ? { bandeira } : {}),
+      })
       .eq('id', id);
     if (error) return { data: null, error: error.message };
     return { data: null, error: null };
