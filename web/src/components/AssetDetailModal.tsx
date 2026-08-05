@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { X, Trash2, Check, Calendar } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { X, Trash2, Check, Calendar, Tag } from 'lucide-react';
 import { formatCurrency } from '../utils/currency';
-import { deleteTransacaoAtivo } from '../services/supabaseService';
+import { deleteTransacaoAtivo, updateTransacoesAtivosByTicker } from '../services/supabaseService';
 import type { TransacaoAtivo } from '../services/supabaseService';
 import type { StockQuote } from '../hooks/useInvestments';
-import { getTickerName, getCategoriaInfo, getNomeSubcategoria } from '../utils/investmentCategories';
+import { getTickerName, getCategoriaInfo, getNomeSubcategoria, CATEGORIAS_INVESTIMENTO } from '../utils/investmentCategories';
 import { useToast } from './Toast';
 import { useI18n } from '../i18n';
 import { ConfirmModal } from './ConfirmModal';
@@ -68,6 +68,34 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState<{ title: string; message: string } | null>(null);
+  const [catId, setCatId] = useState('');
+  const [subId, setSubId] = useState('');
+  const [savingCat, setSavingCat] = useState(false);
+
+  useEffect(() => {
+    const tx = allTxs[0];
+    setCatId(tx?.categoria || '');
+    setSubId(tx?.subcategoria || '');
+  }, [allTxs]);
+
+  const handleSaveCategoria = async () => {
+    if (!catId) {
+      toast.warning('Selecione uma categoria', 'Escolha a categoria antes de salvar.');
+      return;
+    }
+    setSavingCat(true);
+    const { error } = await updateTransacoesAtivosByTicker(ticker, {
+      categoria: catId,
+      subcategoria: subId || undefined,
+    });
+    setSavingCat(false);
+    if (error) {
+      toast.error(`Falha ao atualizar categoria: ${error}`);
+    } else {
+      toast.success('Categoria atualizada para todos os lotes.');
+      onUpdate();
+    }
+  };
 
   const handleDelete = async (id: string) => {
     if (!id.startsWith('local-')) {
@@ -176,11 +204,47 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
               <div style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED, fontWeight: 600, marginBottom: '4px' }}>
                 {t('web_invest_detail_dividends')}
               </div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: ACCENT_CYAN }}>
-                {formatCurrency(dividendosTotal, moedaBase)}
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: ACCENT_CYAN }}>
+                  {formatCurrency(dividendosTotal, moedaBase)}
+                </div>
               </div>
             </div>
-          </div>
+
+            <div style={{
+              marginBottom: '20px', padding: '16px',
+              background: 'rgba(16,69,161,0.04)', border: `1px solid rgba(16,69,161,0.15)`,
+              borderRadius: '14px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <Tag size={14} color={ACCENT_BLUE} />
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: CLEAN_TEXT, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                  Categoria do ativo
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                <select value={catId} onChange={e => { setCatId(e.target.value); setSubId(''); }} style={{
+                  background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
+                  borderRadius: '10px', padding: '9px 12px', color: CLEAN_TEXT, fontSize: '0.82rem', cursor: 'pointer',
+                }}>
+                  <option value="">Selecione a categoria...</option>
+                  {CATEGORIAS_INVESTIMENTO.map(cat => <option key={cat.id} value={cat.id}>{cat.nome}</option>)}
+                </select>
+                <select value={subId} onChange={e => setSubId(e.target.value)} style={{
+                  background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
+                  borderRadius: '10px', padding: '9px 12px', color: CLEAN_TEXT, fontSize: '0.82rem', cursor: 'pointer',
+                }} disabled={!catId}>
+                  <option value="">Subcategoria...</option>
+                  {getCategoriaInfo(catId)?.subcategorias.map(sub => <option key={sub.id} value={sub.id}>{sub.nome}</option>)}
+                </select>
+              </div>
+              <button onClick={handleSaveCategoria} disabled={savingCat} style={{
+                background: ACCENT_BLUE, border: 'none', color: '#fff',
+                padding: '9px 16px', borderRadius: '10px', cursor: 'pointer',
+                fontWeight: 700, fontSize: '0.8rem', opacity: savingCat ? 0.6 : 1,
+              }}>
+                {savingCat ? 'Salvando...' : 'Salvar categoria (todos os lotes)'}
+              </button>
+            </div>
 
             <div style={{ marginBottom: '20px' }}>
               <div style={{ fontSize: '0.82rem', color: CLEAN_TEXT_SECONDARY, marginBottom: '8px' }}>

@@ -972,6 +972,24 @@ export async function deleteTransacaoAtivo(id: string): ServiceResult<void> {
   }
 }
 
+export async function updateTransacoesAtivosByTicker(
+  ticker: string,
+  updates: Partial<Pick<TransacaoAtivo, 'categoria' | 'subcategoria'>>
+): ServiceResult<void> {
+  if (!isSupabaseConfigured) return notConfigured();
+  try {
+    const { error } = await supabase
+      .from('transacoes_ativos')
+      .update(updates)
+      .eq('ticker', ticker.toUpperCase());
+    if (error) return { data: null, error: error.message };
+    return { data: null, error: null };
+  } catch (e) {
+    captureError(e, { action: 'updateTransacoesAtivosByTicker', ticker });
+    return { data: null, error: 'Erro ao atualizar categoria do ativo.' };
+  }
+}
+
 export async function createTransacoesAtivosBulk(
   txs: Omit<TransacaoAtivo, 'id'>[]
 ): ServiceResult<number> {
