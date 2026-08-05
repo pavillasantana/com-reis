@@ -57,6 +57,7 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: strin
 
   return (
     <div
+      className="toast-card"
       role="alert"
       aria-live="assertive"
       style={{
@@ -134,25 +135,36 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: strin
 function ToastContainer({ items, onDismiss }: { items: ToastItem[]; onDismiss: (id: string) => void }) {
   if (items.length === 0) return null;
   return (
-    <div
-      aria-label="Notificações"
-      style={{
-        position: 'fixed',
-        top: '24px',
-        right: '24px',
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '15px',
-        pointerEvents: 'none',
-      }}
-    >
-      {items.map(item => (
-        <div key={item.id} style={{ pointerEvents: 'all' }}>
-          <ToastCard item={item} onDismiss={onDismiss} />
-        </div>
-      ))}
-    </div>
+    <>
+      <style>{`
+        @media (max-width: 640px) {
+          .toast-container { top: 12px !important; right: 12px !important; left: 12px !important; }
+          .toast-container > div { width: 100%; }
+          .toast-card { max-width: none !important; }
+        }
+      `}</style>
+      <div
+        className="toast-container"
+        aria-label="Notificações"
+        style={{
+          position: 'fixed',
+          top: '24px',
+          right: '24px',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '15px',
+          pointerEvents: 'none',
+          maxWidth: 'calc(100vw - 32px)',
+        }}
+      >
+        {items.map(item => (
+          <div key={item.id} style={{ pointerEvents: 'all' }}>
+            <ToastCard item={item} onDismiss={onDismiss} />
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 

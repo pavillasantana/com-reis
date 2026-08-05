@@ -12,6 +12,7 @@ import type { Espaco, Conta, Transacao, Caixinha, Cartao } from './store/useStor
 import { useAuth } from './hooks/useAuth';
 import { useSupabaseSync } from './hooks/useSupabaseSync';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
+import { getAuthErrorMessage, validateEmail, validatePassword } from './lib/authErrors';
 import { SUPABASE_URL } from './constants/config';
 import { updatePerfil, createTransacaoAtivo, createTagBancaria, updateTagBancariaRemote, deleteTagBancaria } from './services/supabaseService';
 import { formatCurrency, addMoney, subtractMoney, multiplyMoney, convertCurrency } from './utils/currency';
@@ -556,13 +557,14 @@ export default function App() {
 
   const handleRecoverySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!authEmail) {
-      toast.warning(t('web_auth_email_required'), t('web_auth_enter_email_recovery'));
+    const emailErr = validateEmail(authEmail, t);
+    if (emailErr) {
+      toast.warning(t('error'), emailErr);
       return;
     }
     const err = await resetPassword(authEmail);
     if (err) {
-      toast.error('Erro', err.message);
+      toast.error(t('error'), getAuthErrorMessage(t, err));
     } else {
       toast.success(t('web_auth_recovery_email_sent'), t('web_auth_check_inbox'));
       setIsRecoveryMode(false);
@@ -584,10 +586,13 @@ export default function App() {
     }
     const err = await updatePassword(newPassword);
     if (err) {
-      if (err.message.includes('Password should') || err.message.includes('password')) {
+      const friendly = getAuthErrorMessage(t, err);
+      if (friendly !== err.message) {
+        toast.error(t('error'), friendly);
+      } else if (err.message.includes('Password should') || err.message.includes('password')) {
         toast.error(t('web_auth_weak_password'), t('web_auth_password_requirements'));
       } else {
-        toast.error('Erro', err.message);
+        toast.error(t('error'), err.message);
       }
     } else {
       toast.success(t('web_auth_password_updated'), t('web_auth_login_again'));
@@ -781,15 +786,21 @@ export default function App() {
     }
 
     if (isSupabaseConfigured) {
-      if (!authEmail || !authPassword) {
-        toast.warning(t('web_tx_required'), t('web_tx_required_desc'));
+      const emailErr = validateEmail(authEmail, t);
+      if (emailErr) {
+        toast.error(t('error'), emailErr);
+        return;
+      }
+      const passErr = validatePassword(authPassword, t);
+      if (passErr) {
+        toast.error(t('error'), passErr);
         return;
       }
       setIsAuthLoading(true);
       const err = await signUp(authEmail, authPassword, onboardName, onboardCurrency);
       setIsAuthLoading(false);
       if (err) {
-        toast.error('Erro ao criar conta', err.message);
+        toast.error(t('error'), getAuthErrorMessage(t, err));
       } else {
         toast.success(t('web_auth_account_created'), t('web_auth_syncing'));
       }
@@ -836,14 +847,24 @@ export default function App() {
   // Trigger Login
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!authEmail || !authPassword) return;
+
+    const emailErr = validateEmail(authEmail, t);
+    if (emailErr) {
+      toast.error(t('error'), emailErr);
+      return;
+    }
+    const passErr = validatePassword(authPassword, t);
+    if (passErr) {
+      toast.error(t('error'), passErr);
+      return;
+    }
 
     setIsAuthLoading(true);
     const err = await signIn(authEmail, authPassword);
     setIsAuthLoading(false);
 
     if (err) {
-      toast.error(t('error'), err.message);
+      toast.error(t('error'), getAuthErrorMessage(t, err));
     } else {
       toast.success(t('web_auth_access_granted'), t('web_auth_loading_finance'));
     }

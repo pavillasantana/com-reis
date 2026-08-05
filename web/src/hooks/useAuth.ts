@@ -17,6 +17,17 @@ import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export interface AuthError {
   message: string;
+  code?: string;
+}
+
+// Extrai o código do erro do Supabase (AuthError.code) de forma segura.
+function getErrorCode(error: unknown): string | undefined {
+  if (error && typeof error === 'object') {
+    const e = error as { code?: unknown; error_code?: unknown };
+    const code = typeof e.code === 'string' ? e.code : typeof e.error_code === 'string' ? e.error_code : undefined;
+    return code;
+  }
+  return undefined;
 }
 
 export interface UseAuthReturn {
@@ -185,7 +196,7 @@ export function useAuth(): UseAuthReturn {
           },
         },
       });
-      if (error) return { message: error.message };
+      if (error) return { message: error.message, code: getErrorCode(error) };
 
       // O trigger do banco cria automaticamente o registro em public.usuarios + espaço PF
       // onAuthStateChange cuidará da sincronização com o store
@@ -210,7 +221,7 @@ export function useAuth(): UseAuthReturn {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return { message: error.message };
+      if (error) return { message: error.message, code: getErrorCode(error) };
       // onAuthStateChange cuida da sincronização
       return null;
     } catch (e) {
@@ -238,7 +249,7 @@ export function useAuth(): UseAuthReturn {
           queryParams: provider === 'azure' ? { prompt: 'select_account' } : undefined,
         },
       });
-      if (error) return { message: error.message };
+      if (error) return { message: error.message, code: getErrorCode(error) };
       return null;
     } catch (e) {
       captureError(e, { action: `signInWith${provider}` });
@@ -264,7 +275,7 @@ export function useAuth(): UseAuthReturn {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin, // Callback URL
       });
-      if (error) return { message: error.message };
+      if (error) return { message: error.message, code: getErrorCode(error) };
       return null;
     } catch (e) {
       captureError(e, { action: 'resetPassword', email });
@@ -279,7 +290,7 @@ export function useAuth(): UseAuthReturn {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) return { message: error.message };
+      if (error) return { message: error.message, code: getErrorCode(error) };
       return null;
     } catch (e) {
       captureError(e, { action: 'updatePassword' });
