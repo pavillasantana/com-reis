@@ -84,7 +84,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   const [fSubcategoria, setFSubcategoria] = useState('');
   const [sugestoes, setSugestoes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [rowDeleteConfirm, setRowDeleteConfirm] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [fContaDestino, setFContaDestino] = useState('');
 
@@ -966,17 +966,17 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Calendar size={11} />{tx.data_transacao}</span>
                                   </td>
                                   <td style={{ padding: '14px 12px' }}>
-                                    {deleteConfirm === tx.id ? (
+                                    {rowDeleteConfirm === tx.id ? (
                                       <span style={{ display: 'flex', gap: '6px' }}>
                                         <button onClick={async () => {
                                           if (!tx.id.startsWith('local-')) await deleteTransacaoAtivo(tx.id);
                                           setTxs(prev => prev.filter(t => t.id !== tx.id));
-                                          setDeleteConfirm(null);
+                                          setRowDeleteConfirm(null);
                                         }} style={{
                                           background: 'rgba(239,68,68,0.15)', border: 'none',
                                           borderRadius: '6px', padding: '5px 8px', cursor: 'pointer', color: ACCENT_RED,
                                         }}><Check size={12} /></button>
-                                        <button onClick={() => setDeleteConfirm(null)} style={{
+                                        <button onClick={() => setRowDeleteConfirm(null)} style={{
                                           background: 'transparent', border: `1px solid ${CLEAN_BORDER}`,
                                           borderRadius: '6px', padding: '5px 8px', cursor: 'pointer', color: CLEAN_TEXT_MUTED,
                                         }}><X size={12} /></button>
@@ -987,7 +987,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                                           background: 'none', border: 'none', cursor: 'pointer',
                                           color: CLEAN_TEXT_MUTED, padding: '4px', borderRadius: '6px',
                                         }}><Pencil size={13} /></button>
-                                        <button onClick={() => setDeleteConfirm(tx.id)} style={{
+                                        <button onClick={() => setRowDeleteConfirm(tx.id)} style={{
                                           background: 'none', border: 'none', cursor: 'pointer',
                                           color: CLEAN_TEXT_MUTED, padding: '4px', borderRadius: '6px',
                                         }}><Trash2 size={13} /></button>
