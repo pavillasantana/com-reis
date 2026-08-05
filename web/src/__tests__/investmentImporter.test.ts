@@ -169,6 +169,24 @@ describe('parseAtivosCSV()', () => {
     expect(r[0].subcategoria).toBe('etfs_br');
     expect(r[1].subcategoria).toBe('fiis');
   });
+
+  it('autopreenche a data de hoje quando não há coluna de data', () => {
+    const r = parseAtivosCSV(csv(`
+      ticker,quantidade,preco medio
+      PETR4,100,28.40
+    `));
+    expect(r[0].dataTransacao).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('usa a coluna de data quando presente', () => {
+    const r = parseAtivosCSV(csv(`
+      ticker,quantidade,preco medio,data
+      PETR4,100,28.40,01/03/2026
+      MXRF11,200,9.85,02/03/2026
+    `));
+    expect(r[0].dataTransacao).toBe('2026-03-01');
+    expect(r[1].dataTransacao).toBe('2026-03-02');
+  });
 });
 
 // ─── parseXLSX (via XLSX.build) ───────────────────────────────────────────────

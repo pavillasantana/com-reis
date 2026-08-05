@@ -28,6 +28,7 @@ export interface PendingAtivo {
   nome: string;
   quantidade: number;
   precoMedio: number;
+  dataTransacao: string;
   categoria: string;
   subcategoria: string;
 }
@@ -160,6 +161,7 @@ function parseAtivosRows(rows: Record<string, unknown>[]): PendingAtivo[] {
   const qtdKey = findKey(keys, 'quantidade', 'qtd', 'qtde', 'quant', 'saldo', 'posicao', 'posição');
   const pmKey = findKey(keys, 'preco medio', 'preço médio', 'preco médio', 'preço medio', 'custo medio', 'custo médio', 'pm', 'preco', 'preço', 'valor');
   const nomeKey = findKey(keys, 'nome', 'descricao', 'descrição', 'nome do papel', 'empresa');
+  const dataKey = findKey(keys, 'data', 'data posicao', 'data posição', 'posicao em', 'posição em', 'data inicial', 'dt', 'lancamento');
 
   return rows.map((row) => {
     const ticker = normalizeTicker(row[tickerKey]);
@@ -169,6 +171,9 @@ function parseAtivosRows(rows: Record<string, unknown>[]): PendingAtivo[] {
     const precoMedio = pmKey ? parseValor(row[pmKey]) : 0;
     if (quantidade <= 0 || precoMedio <= 0) return null;
 
+    const dataRaw = dataKey ? row[dataKey] : '';
+    const dataTransacao = dataRaw != null && String(dataRaw).trim() !== '' ? parseData(dataRaw) : new Date().toISOString().split('T')[0];
+
     const { categoria, subcategoria } = categoriaDeTicker(ticker);
     return {
       _key: nextKey(),
@@ -176,6 +181,7 @@ function parseAtivosRows(rows: Record<string, unknown>[]): PendingAtivo[] {
       nome: nomeKey ? String(row[nomeKey] || '').trim() : '',
       quantidade,
       precoMedio,
+      dataTransacao,
       categoria,
       subcategoria,
     };

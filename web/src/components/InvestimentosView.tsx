@@ -1405,7 +1405,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                   tipo: 'compra',
                   quantidade: r.quantidade,
                   preco_unitario: r.precoMedio,
-                  data_transacao: new Date().toISOString().split('T')[0],
+                  data_transacao: r.dataTransacao || new Date().toISOString().split('T')[0],
                   categoria: r.categoria || undefined,
                   subcategoria: r.subcategoria || undefined,
                 };

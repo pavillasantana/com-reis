@@ -173,7 +173,7 @@ export const InvestImportReviewModal: React.FC<InvestImportReviewModalProps> = (
           display: 'grid',
           gridTemplateColumns: mode === 'aportes'
             ? '34px 120px 1fr 96px 92px 110px 110px 140px 36px'
-            : '34px 120px 1fr 100px 120px 120px 36px',
+            : '34px 120px 1fr 100px 120px 120px 140px 36px',
           gap: '0 8px', padding: '10px 20px',
           background: '#F8FAFC', borderBottom: `1px solid ${CLEAN_BORDER}`,
         }}>
@@ -186,9 +186,7 @@ export const InvestImportReviewModal: React.FC<InvestImportReviewModalProps> = (
           <span style={{ ...headStyle, textAlign: 'right' }}>Quantidade</span>
           <span style={{ ...headStyle, textAlign: 'right' }}>{mode === 'aportes' ? 'Preço Unit.' : 'Preço Médio'}</span>
           <span style={{ ...headStyle, textAlign: 'right' }}>Total</span>
-          {mode === 'aportes' && (
-            <span style={{ ...headStyle, textAlign: 'center' }}>Data</span>
-          )}
+          <span style={{ ...headStyle, textAlign: 'center' }}>Data</span>
           <span />
         </div>
 
@@ -210,7 +208,7 @@ export const InvestImportReviewModal: React.FC<InvestImportReviewModalProps> = (
                   display: 'grid',
                   gridTemplateColumns: mode === 'aportes'
                     ? '34px 120px 1fr 96px 92px 110px 110px 140px 36px'
-                    : '34px 120px 1fr 100px 120px 120px 36px',
+                    : '34px 120px 1fr 100px 120px 120px 140px 36px',
                   gap: '0 8px', alignItems: 'center',
                   padding: '8px', borderRadius: '10px', marginBottom: '4px',
                   background: isChecked ? '#F8FAFC' : 'transparent',
@@ -283,14 +281,12 @@ export const InvestImportReviewModal: React.FC<InvestImportReviewModalProps> = (
                     {fmtNum(total)}
                   </div>
 
-                  {mode === 'aportes' && (
-                    <input
-                      type="date"
-                      value={row.dataTransacao}
-                      onChange={e => update(row._key, { dataTransacao: e.target.value })}
-                      style={{ ...inputStyle, cursor: 'pointer' }}
-                    />
-                  )}
+                  <input
+                    type="date"
+                    value={row.dataTransacao}
+                    onChange={e => update(row._key, { dataTransacao: e.target.value })}
+                    style={{ ...inputStyle, cursor: 'pointer' }}
+                  />
 
                   <button onClick={() => remove(row._key)} style={{
                     background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
