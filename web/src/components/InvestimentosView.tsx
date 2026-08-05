@@ -27,6 +27,7 @@ import {
   getCategoriaInfo, searchTickers, getTickerName,
   getTodasCategoriasComTickers,
   isCategoriaDomestica, getCategoriasDomesticas,
+  formatIndexacao,
 } from '../utils/investmentCategories';
 import { useI18n } from '../i18n';
 import { useQuotes, useMarketQuotesByCategory, calcularMetricas, calcularMarketRanking } from '../hooks/useInvestments';
@@ -141,9 +142,9 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   const totalDividendos = useMemo(() => dividendos.reduce((s, d) => s + d.valor, 0), [dividendos]);
 
   const posicoes = useMemo(() => {
-    const map: Record<string, { ticker: string; qtd: number; custoTotal: number; qtdCompra: number; qtdVenda: number; categoria?: string; subcategoria?: string }> = {};
+    const map: Record<string, { ticker: string; qtd: number; custoTotal: number; qtdCompra: number; qtdVenda: number; categoria?: string; subcategoria?: string; indice?: string; percentual_indexacao?: number; data_vencimento?: string }> = {};
     txs.forEach(t => {
-      if (!map[t.ticker]) map[t.ticker] = { ticker: t.ticker, qtd: 0, custoTotal: 0, qtdCompra: 0, qtdVenda: 0, categoria: t.categoria, subcategoria: t.subcategoria };
+      if (!map[t.ticker]) map[t.ticker] = { ticker: t.ticker, qtd: 0, custoTotal: 0, qtdCompra: 0, qtdVenda: 0, categoria: t.categoria, subcategoria: t.subcategoria, indice: t.indice, percentual_indexacao: t.percentual_indexacao, data_vencimento: t.data_vencimento };
       const vol = t.quantidade * t.preco_unitario;
       if (t.tipo === 'compra') { map[t.ticker].qtd += t.quantidade; map[t.ticker].custoTotal += vol; map[t.ticker].qtdCompra += t.quantidade; }
       else { map[t.ticker].qtd -= t.quantidade; map[t.ticker].custoTotal -= vol; map[t.ticker].qtdVenda += t.quantidade; }
@@ -543,6 +544,15 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                                       <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: 700, fontSize: '0.85rem', color: ACCENT_BLUE }}>{p.ticker}</div>
                                         <div style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED }}>{q?.longName || getTickerName(p.ticker) || p.ticker}</div>
+                                        {p.indice && (
+                                          <div style={{
+                                            fontSize: '0.66rem', fontWeight: 700, marginTop: '2px',
+                                            color: ACCENT_BLUE, background: 'rgba(16,69,161,0.08)',
+                                            display: 'inline-block', padding: '1px 7px', borderRadius: '9px',
+                                          }}>
+                                            {formatIndexacao(p.indice, p.percentual_indexacao, p.data_vencimento)}
+                                          </div>
+                                        )}
                                       </div>
                                       <div style={{ textAlign: 'right' }}>
                                         <div style={{ fontSize: '0.82rem', fontWeight: 700, color: CLEAN_TEXT }}>{formatQtd(p.qtd)}</div>
@@ -956,6 +966,15 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                                         {getNomeSubcategoria(tx.categoria!, tx.subcategoria || '')}
                                       </span>
                                     ) : <span style={{ fontSize: '0.72rem', color: CLEAN_TEXT_MUTED }}>—</span>}
+                                    {tx.indice && (
+                                      <span style={{
+                                        display: 'block', marginTop: '3px', fontSize: '0.66rem', fontWeight: 700,
+                                        color: ACCENT_BLUE, background: 'rgba(16,69,161,0.08)',
+                                        padding: '1px 7px', borderRadius: '9px', width: 'fit-content',
+                                      }}>
+                                        {formatIndexacao(tx.indice, tx.percentual_indexacao, tx.data_vencimento)}
+                                      </span>
+                                    )}
                                   </td>
                                   <td style={{ padding: '14px 16px', color: CLEAN_TEXT }}>{formatQtd(tx.quantidade)}</td>
                                   <td style={{ padding: '14px 16px', textAlign: 'right', color: CLEAN_TEXT }}>{formatCurrency(tx.preco_unitario, moedaBase)}</td>
@@ -1387,27 +1406,30 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
             setImportSaving(true);
             try {
               const txs: Omit<TransacaoAtivo, 'id'>[] = rows.map((r: any) => {
+                const base = {
+                  id_usuario: id_usuario || '',
+                  ticker: r.ticker,
+                  data_transacao: r.dataTransacao,
+                  categoria: r.categoria || undefined,
+                  subcategoria: r.subcategoria || undefined,
+                  indice: r.indice || undefined,
+                  percentual_indexacao: r.percentual_indexacao ?? undefined,
+                  data_vencimento: r.data_vencimento || undefined,
+                };
                 if (importMode === 'aportes') {
                   return {
-                    id_usuario: id_usuario || '',
-                    ticker: r.ticker,
+                    ...base,
                     tipo: r.tipo,
                     quantidade: r.quantidade,
                     preco_unitario: r.precoUnitario,
-                    data_transacao: r.dataTransacao,
-                    categoria: r.categoria || undefined,
-                    subcategoria: r.subcategoria || undefined,
                   };
                 }
                 return {
-                  id_usuario: id_usuario || '',
-                  ticker: r.ticker,
+                  ...base,
                   tipo: 'compra',
                   quantidade: r.quantidade,
                   preco_unitario: r.precoMedio,
                   data_transacao: r.dataTransacao || new Date().toISOString().split('T')[0],
-                  categoria: r.categoria || undefined,
-                  subcategoria: r.subcategoria || undefined,
                 };
               });
               const { error } = await createTransacoesAtivosBulk(txs);

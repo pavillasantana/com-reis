@@ -883,6 +883,9 @@ export interface TransacaoAtivo {
   data_transacao: string;
   categoria?: string;
   subcategoria?: string;
+  indice?: string;
+  percentual_indexacao?: number;
+  data_vencimento?: string;
 }
 
 export async function fetchTransacoesAtivos(): ServiceResult<TransacaoAtivo[]> {
@@ -897,6 +900,7 @@ export async function fetchTransacoesAtivos(): ServiceResult<TransacaoAtivo[]> {
       ...r,
       quantidade: Number(r.quantidade),
       preco_unitario: Number(r.preco_unitario),
+      percentual_indexacao: r.percentual_indexacao != null ? Number(r.percentual_indexacao) : undefined,
     })) as TransacaoAtivo[];
     return { data: mapped, error: null };
   } catch (e) {
@@ -920,6 +924,9 @@ export async function createTransacaoAtivo(
         data_transacao: tx.data_transacao,
         categoria: tx.categoria || null,
         subcategoria: tx.subcategoria || null,
+        indice: tx.indice || null,
+        percentual_indexacao: tx.percentual_indexacao ?? null,
+        data_vencimento: tx.data_vencimento || null,
       })
       .select('*')
       .single();
@@ -930,6 +937,7 @@ export async function createTransacaoAtivo(
         ...raw,
         quantidade: Number(raw.quantidade),
         preco_unitario: Number(raw.preco_unitario),
+        percentual_indexacao: raw.percentual_indexacao != null ? Number(raw.percentual_indexacao) : undefined,
       },
       error: null,
     };
@@ -941,7 +949,7 @@ export async function createTransacaoAtivo(
 
 export async function updateTransacaoAtivo(
   id: string,
-  updates: Partial<Pick<TransacaoAtivo, 'quantidade' | 'preco_unitario' | 'data_transacao' | 'categoria' | 'subcategoria'>>
+  updates: Partial<Pick<TransacaoAtivo, 'quantidade' | 'preco_unitario' | 'data_transacao' | 'categoria' | 'subcategoria' | 'indice' | 'percentual_indexacao' | 'data_vencimento'>>
 ): ServiceResult<void> {
   if (!isSupabaseConfigured) return notConfigured();
   try {
@@ -974,7 +982,7 @@ export async function deleteTransacaoAtivo(id: string): ServiceResult<void> {
 
 export async function updateTransacoesAtivosByTicker(
   ticker: string,
-  updates: Partial<Pick<TransacaoAtivo, 'categoria' | 'subcategoria'>>
+  updates: Partial<Pick<TransacaoAtivo, 'categoria' | 'subcategoria' | 'indice' | 'percentual_indexacao' | 'data_vencimento'>>
 ): ServiceResult<void> {
   if (!isSupabaseConfigured) return notConfigured();
   try {

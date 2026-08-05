@@ -25,8 +25,12 @@ export const CATEGORIAS_INVESTIMENTO: CategoriaInvestimento[] = [
       { id: 'cdb_rdb', nome: 'CDB / RDB', descricao: 'Certificados e Recibos de Depósito Bancário' },
       { id: 'lci_lca', nome: 'LCI / LCA', descricao: 'Letras de Crédito Imobiliário e do Agronegócio (sem IR)' },
       { id: 'cri_cra', nome: 'CRI / CRA', descricao: 'Certificados de Recebíveis Imobiliários e do Agronegócio' },
+      { id: 'lc', nome: 'LC — Letra de Câmbio', descricao: 'Título de crédito emitido por financeiras' },
+      { id: 'lf', nome: 'LF — Letra Financeira', descricao: 'Título de dívida de bancos (foco em investidores qualificados)' },
       { id: 'debentures', nome: 'Debêntures', descricao: 'Títulos de dívida de grandes empresas' },
+      { id: 'fidc', nome: 'FIDC', descricao: 'Fundos de Investimento em Direitos Creditórios' },
       { id: 'poupanca', nome: 'Poupança', descricao: 'Conta de poupança tradicional' },
+      { id: 'outros_rf', nome: 'Outros / COE', descricao: 'COE, títulos privados e demais produtos de renda fixa' },
     ],
   },
   {
@@ -88,7 +92,7 @@ export const CATEGORIAS_INVESTIMENTO: CategoriaInvestimento[] = [
 
 type TickerMapEntry = { categoria: string; subcategoria: string };
 
-const TICKER_CATEGORY_MAP: Record<string, TickerMapEntry> = {
+export const TICKER_CATEGORY_MAP: Record<string, TickerMapEntry> = {
   // Renda Fixa Nacional
   'TESOURO IPCA+':     { categoria: 'renda_fixa_br', subcategoria: 'tesouro_direto' },
   'TESOURO SELIC':     { categoria: 'renda_fixa_br', subcategoria: 'tesouro_direto' },
@@ -96,6 +100,19 @@ const TICKER_CATEGORY_MAP: Record<string, TickerMapEntry> = {
   'NTN-B':             { categoria: 'renda_fixa_br', subcategoria: 'tesouro_direto' },
   'LTN':               { categoria: 'renda_fixa_br', subcategoria: 'tesouro_direto' },
   'LFT':               { categoria: 'renda_fixa_br', subcategoria: 'tesouro_direto' },
+  'CDB':               { categoria: 'renda_fixa_br', subcategoria: 'cdb_rdb' },
+  'RDB':               { categoria: 'renda_fixa_br', subcategoria: 'cdb_rdb' },
+  'LCI':               { categoria: 'renda_fixa_br', subcategoria: 'lci_lca' },
+  'LCA':               { categoria: 'renda_fixa_br', subcategoria: 'lci_lca' },
+  'CRI':               { categoria: 'renda_fixa_br', subcategoria: 'cri_cra' },
+  'CRA':               { categoria: 'renda_fixa_br', subcategoria: 'cri_cra' },
+  'LC':                { categoria: 'renda_fixa_br', subcategoria: 'lc' },
+  'LF':                { categoria: 'renda_fixa_br', subcategoria: 'lf' },
+  'DEBENTURE':         { categoria: 'renda_fixa_br', subcategoria: 'debentures' },
+  'DEBENTURES':        { categoria: 'renda_fixa_br', subcategoria: 'debentures' },
+  'FIDC':              { categoria: 'renda_fixa_br', subcategoria: 'fidc' },
+  'POUPANCA':          { categoria: 'renda_fixa_br', subcategoria: 'poupanca' },
+  'COE':               { categoria: 'renda_fixa_br', subcategoria: 'outros_rf' },
 
   // Renda Variável Nacional — Ações
   'PETR4':  { categoria: 'renda_variavel_br', subcategoria: 'acoes' },
@@ -428,14 +445,145 @@ const TICKER_CATEGORY_MAP: Record<string, TickerMapEntry> = {
   'GRT':   { categoria: 'alternativos', subcategoria: 'crypto' },
   'LDO':   { categoria: 'alternativos', subcategoria: 'crypto' },
   'ENS':   { categoria: 'alternativos', subcategoria: 'crypto' },
+
+  // ── Criptos — Privacidade / Moedas Clássicas ──
+  'XMR':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ZEC':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'DASH':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'NANO':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'XVG':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ZEN':   { categoria: 'alternativos', subcategoria: 'crypto' },
+
+  // ── Criptos — Smart Contracts / L1 ──
+  'NEO':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'XTZ':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'EGLD':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'FTM':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'KSM':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ONE':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ZIL':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'WAVES': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'FLOW':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'MINA':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'CELO':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'KAVA':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'XDC':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'KLAY':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'IOTX':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'TAO':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'AKT':   { categoria: 'alternativos', subcategoria: 'crypto' },
+
+  // ── Criptos — DeFi / Tokens ──
+  'RUNE':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'CAKE':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ROSE':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'HNT':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'BAT':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ZRX':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'OMG':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'BAND':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'LRC':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'SC':    { categoria: 'alternativos', subcategoria: 'crypto' },
+  'FXS':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'GNO':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'PYTH':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'JTO':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ENA':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ONDO':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'EIGEN': { categoria: 'alternativos', subcategoria: 'crypto' },
+
+  // ── Criptos — DEX / Utilitários ──
+  'GMT':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'APE':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'BLUR':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'MASK':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'AUDIO': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'CHR':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'SKL':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'AIOZ':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'JASMY': { categoria: 'alternativos', subcategoria: 'crypto' },
+
+  // ── Criptos — Exchange / Infra ──
+  'CRO':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'OKB':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'IOTA':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ONT':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ICX':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'QTUM':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'BTT':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'WAXP':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'GAS':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'XEM':   { categoria: 'alternativos', subcategoria: 'crypto' },
+
+  // ── Criptos — Novos Layers / 2024-2026 ──
+  'STRK':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ZK':    { categoria: 'alternativos', subcategoria: 'crypto' },
+  'POL':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'DYM':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ALT':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'BEAM':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ZRO':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'NOT':   { categoria: 'alternativos', subcategoria: 'crypto' },
+  'SAGA':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'MEME':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'BB':    { categoria: 'alternativos', subcategoria: 'crypto' },
+  'WORMHOLE': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'AEVO':  { categoria: 'alternativos', subcategoria: 'crypto' },
+
+  // ── Criptos — Meme / Social (2024-2026) ──
+  'TURBO': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'PENGU': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'AI16Z': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'TRUMP': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'GOAT':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'PNUT':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'NEIRO': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'MOODENG': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'IP':    { categoria: 'alternativos', subcategoria: 'crypto' },
+  'VIRTUAL': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'FARTCOIN': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'ME':    { categoria: 'alternativos', subcategoria: 'crypto' },
+
+  // ── Criptos — Stablecoins / Lastreados ──
+  'XAUT':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'PAXG':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'TUSD':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'PYUSD': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'FDUSD': { categoria: 'alternativos', subcategoria: 'crypto' },
+  'BUSD':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  'EURS':  { categoria: 'alternativos', subcategoria: 'crypto' },
+
+  // ── Criptos — Ordinals / Outros ──
+  'ORDI':  { categoria: 'alternativos', subcategoria: 'crypto' },
+  '1000SATS': { categoria: 'alternativos', subcategoria: 'crypto' },
 };
 
 // ─── Funções Auxiliares ──────────────────────────────────────────
+
+// Prefixos típicos de produtos de renda fixa brasileiros (usados em extratos/planilhas).
+const RENDA_FIXA_PREFIXOS: Array<[RegExp, string]> = [
+  [/^(CDB|RDB)/, 'cdb_rdb'],
+  [/^(LCI|LCA)/, 'lci_lca'],
+  [/^(CRI|CRA)/, 'cri_cra'],
+  [/^(LC\d+|LC\s|LC$)/, 'lc'],
+  [/^(LF\d+|LF\s|LF$)/, 'lf'],
+  [/^DEB/, 'debentures'],
+  [/^FIDC/, 'fidc'],
+  [/^(POUP|POUPANCA)/, 'poupanca'],
+  [/^(TESOURO|NTN|LTN|LFT)/, 'tesouro_direto'],
+  [/^COE/, 'outros_rf'],
+];
 
 export function getCategoriaByTicker(ticker: string): TickerMapEntry | null {
   const t = ticker.toUpperCase();
   const direct = TICKER_CATEGORY_MAP[t];
   if (direct) return direct;
+  // Renda fixa: detecta pelo prefixo (CDB, LCI, LC, TESOURO etc.), comum em extratos.
+  for (const [regex, subcategoria] of RENDA_FIXA_PREFIXOS) {
+    if (regex.test(t)) {
+      return { categoria: 'renda_fixa_br', subcategoria };
+    }
+  }
   // BDRs negociados na B3 terminam em 31-39 (ex: AAPL34, MSFT34, GOOGL34, BIVB39).
   if (/^[A-Z0-9]{4,7}(3[1-9])$/.test(t)) {
     return { categoria: 'internacional', subcategoria: 'bdrs' };
@@ -654,6 +802,30 @@ export const TICKER_DB: Record<string, string> = {
   'USDT': 'Tether', 'USDC': 'USD Coin', 'DAI': 'Dai Stablecoin',
   'TON': 'Toncoin', 'KAS': 'Kaspa', 'STX': 'Stacks',
   'AR': 'Arweave', 'GRT': 'The Graph', 'LDO': 'Lido DAO', 'ENS': 'Ethereum Name Service',
+  'XMR': 'Monero', 'ZEC': 'Zcash', 'DASH': 'Dash', 'NANO': 'Nano', 'XVG': 'Verge',
+  'ZEN': 'Horizen', 'NEO': 'Neo', 'XTZ': 'Tezos', 'EGLD': 'MultiversX',
+  'FTM': 'Fantom', 'KSM': 'Kusama', 'ONE': 'Harmony', 'ZIL': 'Zilliqa',
+  'WAVES': 'Waves', 'FLOW': 'Flow', 'MINA': 'Mina Protocol', 'CELO': 'Celo',
+  'KAVA': 'Kava', 'XDC': 'XDC Network', 'KLAY': 'Klaytn', 'IOTX': 'IoTeX',
+  'TAO': 'Bittensor', 'AKT': 'Akash Network', 'RUNE': 'THORChain', 'CAKE': 'PancakeSwap',
+  'ROSE': 'Oasis Network', 'HNT': 'Helium', 'BAT': 'Basic Attention Token',
+  'ZRX': '0x', 'OMG': 'OMG Network', 'BAND': 'Band Protocol', 'LRC': 'Loopring',
+  'SC': 'Siacoin', 'FXS': 'Frax Share', 'GNO': 'Gnosis',
+  'PYTH': 'Pyth Network', 'JTO': 'Jito', 'ENA': 'Ethena', 'ONDO': 'Ondo Finance',
+  'EIGEN': 'EigenLayer', 'GMT': 'STEPN', 'APE': 'ApeCoin', 'BLUR': 'Blur',
+  'MASK': 'Mask Network', 'AUDIO': 'Audius', 'CHR': 'Chroma', 'SKL': 'Skale',
+  'AIOZ': 'AIOZ Network', 'JASMY': 'JasmyCoin', 'CRO': 'Cronos', 'OKB': 'OKB',
+  'IOTA': 'IOTA', 'ONT': 'Ontology', 'ICX': 'ICON', 'QTUM': 'Qtum',
+  'BTT': 'BitTorrent', 'WAXP': 'WAX', 'GAS': 'Gas', 'XEM': 'NEM',
+  'STRK': 'Starknet', 'ZK': 'zkSync', 'POL': 'Polygon (POL)', 'DYM': 'Dymension',
+  'ALT': 'AltLayer', 'BEAM': 'Beam', 'ZRO': 'LayerZero', 'NOT': 'Notcoin',
+  'SAGA': 'Saga', 'MEME': 'Memecoin', 'BB': 'BounceBit', 'WORMHOLE': 'Wormhole',
+  'AEVO': 'Aevo', 'TURBO': 'Turbo', 'PENGU': 'Pudgy Penguins', 'AI16Z': 'ai16z',
+  'TRUMP': 'Official Trump', 'GOAT': 'Goatseus Maximus', 'PNUT': 'Peanut the Squirrel',
+  'NEIRO': 'Neiro', 'MOODENG': 'Moo Deng', 'IP': 'Story (IP)', 'VIRTUAL': 'Virtuals Protocol',
+  'FARTCOIN': 'Fartcoin', 'ME': 'Magic Eden', 'XAUT': 'Tether Gold', 'PAXG': 'PAX Gold',
+  'TUSD': 'TrueUSD', 'PYUSD': 'PayPal USD', 'FDUSD': 'First Digital USD',
+  'BUSD': 'Binance USD', 'EURS': 'STASIS EURO', 'ORDI': 'Ordinals', '1000SATS': 'SATS (Ordinals)',
 
   // ── Internacional — BDRs ──
   'AAPL34': 'Apple Inc. BDR', 'MSFT34': 'Microsoft Corp. BDR', 'GOOGL34': 'Alphabet BDR',
@@ -683,6 +855,66 @@ export const TICKER_DB: Record<string, string> = {
   'TESOURO IPCA+ 2035': 'Tesouro IPCA+ 2035', 'TESOURO IPCA+ 2045': 'Tesouro IPCA+ 2045',
   'TESOURO PREFIXADO 2026': 'Tesouro Prefixado 2026', 'TESOURO PREFIXADO 2029': 'Tesouro Prefixado 2029',
   'NTN-B': 'Tesouro IPCA+', 'LTN': 'Tesouro Prefixado', 'LFT': 'Tesouro Selic',
+  'TESOURO': 'Tesouro Direto',
+  'CDB': 'CDB', 'RDB': 'RDB', 'LCI': 'LCI', 'LCA': 'LCA',
+  'CRI': 'CRI', 'CRA': 'CRA', 'LC': 'Letra de Câmbio', 'LF': 'Letra Financeira',
+  'DEBENTURE': 'Debênture', 'DEBENTURES': 'Debêntures',
+  'FIDC': 'FIDC', 'POUPANCA': 'Poupança', 'COE': 'COE',
+};
+
+// ─── Criptomoedas → IDs CoinGecko (fonte única de cotações) ──────────
+// Mantenha sincronizado com os tickers de cripto em TICKER_CATEGORY_MAP.
+
+export const CRYPTO_COINGECKO_IDS: Record<string, string> = {
+  'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana',
+  'ADA': 'cardano', 'XRP': 'ripple', 'DOT': 'polkadot',
+  'AVAX': 'avalanche-2', 'LINK': 'chainlink', 'MATIC': 'matic-network',
+  'DOGE': 'dogecoin', 'SHIB': 'shiba-inu', 'UNI': 'uniswap',
+  'ATOM': 'cosmos', 'LTC': 'litecoin', 'BNB': 'binancecoin',
+  'TRX': 'tron', 'FIL': 'filecoin', 'NEAR': 'near',
+  'APT': 'aptos', 'ARB': 'arbitrum', 'OP': 'optimism',
+  'SUI': 'sui', 'SEI': 'sei-network', 'INJ': 'injective',
+  'RENDER': 'render-token', 'FET': 'fetch-ai', 'WLD': 'worldcoin-wld',
+  'TIA': 'celestia', 'JUP': 'jup-ag', 'PEPE': 'pepe',
+  'WIF': 'dogwifcoin', 'BONK': 'bonk', 'FLOKI': 'floki',
+  'MANA': 'decentraland', 'SAND': 'the-sandbox', 'AXS': 'axie-infinity',
+  'GALA': 'gala', 'IMX': 'immutable-x', 'ENJ': 'enjincoin',
+  'CHZ': 'chiliz', 'THETA': 'theta-token', 'HBAR': 'hedera-hashgraph',
+  'VET': 'vechain', 'ICP': 'internet-computer', 'ALGO': 'algorand',
+  'XLM': 'stellar', 'EOS': 'eos', 'BCH': 'bitcoin-cash',
+  'ETC': 'ethereum-classic', 'AAVE': 'aave', 'CRV': 'curve-dao-token',
+  'MKR': 'maker', 'COMP': 'compound-governance-token', 'SNX': 'synthetix',
+  '1INCH': '1inch', 'YFI': 'yearn-finance', 'SUSHI': 'sushi',
+  'USDT': 'tether', 'USDC': 'usd-coin', 'DAI': 'dai',
+  'TON': 'the-open-network', 'KAS': 'kaspa', 'STX': 'stacks',
+  'AR': 'arweave', 'GRT': 'the-graph', 'LDO': 'lido-dao', 'ENS': 'ethereum-name-service',
+  'XMR': 'monero', 'ZEC': 'zcash', 'DASH': 'dash', 'NANO': 'nano',
+  'XVG': 'verge', 'ZEN': 'horizen', 'NEO': 'neo', 'XTZ': 'tezos',
+  'EGLD': 'elrond-erd-2', 'FTM': 'fantom', 'KSM': 'kusama', 'ONE': 'harmony',
+  'ZIL': 'zilliqa', 'WAVES': 'waves', 'FLOW': 'flow', 'MINA': 'mina-protocol',
+  'CELO': 'celo', 'KAVA': 'kava', 'XDC': 'xdc-network', 'KLAY': 'klay-token',
+  'IOTX': 'iotex', 'TAO': 'bittensor', 'AKT': 'akash-network',
+  'RUNE': 'thorchain', 'CAKE': 'pancakeswap-token', 'ROSE': 'oasis-network',
+  'HNT': 'helium', 'BAT': 'basic-attention-token', 'ZRX': '0x',
+  'OMG': 'omisego', 'BAND': 'band-protocol', 'LRC': 'loopring', 'SC': 'siacoin',
+  'FXS': 'frax-share', 'GNO': 'gnosis', 'PYTH': 'pyth-network',
+  'JTO': 'jito-governance-token', 'ENA': 'ethena', 'ONDO': 'ondo-finance',
+  'EIGEN': 'eigenlayer', 'GMT': 'stepn', 'APE': 'apecoin', 'BLUR': 'blur',
+  'MASK': 'mask-network', 'AUDIO': 'audius', 'CHR': 'chromia', 'SKL': 'skale',
+  'AIOZ': 'aioz-network', 'JASMY': 'jasmycoin', 'CRO': 'crypto-com-chain',
+  'OKB': 'okb', 'IOTA': 'iota', 'ONT': 'ontology', 'ICX': 'icon',
+  'QTUM': 'qtum', 'BTT': 'bittorrent', 'WAXP': 'wax', 'GAS': 'gas',
+  'XEM': 'nem', 'STRK': 'starknet', 'ZK': 'zksync', 'POL': 'polygon-ecosystem-token',
+  'DYM': 'dymension', 'ALT': 'altlayer', 'BEAM': 'beam-2', 'ZRO': 'layerzero',
+  'NOT': 'notcoin', 'SAGA': 'saga-2', 'MEME': 'memecoin', 'BB': 'bouncebit',
+  'WORMHOLE': 'wormhole', 'AEVO': 'aevo', 'TURBO': 'turbo',
+  'PENGU': 'pudgy-penguins', 'AI16Z': 'ai16z', 'TRUMP': 'official-trump',
+  'GOAT': 'goatseus-maximus', 'PNUT': 'peanut-the-squirrel', 'NEIRO': 'neiro',
+  'MOODENG': 'moo-deng', 'IP': 'story', 'VIRTUAL': 'virtual-protocol',
+  'FARTCOIN': 'fartcoin', 'ME': 'magic-eden', 'XAUT': 'tether-gold',
+  'PAXG': 'pax-gold', 'TUSD': 'true-usd', 'PYUSD': 'paypal-usd',
+  'FDUSD': 'fdusd', 'BUSD': 'binance-usd', 'EURS': 'stasis-eurs',
+  'ORDI': 'ordi', '1000SATS': 'sats-ordinals',
 };
 
 // ─── Funções de País / Localização ──────────────────────────────────
@@ -779,4 +1011,51 @@ export function searchTickers(query: string, limit = 8): Array<{ ticker: string;
   }
 
   return results;
+}
+
+// ─── Indexação de Renda Fixa ──────────────────────────────────────
+
+export interface IndiceRendaFixa {
+  id: string;
+  nome: string;
+  descricao: string;
+}
+
+export const INDICES_RENDA_FIXA: IndiceRendaFixa[] = [
+  { id: 'cdi', nome: 'CDI', descricao: '% do CDI (ex.: 120% CDI)' },
+  { id: 'selic', nome: 'Selic', descricao: '% da taxa Selic (ex.: 100% Selic)' },
+  { id: 'ipca', nome: 'IPCA +', descricao: 'Inflação IPCA + spread a.a. (ex.: IPCA + 5,5%)' },
+  { id: 'prefixado', nome: 'Prefixado', descricao: 'Taxa fixa a.a. (ex.: 14% a.a.)' },
+  { id: 'pos_fixado', nome: 'Pós-fixado', descricao: 'Acompanha um índice com ou sem spread' },
+];
+
+export function getNomeIndice(indice?: string): string {
+  return INDICES_RENDA_FIXA.find(i => i.id === indice)?.nome || '';
+}
+
+export function formatIndexacao(
+  indice?: string,
+  percentual?: number | null,
+  vencimento?: string | null,
+): string {
+  if (!indice) return '';
+  const nome = getNomeIndice(indice);
+  let label: string;
+  if (indice === 'cdi' || indice === 'selic') {
+    label = percentual != null ? `${percentual}% ${nome}` : nome;
+  } else if (indice === 'ipca') {
+    label = percentual != null ? `IPCA + ${percentual}% a.a.` : 'IPCA +';
+  } else if (indice === 'prefixado') {
+    label = percentual != null ? `${percentual}% a.a.` : 'Prefixado';
+  } else if (indice === 'pos_fixado') {
+    label = percentual != null ? `${percentual}% do indexador` : 'Pós-fixado';
+  } else {
+    label = nome || indice;
+  }
+  if (vencimento) {
+    const parts = vencimento.split('-');
+    const short = parts.length === 3 ? `${parts[2]}/${parts[1]}` : vencimento;
+    label += ` • venc ${short}`;
+  }
+  return label;
 }

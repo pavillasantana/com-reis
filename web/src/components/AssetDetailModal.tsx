@@ -4,7 +4,7 @@ import { formatCurrency } from '../utils/currency';
 import { deleteTransacaoAtivo, updateTransacoesAtivosByTicker } from '../services/supabaseService';
 import type { TransacaoAtivo } from '../services/supabaseService';
 import type { StockQuote } from '../hooks/useInvestments';
-import { getTickerName, getCategoriaInfo, getNomeSubcategoria, CATEGORIAS_INVESTIMENTO } from '../utils/investmentCategories';
+import { getTickerName, getCategoriaInfo, getNomeSubcategoria, CATEGORIAS_INVESTIMENTO, INDICES_RENDA_FIXA, formatIndexacao } from '../utils/investmentCategories';
 import { useToast } from './Toast';
 import { useI18n } from '../i18n';
 import { ConfirmModal } from './ConfirmModal';
@@ -70,12 +70,18 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
   const [bulkConfirm, setBulkConfirm] = useState<{ title: string; message: string } | null>(null);
   const [catId, setCatId] = useState('');
   const [subId, setSubId] = useState('');
+  const [indice, setIndice] = useState('');
+  const [percentual, setPercentual] = useState('');
+  const [vencimento, setVencimento] = useState('');
   const [savingCat, setSavingCat] = useState(false);
 
   useEffect(() => {
     const tx = allTxs[0];
     setCatId(tx?.categoria || '');
     setSubId(tx?.subcategoria || '');
+    setIndice(tx?.indice || '');
+    setPercentual(tx?.percentual_indexacao != null ? String(tx.percentual_indexacao) : '');
+    setVencimento(tx?.data_vencimento || '');
   }, [allTxs]);
 
   const handleSaveCategoria = async () => {
@@ -84,9 +90,13 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
       return;
     }
     setSavingCat(true);
+    const pct = percentual.trim() === '' ? undefined : parseFloat(percentual.replace(',', '.'));
     const { error } = await updateTransacoesAtivosByTicker(ticker, {
       categoria: catId,
       subcategoria: subId || undefined,
+      indice: indice || undefined,
+      percentual_indexacao: Number.isFinite(pct as number) ? pct : undefined,
+      data_vencimento: vencimento || undefined,
     });
     setSavingCat(false);
     if (error) {
@@ -163,6 +173,14 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
             <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: CLEAN_TEXT_MUTED }}>
               {getTickerName(ticker) || ticker}
               {firstTx?.categoria && ` • ${getNomeSubcategoria(firstTx.categoria, firstTx.subcategoria || '')}`}
+              {firstTx && formatIndexacao(firstTx.indice, firstTx.percentual_indexacao, firstTx.data_vencimento) && (
+                <span style={{
+                  display: 'inline-block', marginLeft: '8px', padding: '2px 8px', borderRadius: '10px',
+                  background: 'rgba(16,69,161,0.08)', color: ACCENT_BLUE, fontSize: '0.7rem', fontWeight: 700,
+                }}>
+                  {formatIndexacao(firstTx.indice, firstTx.percentual_indexacao, firstTx.data_vencimento)}
+                </span>
+              )}
             </p>
           </div>
           <button onClick={onClose} style={{
@@ -237,12 +255,54 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
                   {getCategoriaInfo(catId)?.subcategorias.map(sub => <option key={sub.id} value={sub.id}>{sub.nome}</option>)}
                 </select>
               </div>
+              {catId === 'renda_fixa_br' && (
+                <div style={{ marginBottom: '10px' }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: CLEAN_TEXT_MUTED, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    Indexação
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                    <select value={indice} onChange={e => setIndice(e.target.value)} style={{
+                      background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
+                      borderRadius: '10px', padding: '9px 12px', color: CLEAN_TEXT, fontSize: '0.82rem', cursor: 'pointer',
+                    }}>
+                      <option value="">Índice...</option>
+                      {INDICES_RENDA_FIXA.map(i => <option key={i.id} value={i.id}>{i.nome}</option>)}
+                    </select>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder={indice === 'ipca' || indice === 'prefixado' ? 'Taxa a.a.' : '% do índice'}
+                      value={percentual}
+                      onChange={e => setPercentual(e.target.value)}
+                      style={{
+                        background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
+                        borderRadius: '10px', padding: '9px 12px', color: CLEAN_TEXT, fontSize: '0.82rem',
+                      }}
+                    />
+                    <input
+                      type="date"
+                      value={vencimento}
+                      onChange={e => setVencimento(e.target.value)}
+                      style={{
+                        background: CLEAN_CARD, border: `1px solid ${CLEAN_BORDER}`,
+                        borderRadius: '10px', padding: '9px 12px', color: CLEAN_TEXT, fontSize: '0.82rem',
+                      }}
+                    />
+                  </div>
+                  {indice && formatIndexacao(indice, percentual === '' ? null : parseFloat(percentual.replace(',', '.')), vencimento) && (
+                    <div style={{ marginTop: '8px', fontSize: '0.78rem', color: ACCENT_BLUE, fontWeight: 700 }}>
+                      {formatIndexacao(indice, percentual === '' ? null : parseFloat(percentual.replace(',', '.')), vencimento)}
+                    </div>
+                  )}
+                </div>
+              )}
               <button onClick={handleSaveCategoria} disabled={savingCat} style={{
                 background: ACCENT_BLUE, border: 'none', color: '#fff',
                 padding: '9px 16px', borderRadius: '10px', cursor: 'pointer',
                 fontWeight: 700, fontSize: '0.8rem', opacity: savingCat ? 0.6 : 1,
               }}>
-                {savingCat ? 'Salvando...' : 'Salvar categoria (todos os lotes)'}
+                {savingCat ? 'Salvando...' : 'Salvar (todos os lotes)'}
               </button>
             </div>
 

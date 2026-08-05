@@ -4,7 +4,7 @@ import {
   TrendingUp, TrendingDown, Package, DollarSign, Upload,
 } from 'lucide-react';
 import type { PendingAporte, PendingAtivo } from '../utils/investmentImporter';
-import { getCategoriaByTicker, getCategoriaInfo } from '../utils/investmentCategories';
+import { getCategoriaByTicker, getCategoriaInfo, INDICES_RENDA_FIXA } from '../utils/investmentCategories';
 
 const CLEAN_CARD = '#FFFFFF';
 const CLEAN_TEXT = '#1A2744';
@@ -205,16 +205,18 @@ export const InvestImportReviewModal: React.FC<InvestImportReviewModalProps> = (
               const catInfo = catMap ? getCategoriaInfo(catMap.categoria) : undefined;
               return (
                 <div key={row._key} style={{
-                  display: 'grid',
-                  gridTemplateColumns: mode === 'aportes'
-                    ? '34px 120px 1fr 96px 92px 110px 110px 140px 36px'
-                    : '34px 120px 1fr 100px 120px 120px 140px 36px',
-                  gap: '0 8px', alignItems: 'center',
                   padding: '8px', borderRadius: '10px', marginBottom: '4px',
                   background: isChecked ? '#F8FAFC' : 'transparent',
                   opacity: isChecked ? 1 : 0.45,
                   transition: 'background 0.15s, opacity 0.15s',
                   borderLeft: `3px solid ${isChecked ? (row.tipo === 'venda' ? 'rgba(239,68,68,0.5)' : 'rgba(16,185,129,0.5)') : 'transparent'}`,
+                }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: mode === 'aportes'
+                    ? '34px 120px 1fr 96px 92px 110px 110px 140px 36px'
+                    : '34px 120px 1fr 100px 120px 120px 140px 36px',
+                  gap: '0 8px', alignItems: 'center',
                 }}>
                   <button onClick={() => toggle(row._key)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
                     {isChecked ? <CheckCircle2 size={18} color={ACCENT_BLUE} /> : <Circle size={18} color={CLEAN_TEXT_MUTED} />}
@@ -294,6 +296,42 @@ export const InvestImportReviewModal: React.FC<InvestImportReviewModalProps> = (
                   }}>
                     <Trash2 size={14} />
                   </button>
+                </div>
+
+                {catMap?.categoria === 'renda_fixa_br' && (
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: '34px 120px 1fr 96px 92px 110px 110px 140px 36px',
+                    gap: '0 8px', alignItems: 'center', marginTop: '6px',
+                  }}>
+                    <span />
+                    <span style={headStyle}>Indexação</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <select
+                        value={row.indice || ''}
+                        onChange={e => update(row._key, { indice: e.target.value })}
+                        style={{ ...inputStyle, width: '110px', cursor: 'pointer' }}
+                      >
+                        <option value="">Índice...</option>
+                        {INDICES_RENDA_FIXA.map(i => <option key={i.id} value={i.id}>{i.nome}</option>)}
+                      </select>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="%"
+                        value={row.percentual_indexacao ?? ''}
+                        onChange={e => update(row._key, { percentual_indexacao: e.target.value === '' ? null : parseFloat(e.target.value) })}
+                        style={{ ...inputStyle, width: '90px' }}
+                      />
+                      <input
+                        type="date"
+                        value={row.data_vencimento || ''}
+                        onChange={e => update(row._key, { data_vencimento: e.target.value })}
+                        style={{ ...inputStyle, width: '150px', cursor: 'pointer' }}
+                      />
+                    </div>
+                  </div>
+                )}
                 </div>
               );
             })

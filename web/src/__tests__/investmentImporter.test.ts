@@ -205,6 +205,67 @@ describe('parseAtivosCSV()', () => {
     `));
     expect(r[0]).toMatchObject({ categoria: 'alternativos', subcategoria: 'crypto' });
   });
+
+  it('categoriza criptos menos conhecidos como alternativos/crypto', () => {
+    const r = parseAtivosCSV(csv(`
+      ticker,quantidade,preco medio
+      XMR,10,950
+      TAO,5,420
+      ONDO,1000,1.5
+      AI16Z,200,0.9
+    `));
+    for (const row of r) {
+      expect(row).toMatchObject({ categoria: 'alternativos', subcategoria: 'crypto' });
+    }
+  });
+
+  it('categoriza CDB/RDB como renda_fixa_br/cdb_rdb', () => {
+    const r = parseAtivosCSV(csv(`
+      ticker,quantidade,preco medio
+      CDB,1000,1.00
+      RDB,2500,1.00
+    `));
+    expect(r[0]).toMatchObject({ categoria: 'renda_fixa_br', subcategoria: 'cdb_rdb' });
+    expect(r[1]).toMatchObject({ categoria: 'renda_fixa_br', subcategoria: 'cdb_rdb' });
+  });
+
+  it('categoriza LCI/LCA e LC/LF na renda fixa correta', () => {
+    const r = parseAtivosCSV(csv(`
+      ticker,quantidade,preco medio
+      LCI,5000,1.00
+      LCA,3000,1.00
+      LC,1000,1.00
+      LF,2000,1.00
+    `));
+    expect(r[0]).toMatchObject({ categoria: 'renda_fixa_br', subcategoria: 'lci_lca' });
+    expect(r[1]).toMatchObject({ categoria: 'renda_fixa_br', subcategoria: 'lci_lca' });
+    expect(r[2]).toMatchObject({ categoria: 'renda_fixa_br', subcategoria: 'lc' });
+    expect(r[3]).toMatchObject({ categoria: 'renda_fixa_br', subcategoria: 'lf' });
+  });
+
+  it('categoriza CRI/CRA, debêntures, FIDC e poupança na renda fixa', () => {
+    const r = parseAtivosCSV(csv(`
+      ticker,quantidade,preco medio
+      CRI,1000,1.00
+      CRA,1000,1.00
+      DEBENTURE,1000,1.00
+      FIDC,1000,1.00
+      POUPANCA,5000,1.00
+    `));
+    expect(r[0]).toMatchObject({ categoria: 'renda_fixa_br', subcategoria: 'cri_cra' });
+    expect(r[1]).toMatchObject({ categoria: 'renda_fixa_br', subcategoria: 'cri_cra' });
+    expect(r[2]).toMatchObject({ categoria: 'renda_fixa_br', subcategoria: 'debentures' });
+    expect(r[3]).toMatchObject({ categoria: 'renda_fixa_br', subcategoria: 'fidc' });
+    expect(r[4]).toMatchObject({ categoria: 'renda_fixa_br', subcategoria: 'poupanca' });
+  });
+
+  it('categoriza Tesouro Direto pelo prefixo TESOURO', () => {
+    const r = parseAtivosCSV(csv(`
+      ticker,quantidade,preco medio
+      TESOURO,1000,1.00
+    `));
+    expect(r[0]).toMatchObject({ categoria: 'renda_fixa_br', subcategoria: 'tesouro_direto' });
+  });
 });
 
 // ─── parseXLSX (via XLSX.build) ───────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../constants/config';
-import { getCategoriaByTicker } from '../utils/investmentCategories';
+import { getCategoriaByTicker, CRYPTO_COINGECKO_IDS } from '../utils/investmentCategories';
 
 export interface StockQuote {
   symbol: string;
@@ -36,22 +36,7 @@ interface BrapiResult {
   currency?: string;
 }
 
-const CRYPTO_TICKERS: Record<string, string> = {
-  'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana',
-  'ADA': 'cardano', 'XRP': 'ripple', 'DOT': 'polkadot',
-  'AVAX': 'avalanche-2', 'LINK': 'chainlink', 'MATIC': 'matic-network',
-  'DOGE': 'dogecoin', 'SHIB': 'shiba-inu', 'UNI': 'uniswap',
-  'ATOM': 'cosmos', 'LTC': 'litecoin', 'BNB': 'binancecoin',
-  'TRX': 'tron', 'FIL': 'filecoin', 'NEAR': 'near',
-  'APT': 'aptos', 'ARB': 'arbitrum', 'OP': 'optimism',
-  'SUI': 'sui', 'SEI': 'sei-network', 'INJ': 'injective',
-  'RENDER': 'render-token', 'FET': 'fetch-ai', 'WLD': 'worldcoin',
-  'TIA': 'celestia', 'PEPE': 'pepe', 'WIF': 'dogwifcoin',
-  'BONK': 'bonk', 'FLOKI': 'floki', 'AAVE': 'aave',
-  'CRV': 'curve-dao-token', 'MKR': 'maker', 'SUSHI': 'sushi',
-  '1INCH': '1inch', 'YFI': 'yearn-finance', 'SNX': 'synthetix',
-  'COMP': 'compound-governance-token',
-};
+const CRYPTO_TICKERS = CRYPTO_COINGECKO_IDS;
 
 function isCryptoTicker(ticker: string): boolean {
   return ticker in CRYPTO_TICKERS;
