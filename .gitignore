@@ -63,6 +63,7 @@ Ideia portal investidos/
 Layout/
 screencapture-*.png
 unnamed.jpg
+"Captura de tela*.png"
 
 # ─── Backend / Infra: mantidos APENAS localmente (fora do GitHub) ─────────────
 # Segredos nunca versionar
