@@ -100,6 +100,7 @@ interface AppState {
   telefone: string | null;
   sexo: string | null;
   nacionalidade: string | null;
+  pais: string | null;
 
   // Active States
   id_espaco_ativo: string | null;
@@ -120,7 +121,7 @@ interface AppState {
   setMoedaBase: (moeda: string) => void;
   setIdEspacoAtivo: (id: string | null) => void;
   updateAvatarUrl: (url: string | null) => void;
-  setPerfilDados: (dados: Partial<Pick<AppState, 'renda_principal' | 'sobrenome' | 'profissao' | 'fonte_renda' | 'data_nascimento' | 'documento' | 'endereco' | 'telefone' | 'sexo' | 'nacionalidade' | 'nome_usuario' | 'email_usuario' | 'avatar_url'>>) => void;
+  setPerfilDados: (dados: Partial<Pick<AppState, 'renda_principal' | 'sobrenome' | 'profissao' | 'fonte_renda' | 'data_nascimento' | 'documento' | 'endereco' | 'telefone' | 'sexo' | 'nacionalidade' | 'pais' | 'nome_usuario' | 'email_usuario' | 'avatar_url'>>) => void;
   setAuthLoading: (loading: boolean) => void;
   toggleCheckoutModal: (visible: boolean) => void;
 
@@ -184,6 +185,7 @@ const INITIAL_STATE = {
   telefone: null,
   sexo: null,
   nacionalidade: null,
+  pais: null,
   id_espaco_ativo: null,
   isCheckoutModalVisible: false,
   espacos: [],
@@ -300,6 +302,7 @@ export const useStore = create<AppState>()(
         telefone: null,
         sexo: null,
         nacionalidade: null,
+        pais: null,
         isCheckoutModalVisible: false,
         isAuthLoading: true,
         // NÃO reseta id_espaco_ativo nem dados — preserva estado do localStorage

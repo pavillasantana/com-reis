@@ -13,6 +13,7 @@ export interface AccountSettingsData {
   telefone: string;
   sexo: string;
   nacionalidade: string;
+  pais: string;
 }
 
 interface AccountSettingsModalProps {
@@ -34,6 +35,7 @@ export function AccountSettingsModal({ open, onClose, initial, onSave, saving }:
   const [telefone, setTelefone] = useState(initial.telefone);
   const [sexo, setSexo] = useState(initial.sexo);
   const [nacionalidade, setNacionalidade] = useState(initial.nacionalidade);
+  const [pais, setPais] = useState(initial.pais || 'BR');
 
   useEffect(() => {
     if (open) {
@@ -46,6 +48,7 @@ export function AccountSettingsModal({ open, onClose, initial, onSave, saving }:
       setTelefone(initial.telefone);
       setSexo(initial.sexo);
       setNacionalidade(initial.nacionalidade);
+      setPais(initial.pais || 'BR');
     }
   }, [open, initial]);
 
@@ -53,7 +56,7 @@ export function AccountSettingsModal({ open, onClose, initial, onSave, saving }:
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ email, nome, sobrenome, data_nascimento: dataNascimento, documento, endereco, telefone, sexo, nacionalidade });
+    onSave({ email, nome, sobrenome, data_nascimento: dataNascimento, documento, endereco, telefone, sexo, nacionalidade, pais });
   };
 
   const labelStyle: React.CSSProperties = { fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' };
@@ -119,6 +122,24 @@ export function AccountSettingsModal({ open, onClose, initial, onSave, saving }:
               <label style={labelStyle}>{t('web_account_settings_nacionalidade') || 'Nacionalidade'}</label>
               <TextInput type="text" value={nacionalidade} onChange={(e) => setNacionalidade(e.target.value)} />
             </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>{t('web_auth_country') || 'País'}</label>
+            <select
+              value={pais}
+              onChange={(e) => setPais(e.target.value)}
+              style={{
+                width: '100%', padding: '14px', background: 'var(--bg-color)',
+                border: '1px solid var(--card-border)', borderRadius: '12px',
+                color: 'var(--text-primary)', fontSize: '0.95rem', boxSizing: 'border-box'
+              }}
+            >
+              <option value="BR">Brasil</option>
+              <option value="US">Estados Unidos</option>
+              <option value="AR">Argentina</option>
+              <option value="OTHER">Outro país</option>
+            </select>
           </div>
 
           <div>

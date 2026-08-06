@@ -845,7 +845,6 @@
   "web_invest_index_select": "Índice...",
   "web_invest_index_rate_aa": "Taxa a.a.",
   "web_invest_index_percent": "% do índice",
-
   "web_invest_account_destination": "Conta Destino (Resgate)",
   "web_invest_select_account": "Selecionar conta para receber...",
   "web_invest_subcategory": "Subcategoria",
@@ -1486,5 +1485,7 @@
   "calc_parcela": "Valor da parcela",
   "calc_total_pago": "Total pago",
   "calc_primeira": "Primeira parcela",
-  "calc_ultima": "Última parcela"
+  "calc_ultima": "Última parcela",
+  "web_auth_country": "País",
+  "web_country_popup_desc": "Para exibir valores e usar a calculadora de poder de compra corretamente, informe em qual país você reside."
 }

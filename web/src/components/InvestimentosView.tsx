@@ -4,7 +4,7 @@ import {
   Search, Filter, BarChart3, DollarSign, Calendar,
   X, Check, RefreshCw, ChevronDown, ChevronRight,
   CheckSquare, Square, PieChart, Target, Award, Globe,
-  TrendingUp as TrendingUpIcon, Wallet, Upload, Package,
+  TrendingUp as TrendingUpIcon, Wallet, Upload, Package, Landmark,
 } from 'lucide-react';
 import { formatCurrency } from '../utils/currency';
 
@@ -36,6 +36,7 @@ import { ConfirmModal } from './ConfirmModal';
 import { parseInvestmentFile } from '../utils/investmentImporter';
 import type { PendingAporte, PendingAtivo } from '../utils/investmentImporter';
 import { InvestImportReviewModal } from './InvestImportReviewModal';
+import { RendaFixaForm } from './RendaFixaEntryModal';
 
 type Tab = 'overview' | 'carteira' | 'ranking' | 'operacoes';
 
@@ -75,6 +76,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   const [vizualizacao, setVizualizacao] = useState<'categorias' | 'lista'>('categorias');
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'ativos' | 'renda_fixa'>('ativos');
   const [editId, setEditId] = useState<string | null>(null);
   const [fTicker, setFTicker] = useState('');
   const [fTipo, setFTipo] = useState<'compra' | 'venda'>('compra');
@@ -183,7 +185,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   }, [rankingCategory, allCategoriasComTickers, marketQuotes, searchMarket]);
 
   const openAdd = () => {
-    setEditId(null); setFTicker(''); setFTipo('compra');
+    setFormMode('ativos'); setEditId(null); setFTicker(''); setFTipo('compra');
     setFQtd(''); setFPreco(''); setFData(new Date().toISOString().split('T')[0]);
     setFCategoria(''); setFSubcategoria('');
     setFIndice(''); setFPercentual(''); setFVencimento('');
@@ -1055,6 +1057,28 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                 }}><X size={16} /></button>
               </div>
 
+              <div style={{ display: 'flex', gap: '4px', background: '#F1F5F9', borderRadius: '10px', padding: '4px', marginBottom: '20px', border: `1px solid ${CLEAN_BORDER}` }}>
+                <button onClick={() => setFormMode('ativos')} style={{
+                  flex: 1, padding: '9px', borderRadius: '8px', cursor: 'pointer', fontWeight: 700,
+                  fontSize: '0.82rem', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  background: formMode === 'ativos' ? ACCENT_BLUE : 'transparent',
+                  color: formMode === 'ativos' ? '#fff' : CLEAN_TEXT_SECONDARY,
+                  transition: 'all 0.15s',
+                }}>
+                  <TrendingUp size={14} /> {t('web_invest_register_op')}
+                </button>
+                <button onClick={() => setFormMode('renda_fixa')} style={{
+                  flex: 1, padding: '9px', borderRadius: '8px', cursor: 'pointer', fontWeight: 700,
+                  fontSize: '0.82rem', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  background: formMode === 'renda_fixa' ? ACCENT_GREEN : 'transparent',
+                  color: formMode === 'renda_fixa' ? '#fff' : CLEAN_TEXT_SECONDARY,
+                  transition: 'all 0.15s',
+                }}>
+                  <Landmark size={14} /> Renda Fixa
+                </button>
+              </div>
+
+              {formMode === 'ativos' ? (<>
               <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('asset_ticker_label')}</label>
               <div style={{ position: 'relative', marginBottom: '16px' }}>
                 <input value={fTicker} onChange={e => {
@@ -1244,6 +1268,14 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                   {saving ? t('saving') : (editId ? t('save_changes') : t('web_invest_register_op'))}
                 </button>
               </div>
+              </>) : (
+                <RendaFixaForm
+                  id_usuario={id_usuario || ''}
+                  moedaBase={moedaBase}
+                  onClose={closeModal}
+                  onSaved={data => { setTxs(prev => [data, ...prev]); carregarTransacoes(); }}
+                />
+              )}
             </div>
           </div>
         )}

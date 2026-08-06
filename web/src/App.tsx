@@ -131,6 +131,9 @@ const CURRENCY_OPTIONS = [
 
 
 
+const normalizeCountry = (pais?: string): string =>
+  (pais === 'US' || pais === 'AR') ? pais : 'BR';
+
 export default function App() {
   const { t } = useI18n();
   const toast = useToast();
@@ -162,6 +165,7 @@ export default function App() {
     telefone,
     sexo,
     nacionalidade,
+    pais,
     addTagBancaria,
     updateTagBancaria,
     removeTagBancaria,
@@ -220,6 +224,7 @@ export default function App() {
   const [showAccountSettingsModal, setShowAccountSettingsModal] = useState(false);
   const [showTagsManagerModal, setShowTagsManagerModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [paisInput, setPaisInput] = useState('BR');
   const [rendaInput, setRendaInput] = useState('');
   const [profissaoInput, setProfissaoInput] = useState('');
   const [fonteRendaInput, setFonteRendaInput] = useState('');
@@ -539,6 +544,7 @@ export default function App() {
   const [onboardName, setOnboardName] = useState('');
   const [onboardIncome, setOnboardIncome] = useState('');
   const [onboardCurrency, setOnboardCurrency] = useState('BRL');
+  const [onboardCountry, setOnboardCountry] = useState('BR');
 
   // Auth State
   const [authEmail, setAuthEmail] = useState('');
@@ -799,7 +805,7 @@ export default function App() {
         return;
       }
       setIsAuthLoading(true);
-      const err = await signUp(authEmail, authPassword, onboardName, onboardCurrency);
+      const err = await signUp(authEmail, authPassword, onboardName, onboardCurrency, normalizeCountry(onboardCountry));
       setIsAuthLoading(false);
       if (err) {
         toast.error(t('error'), getAuthErrorMessage(t, err));
@@ -810,6 +816,7 @@ export default function App() {
       // Flow offline clássico:
       const userId = 'user_' + Math.random().toString(36).substr(2, 9);
       setUsuario(userId, `${onboardName.toLowerCase().replace(/\s+/g, '')}@comreis.com`, onboardName, 'free', onboardCurrency);
+      setPerfilDados({ pais: normalizeCountry(onboardCountry) });
       
       const pfSpaceId = 'space_pf_' + Math.random().toString(36).substr(2, 9);
       const initialPFSpace: Espaco = {
@@ -1535,6 +1542,7 @@ export default function App() {
       telefone: data.telefone.trim() || null,
       sexo: data.sexo || null,
       nacionalidade: data.nacionalidade.trim() || null,
+      pais: normalizeCountry(data.pais),
     });
     if (id_usuario && isSupabaseConfigured) {
       const { error } = await updatePerfil(id_usuario, {
@@ -1546,6 +1554,7 @@ export default function App() {
         telefone: data.telefone.trim() || null,
         sexo: data.sexo || null,
         nacionalidade: data.nacionalidade.trim() || null,
+        pais: normalizeCountry(data.pais),
       });
       if (error) {
         toast.error(t('web_account_settings_save_error'), error);
@@ -1557,6 +1566,22 @@ export default function App() {
     }
     toast.success(t('web_profile_updated'), t('web_account_settings_saved'));
     setShowAccountSettingsModal(false);
+  };
+
+  const handleSavePais = async () => {
+    const p = normalizeCountry(paisInput);
+    setPerfilDados({ pais: p });
+    if (id_usuario && isSupabaseConfigured) {
+      const { error } = await updatePerfil(id_usuario, { pais: p });
+      if (error) {
+        toast.error(t('web_account_settings_save_error'), error);
+        return;
+      }
+      supabase.auth.updateUser({ data: { pais: p } }).then(({ error: authErr }: { error: any }) => {
+        if (authErr) console.error("Error updating user meta:", authErr);
+      });
+    }
+    toast.success(t('web_profile_updated'), t('web_profile_changes_saved'));
   };
 
   const handleCreateTag = async (nome: string, cor: string) => {
@@ -2836,6 +2861,21 @@ export default function App() {
                         <option value="ARS">Peso Argentino (ARS)</option>
                       </select>
                     </div>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                        {t('web_auth_country')}
+                      </label>
+                      <select
+                        className="select-input"
+                        value={onboardCountry}
+                        onChange={(e) => setOnboardCountry(e.target.value)}
+                      >
+                        <option value="BR">Brasil</option>
+                        <option value="US">Estados Unidos</option>
+                        <option value="AR">Argentina</option>
+                        <option value="OTHER">Outro país</option>
+                      </select>
+                    </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px'}}>
                       <input 
@@ -2977,6 +3017,22 @@ export default function App() {
                     <option value="USD">Dólar Americano (USD)</option>
                     <option value="EUR">Euro (EUR)</option>
                     <option value="ARS">Peso Argentino (ARS)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
+                    {t('web_auth_country')}
+                  </label>
+                  <select
+                    className="select-input"
+                    value={onboardCountry}
+                    onChange={(e) => setOnboardCountry(e.target.value)}
+                  >
+                    <option value="BR">Brasil</option>
+                    <option value="US">Estados Unidos</option>
+                    <option value="AR">Argentina</option>
+                    <option value="OTHER">Outro país</option>
                   </select>
                 </div>
 
@@ -5381,9 +5437,52 @@ export default function App() {
           telefone: telefone || '',
           sexo: sexo || '',
           nacionalidade: nacionalidade || '',
+          pais: pais || 'BR',
         }}
         onSave={handleSaveAccountSettings}
       />
+
+      {id_usuario && !pais && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10000, padding: '20px'
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--bg-color)', border: '1px solid var(--card-border)',
+              borderRadius: '16px', padding: '28px', maxWidth: '420px', width: '100%',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.3)'
+            }}
+          >
+            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>
+              {t('web_auth_country') || 'País'}
+            </h2>
+            <p style={{ margin: '10px 0 18px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              {t('web_country_popup_desc') || 'Para exibir valores e usar a calculadora de poder de compra corretamente, informe em qual país você reside.'}
+            </p>
+            <select
+              value={paisInput}
+              onChange={(e) => setPaisInput(e.target.value)}
+              style={{
+                width: '100%', padding: '14px', background: 'var(--bg-color)',
+                border: '1px solid var(--card-border)', borderRadius: '12px',
+                color: 'var(--text-primary)', fontSize: '0.95rem', boxSizing: 'border-box', marginBottom: '18px'
+              }}
+            >
+              <option value="BR">Brasil</option>
+              <option value="US">Estados Unidos</option>
+              <option value="AR">Argentina</option>
+              <option value="OTHER">Outro país</option>
+            </select>
+            <PrimaryButton type="button" style={{ width: '100%', borderRadius: '12px' }} onClick={handleSavePais}>
+              {t('web_profile_save') || 'Salvar Alterações'}
+            </PrimaryButton>
+          </div>
+        </div>
+      )}
 
       <TagsManagerModal
         open={showTagsManagerModal}

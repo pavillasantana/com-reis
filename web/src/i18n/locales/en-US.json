@@ -845,7 +845,6 @@
   "web_invest_index_select": "Index...",
   "web_invest_index_rate_aa": "Rate p.a.",
   "web_invest_index_percent": "% of index",
-
   "web_invest_account_destination": "Destination Account (Redemption)",
   "web_invest_select_account": "Select account to receive...",
   "web_invest_subcategory": "Subcategory",
@@ -1486,5 +1485,7 @@
   "calc_parcela": "Installment amount",
   "calc_total_pago": "Total paid",
   "calc_primeira": "First installment",
-  "calc_ultima": "Last installment"
+  "calc_ultima": "Last installment",
+  "web_auth_country": "Country",
+  "web_country_popup_desc": "So we can display values and use the purchasing power calculator correctly, please tell us which country you live in."
 }

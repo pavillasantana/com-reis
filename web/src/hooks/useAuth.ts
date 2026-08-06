@@ -33,7 +33,7 @@ function getErrorCode(error: unknown): string | undefined {
 export interface UseAuthReturn {
   isLoading: boolean;
   isAuthenticated: boolean;
-  signUp: (email: string, password: string, nomeCompleto: string, moedaBase?: string) => Promise<AuthError | null>;
+  signUp: (email: string, password: string, nomeCompleto: string, moedaBase?: string, pais?: string) => Promise<AuthError | null>;
   signIn: (email: string, password: string) => Promise<AuthError | null>;
   signInWithProvider: (provider: 'google' | 'azure') => Promise<AuthError | null>;
   signOut: () => Promise<void>;
@@ -147,6 +147,7 @@ export function useAuth(): UseAuthReturn {
           telefone: perfil.telefone ?? null,
           sexo: perfil.sexo ?? null,
           nacionalidade: perfil.nacionalidade ?? null,
+          pais: perfil.pais ?? null,
         });
       } else {
         // Se fetchPerfil falhou (coluna avatar_url pode não existir), ler do auth metadata
@@ -175,12 +176,14 @@ export function useAuth(): UseAuthReturn {
     email: string,
     password: string,
     nomeCompleto: string,
-    moedaBase = 'BRL'
+    moedaBase = 'BRL',
+    pais?: string
   ): Promise<AuthError | null> => {
     if (!isSupabaseConfigured) {
       // Modo offline: simula criação de usuário no store
       const fakeId = 'local-' + Math.random().toString(36).substr(2, 9);
       setUsuario(fakeId, email, nomeCompleto, 'free', moedaBase);
+      setPerfilDados({ pais: pais || null });
       return null;
     }
 
@@ -193,6 +196,7 @@ export function useAuth(): UseAuthReturn {
           data: {
             nome_completo: nomeCompleto,   // Mapeado pelo trigger handle_new_user
             moeda_base: moedaBase,
+            pais: pais || null,
           },
         },
       });
@@ -207,7 +211,7 @@ export function useAuth(): UseAuthReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [setUsuario]);
+  }, [setUsuario, setPerfilDados]);
 
   // ─── SIGN IN ──────────────────────────────────────────────────────────────────
   const signIn = useCallback(async (

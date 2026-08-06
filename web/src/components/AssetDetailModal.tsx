@@ -173,12 +173,30 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
             <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: CLEAN_TEXT_MUTED }}>
               {getTickerName(ticker) || ticker}
               {firstTx?.categoria && ` • ${getNomeSubcategoria(firstTx.categoria, firstTx.subcategoria || '')}`}
+              {firstTx?.emissor && ` • ${firstTx.emissor}`}
               {firstTx && formatIndexacao(firstTx.indice, firstTx.percentual_indexacao, firstTx.data_vencimento) && (
                 <span style={{
                   display: 'inline-block', marginLeft: '8px', padding: '2px 8px', borderRadius: '10px',
                   background: 'rgba(16,69,161,0.08)', color: ACCENT_BLUE, fontSize: '0.7rem', fontWeight: 700,
                 }}>
                   {formatIndexacao(firstTx.indice, firstTx.percentual_indexacao, firstTx.data_vencimento)}
+                </span>
+              )}
+              {firstTx?.forma && (
+                <span style={{
+                  display: 'inline-block', marginLeft: '6px', padding: '2px 8px', borderRadius: '10px',
+                  background: 'rgba(16,185,129,0.1)', color: '#047857', fontSize: '0.7rem', fontWeight: 700,
+                  textTransform: 'capitalize',
+                }}>
+                  {firstTx.forma === 'pos_fixado' ? 'Pós-fixado' : firstTx.forma === 'hibrido' ? 'Híbrido' : 'Prefixado'}
+                </span>
+              )}
+              {firstTx?.liquidez_diaria && (
+                <span style={{
+                  display: 'inline-block', marginLeft: '6px', padding: '2px 8px', borderRadius: '10px',
+                  background: 'rgba(14,165,233,0.1)', color: '#0369A1', fontSize: '0.7rem', fontWeight: 700,
+                }}>
+                  Liquidez diária
                 </span>
               )}
             </p>

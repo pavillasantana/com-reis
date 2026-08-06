@@ -38,10 +38,11 @@ export interface UsuarioPerfil {
   telefone?: string | null;
   sexo?: string | null;
   nacionalidade?: string | null;
+  pais?: string | null;
   deleted_at?: string | null;
 }
 
-const PERFIL_BASE_COLUMNS = 'id, email, nome_completo, plano, moeda_base, avatar_url, deleted_at';
+const PERFIL_BASE_COLUMNS = 'id, email, nome_completo, plano, moeda_base, avatar_url, pais, deleted_at';
 const PERFIL_EXTRA_COLUMNS = 'renda_principal, sobrenome, profissao, fonte_renda, data_nascimento, documento, endereco, telefone, sexo, nacionalidade';
 
 /**
@@ -886,6 +887,13 @@ export interface TransacaoAtivo {
   indice?: string;
   percentual_indexacao?: number;
   data_vencimento?: string;
+  emissor?: string;
+  forma?: string;
+  liquidez_diaria?: boolean;
+  currency?: string;
+  country?: string;
+  price_orig?: number;
+  taxa_cambio?: number;
 }
 
 export async function fetchTransacoesAtivos(): ServiceResult<TransacaoAtivo[]> {
@@ -901,6 +909,8 @@ export async function fetchTransacoesAtivos(): ServiceResult<TransacaoAtivo[]> {
       quantidade: Number(r.quantidade),
       preco_unitario: Number(r.preco_unitario),
       percentual_indexacao: r.percentual_indexacao != null ? Number(r.percentual_indexacao) : undefined,
+      price_orig: r.price_orig != null ? Number(r.price_orig) : undefined,
+      taxa_cambio: r.taxa_cambio != null ? Number(r.taxa_cambio) : undefined,
     })) as TransacaoAtivo[];
     return { data: mapped, error: null };
   } catch (e) {
@@ -917,7 +927,7 @@ export async function createTransacaoAtivo(
       .from('transacoes_ativos')
       .insert({
         id_usuario: tx.id_usuario,
-        ticker: tx.ticker,
+        ticker: tx.ticker.trim().toUpperCase(),
         tipo: tx.tipo,
         quantidade: tx.quantidade,
         preco_unitario: tx.preco_unitario,
@@ -927,6 +937,13 @@ export async function createTransacaoAtivo(
         indice: tx.indice || null,
         percentual_indexacao: tx.percentual_indexacao ?? null,
         data_vencimento: tx.data_vencimento || null,
+        emissor: tx.emissor || null,
+        forma: tx.forma || null,
+        liquidez_diaria: tx.liquidez_diaria ?? false,
+        currency: tx.currency || 'BRL',
+        country: tx.country || 'BR',
+        price_orig: tx.price_orig ?? tx.preco_unitario,
+        taxa_cambio: tx.taxa_cambio ?? 1,
       })
       .select('*')
       .single();
@@ -938,6 +955,8 @@ export async function createTransacaoAtivo(
         quantidade: Number(raw.quantidade),
         preco_unitario: Number(raw.preco_unitario),
         percentual_indexacao: raw.percentual_indexacao != null ? Number(raw.percentual_indexacao) : undefined,
+        price_orig: raw.price_orig != null ? Number(raw.price_orig) : undefined,
+        taxa_cambio: raw.taxa_cambio != null ? Number(raw.taxa_cambio) : undefined,
       },
       error: null,
     };
@@ -949,7 +968,7 @@ export async function createTransacaoAtivo(
 
 export async function updateTransacaoAtivo(
   id: string,
-  updates: Partial<Pick<TransacaoAtivo, 'quantidade' | 'preco_unitario' | 'data_transacao' | 'categoria' | 'subcategoria' | 'indice' | 'percentual_indexacao' | 'data_vencimento'>>
+  updates: Partial<Pick<TransacaoAtivo, 'quantidade' | 'preco_unitario' | 'data_transacao' | 'categoria' | 'subcategoria' | 'indice' | 'percentual_indexacao' | 'data_vencimento' | 'emissor' | 'forma' | 'liquidez_diaria' | 'currency' | 'country' | 'price_orig' | 'taxa_cambio'>>
 ): ServiceResult<void> {
   if (!isSupabaseConfigured) return notConfigured();
   try {
@@ -982,14 +1001,14 @@ export async function deleteTransacaoAtivo(id: string): ServiceResult<void> {
 
 export async function updateTransacoesAtivosByTicker(
   ticker: string,
-  updates: Partial<Pick<TransacaoAtivo, 'categoria' | 'subcategoria' | 'indice' | 'percentual_indexacao' | 'data_vencimento'>>
+  updates: Partial<Pick<TransacaoAtivo, 'categoria' | 'subcategoria' | 'indice' | 'percentual_indexacao' | 'data_vencimento' | 'emissor' | 'forma' | 'liquidez_diaria' | 'currency' | 'country' | 'price_orig' | 'taxa_cambio'>>
 ): ServiceResult<void> {
   if (!isSupabaseConfigured) return notConfigured();
   try {
     const { error } = await supabase
       .from('transacoes_ativos')
       .update(updates)
-      .eq('ticker', ticker.toUpperCase());
+      .ilike('ticker', ticker.toUpperCase());
     if (error) return { data: null, error: error.message };
     return { data: null, error: null };
   } catch (e) {
@@ -1004,7 +1023,15 @@ export async function createTransacoesAtivosBulk(
   if (!isSupabaseConfigured) return notConfigured();
   if (txs.length === 0) return { data: 0, error: null };
   try {
-    const { error } = await supabase.from('transacoes_ativos').insert(txs);
+    const normalized = txs.map(tx => ({
+      ...tx,
+      ticker: tx.ticker.trim().toUpperCase(),
+      currency: tx.currency || 'BRL',
+      country: tx.country || 'BR',
+      price_orig: tx.price_orig ?? tx.preco_unitario,
+      taxa_cambio: tx.taxa_cambio ?? 1,
+    }));
+    const { error } = await supabase.from('transacoes_ativos').insert(normalized);
     if (error) return { data: null, error: error.message };
     return { data: txs.length, error: null };
   } catch (e) {
