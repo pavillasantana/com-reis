@@ -841,6 +841,11 @@
   "web_invest_search": "Search by ticker...",
   "web_invest_sell": "Sell",
   "web_invest_sells": "Sells",
+  "web_invest_indexacao_label": "Indexation",
+  "web_invest_index_select": "Index...",
+  "web_invest_index_rate_aa": "Rate p.a.",
+  "web_invest_index_percent": "% of index",
+
   "web_invest_account_destination": "Destination Account (Redemption)",
   "web_invest_select_account": "Select account to receive...",
   "web_invest_subcategory": "Subcategory",

@@ -841,6 +841,11 @@
   "web_invest_search": "Pesquisar por ticker...",
   "web_invest_sell": "Venda",
   "web_invest_sells": "Vendas",
+  "web_invest_indexacao_label": "Indexação",
+  "web_invest_index_select": "Índice...",
+  "web_invest_index_rate_aa": "Taxa a.a.",
+  "web_invest_index_percent": "% do índice",
+
   "web_invest_account_destination": "Conta Destino (Resgate)",
   "web_invest_select_account": "Selecionar conta para receber...",
   "web_invest_subcategory": "Subcategoria",

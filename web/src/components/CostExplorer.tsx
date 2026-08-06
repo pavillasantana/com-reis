@@ -19,6 +19,10 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useI18n } from '../i18n';
 import { useWorldBankPPP, convertViaPPP } from '../hooks/useWorldBankPPP';
 import { useWorldBankGNI } from '../hooks/useWorldBankGNI';
+import { useWorldBankCountries } from '../hooks/useWorldBankCountries';
+
+const normalize = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 interface CostExplorerProps {
   planoUsuario: 'free' | 'premium';
@@ -70,6 +74,7 @@ export function CostExplorer({
   const { data: rates } = useExchangeRates(planoUsuario === 'premium');
   const { pppData: worldPPP } = useWorldBankPPP();
   const { gniData: worldGNI } = useWorldBankGNI();
+  const { countries: worldCountries } = useWorldBankCountries();
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -279,15 +284,21 @@ export function CostExplorer({
         'kenya': [-0.0236, 37.9062], 'nigeria': [9.0820, 8.6753], 'morocco': [31.7917, -7.0926],
         'australia': [-25.2744, 133.7751], 'new zealand': [-40.9006, 174.8860]
       };
-      const cityCoords = globalCoords[selectedCity?.toLowerCase()];
+      const cityCoords = globalCoords[normalize(selectedCity)];
       if (cityCoords) {
         mapRef.current.setView(cityCoords, 11);
       } else {
-        const countryCoord = countryCoords[selectedCountry.toLowerCase()];
-        mapRef.current.setView(countryCoord || [20, 0], countryCoord ? 5 : 3);
+        const matchedCountry = globalCountries?.find(c => c.country === selectedCountry);
+        const iso3Country = matchedCountry?.iso3 && worldCountries[matchedCountry.iso3];
+        const countryCoord: [number, number] | undefined = iso3Country && iso3Country.latitude !== 0
+          ? [iso3Country.latitude, iso3Country.longitude]
+          : countryCoords[selectedCountry.toLowerCase()];
+        if (countryCoord) {
+          mapRef.current.setView(countryCoord, 5);
+        }
       }
     }
-  }, [selectedUf, selectedCity, selectedCountry, isBrazil]);
+  }, [selectedUf, selectedCity, selectedCountry, isBrazil, globalCountries, worldCountries]);
 
   const handleOpenExternal = async () => {
     let token = jwtToken || '';

@@ -27,7 +27,7 @@ import {
   getCategoriaInfo, searchTickers, getTickerName,
   getTodasCategoriasComTickers,
   isCategoriaDomestica, getCategoriasDomesticas,
-  formatIndexacao,
+  formatIndexacao, INDICES_RENDA_FIXA,
 } from '../utils/investmentCategories';
 import { useI18n } from '../i18n';
 import { useQuotes, useMarketQuotesByCategory, calcularMetricas, calcularMarketRanking } from '../hooks/useInvestments';
@@ -83,6 +83,9 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
   const [fData, setFData] = useState(new Date().toISOString().split('T')[0]);
   const [fCategoria, setFCategoria] = useState('');
   const [fSubcategoria, setFSubcategoria] = useState('');
+  const [fIndice, setFIndice] = useState('');
+  const [fPercentual, setFPercentual] = useState('');
+  const [fVencimento, setFVencimento] = useState('');
   const [sugestoes, setSugestoes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [rowDeleteConfirm, setRowDeleteConfirm] = useState<string | null>(null);
@@ -183,6 +186,7 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
     setEditId(null); setFTicker(''); setFTipo('compra');
     setFQtd(''); setFPreco(''); setFData(new Date().toISOString().split('T')[0]);
     setFCategoria(''); setFSubcategoria('');
+    setFIndice(''); setFPercentual(''); setFVencimento('');
     setSugestoes([]); setFContaDestino(''); setModalOpen(true);
   };
 
@@ -192,6 +196,9 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
     setFData(tx.data_transacao);
     setFCategoria(tx.categoria || '');
     setFSubcategoria(tx.subcategoria || '');
+    setFIndice(tx.indice || '');
+    setFPercentual(tx.percentual_indexacao != null ? String(tx.percentual_indexacao) : '');
+    setFVencimento(tx.data_vencimento || '');
     setSugestoes([]); setModalOpen(true);
   };
 
@@ -1123,6 +1130,31 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                 </>
               )}
 
+              {fCategoria === 'renda_fixa_br' && (
+                <>
+                  <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('web_invest_indexacao_label')}</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+                    <select value={fIndice} onChange={e => setFIndice(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                      <option value="">{t('web_invest_index_select')}</option>
+                      {INDICES_RENDA_FIXA.map(i => <option key={i.id} value={i.id}>{i.nome}</option>)}
+                    </select>
+                    <input
+                      type="number" step="0.01" min="0"
+                      placeholder={fIndice === 'ipca' || fIndice === 'prefixado' ? t('web_invest_index_rate_aa') : t('web_invest_index_percent')}
+                      value={fPercentual}
+                      onChange={e => setFPercentual(e.target.value)}
+                      style={inputStyle}
+                    />
+                    <input type="date" value={fVencimento} onChange={e => setFVencimento(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }} />
+                  </div>
+                  {fIndice && formatIndexacao(fIndice, fPercentual === '' ? null : parseFloat(fPercentual.replace(',', '.')), fVencimento) && (
+                    <div style={{ marginBottom: '14px', fontSize: '0.8rem', color: ACCENT_BLUE, fontWeight: 700 }}>
+                      {formatIndexacao(fIndice, fPercentual === '' ? null : parseFloat(fPercentual.replace(',', '.')), fVencimento)}
+                    </div>
+                  )}
+                </>
+              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: CLEAN_TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>{t('quantity_label')}</label>
@@ -1165,10 +1197,13 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                     const { error } = await updateTransacaoAtivo(editId, {
                       quantidade: qtd, preco_unitario: preco, data_transacao: fData,
                       categoria: fCategoria || undefined, subcategoria: fSubcategoria || undefined,
+                      indice: fIndice || undefined,
+                      percentual_indexacao: fPercentual !== '' ? parseFloat(fPercentual.replace(',', '.')) : undefined,
+                      data_vencimento: fVencimento || undefined,
                     });
                     if (!error) {
                       setTxs(prev => prev.map(t => t.id === editId
-                        ? { ...t, ticker: fTicker.trim(), tipo: fTipo, quantidade: qtd, preco_unitario: preco, data_transacao: fData, categoria: fCategoria || undefined, subcategoria: fSubcategoria || undefined }
+                        ? { ...t, ticker: fTicker.trim(), tipo: fTipo, quantidade: qtd, preco_unitario: preco, data_transacao: fData, categoria: fCategoria || undefined, subcategoria: fSubcategoria || undefined, indice: fIndice || undefined, percentual_indexacao: fPercentual !== '' ? parseFloat(fPercentual.replace(',', '.')) : undefined, data_vencimento: fVencimento || undefined }
                         : t
                       ));
                     }
@@ -1178,6 +1213,9 @@ export const InvestimentosView: React.FC<InvestimentosViewProps> = ({ moedaBase,
                       ticker: fTicker.trim(), tipo: fTipo, quantidade: qtd,
                       preco_unitario: preco, data_transacao: fData,
                       categoria: fCategoria || undefined, subcategoria: fSubcategoria || undefined,
+                      indice: fIndice || undefined,
+                      percentual_indexacao: fPercentual !== '' ? parseFloat(fPercentual.replace(',', '.')) : undefined,
+                      data_vencimento: fVencimento || undefined,
                     });
                     if (data && !error) {
                       setTxs(prev => [...prev, data]);
