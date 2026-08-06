@@ -23,7 +23,7 @@ export interface PPPData {
 }
 
 // Mapeamento de ISO3 para moeda local
-const CURRENCY_MAP: Record<string, string> = {
+export const CURRENCY_MAP: Record<string, string> = {
   BRA: 'BRL', USA: 'USD', GBR: 'GBP', EUR: 'EUR', JPN: 'JPY',
   CHN: 'CNY', IND: 'INR', RUS: 'RUB', CAN: 'CAD', AUS: 'AUD',
   KOR: 'KRW', MEX: 'MXN', ARG: 'ARS', TUR: 'TRY', SAU: 'SAR',

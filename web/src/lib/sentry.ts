@@ -22,10 +22,6 @@ export function initSentry(): void {
 
     integrations: [
       Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration({
-        maskAllText: true,    // Privacidade: mascara texto sensível
-        blockAllMedia: false,
-      }),
     ],
 
     // Não captura erros de extensões do browser

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { CURRENCY_MAP } from './useWorldBankPPP';
 
 export interface TeleportCity {
   id: string;
@@ -148,12 +149,21 @@ export function useGlobalCities() {
   return { data, isLoading, isError, refetch };
 }
 
+// A API Teleport foi descontinuada em 2023 (retorna vazio/erro).
+// Apos a primeira falha da sessao, pulamos novas tentativas para nao
+// adicionar latencia de timeout em cada consulta do explorador.
+let teleportDead = false;
+
 async function fetchTeleportCitySalary(slug: string): Promise<{ salarioMedio: number; currency: string } | null> {
+  if (teleportDead) return null;
   try {
     const res = await fetch(`https://api.teleport.org/api/urban_areas/slug:${slug}/salaries/`, {
       signal: AbortSignal.timeout(5000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      teleportDead = true;
+      return null;
+    }
 
     const data = await res.json();
 
@@ -169,16 +179,21 @@ async function fetchTeleportCitySalary(slug: string): Promise<{ salarioMedio: nu
     }
     return null;
   } catch {
+    teleportDead = true;
     return null;
   }
 }
 
 async function fetchTeleportCityCost(slug: string): Promise<number | null> {
+  if (teleportDead) return null;
   try {
     const res = await fetch(`https://api.teleport.org/api/urban_areas/slug:${slug}/details/`, {
       signal: AbortSignal.timeout(5000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      teleportDead = true;
+      return null;
+    }
 
     const data = await res.json();
     const categories = data?.categories || [];
@@ -193,41 +208,60 @@ async function fetchTeleportCityCost(slug: string): Promise<number | null> {
     }
     return null;
   } catch {
+    teleportDead = true;
     return null;
   }
 }
 
 const FALLBACK_PROFILES: Record<string, TeleportCost> = {
-  'new-york': { currency: 'USD', salarioMedio: 6500, custoVida: 4500, fonte: 'Teleport (dados de referência)' },
-  'london': { currency: 'GBP', salarioMedio: 4200, custoVida: 3500, fonte: 'Teleport (dados de referência)' },
-  'tokyo': { currency: 'JPY', salarioMedio: 450000, custoVida: 300000, fonte: 'Teleport (dados de referência)' },
-  'paris': { currency: 'EUR', salarioMedio: 3500, custoVida: 2800, fonte: 'Teleport (dados de referência)' },
-  'berlin': { currency: 'EUR', salarioMedio: 3800, custoVida: 2400, fonte: 'Teleport (dados de referência)' },
-  'toronto': { currency: 'CAD', salarioMedio: 5500, custoVida: 4200, fonte: 'Teleport (dados de referência)' },
-  'sydney': { currency: 'AUD', salarioMedio: 6800, custoVida: 5000, fonte: 'Teleport (dados de referência)' },
-  'lisbon': { currency: 'EUR', salarioMedio: 1500, custoVida: 1400, fonte: 'Teleport (dados de referência)' },
-  'dubai': { currency: 'AED', salarioMedio: 15000, custoVida: 10000, fonte: 'Teleport (dados de referência)' },
-  'buenos-aires': { currency: 'ARS', salarioMedio: 800000, custoVida: 700000, fonte: 'Teleport (dados de referência)' },
+  'new-york': { currency: 'USD', salarioMedio: 6500, custoVida: 4800, fonte: 'dados de referência' },
+  'new york': { currency: 'USD', salarioMedio: 6500, custoVida: 4800, fonte: 'dados de referência' },
+  'london': { currency: 'GBP', salarioMedio: 4200, custoVida: 3500, fonte: 'dados de referência' },
+  'tokyo': { currency: 'JPY', salarioMedio: 450000, custoVida: 300000, fonte: 'dados de referência' },
+  'paris': { currency: 'EUR', salarioMedio: 3500, custoVida: 2800, fonte: 'dados de referência' },
+  'berlin': { currency: 'EUR', salarioMedio: 3800, custoVida: 2400, fonte: 'dados de referência' },
+  'toronto': { currency: 'CAD', salarioMedio: 5500, custoVida: 4200, fonte: 'dados de referência' },
+  'sydney': { currency: 'AUD', salarioMedio: 6800, custoVida: 5000, fonte: 'dados de referência' },
+  'lisbon': { currency: 'EUR', salarioMedio: 1500, custoVida: 1400, fonte: 'dados de referência' },
+  'dubai': { currency: 'AED', salarioMedio: 15000, custoVida: 10000, fonte: 'dados de referência' },
+  'buenos-aires': { currency: 'ARS', salarioMedio: 800000, custoVida: 700000, fonte: 'dados de referência' },
+  'buenos aires': { currency: 'ARS', salarioMedio: 800000, custoVida: 700000, fonte: 'dados de referência' },
+  'miami': { currency: 'USD', salarioMedio: 5200, custoVida: 3900, fonte: 'dados de referência' },
+  'madrid': { currency: 'EUR', salarioMedio: 2600, custoVida: 2000, fonte: 'dados de referência' },
+  'los-angeles': { currency: 'USD', salarioMedio: 5800, custoVida: 4400, fonte: 'dados de referência' },
+  'los angeles': { currency: 'USD', salarioMedio: 5800, custoVida: 4400, fonte: 'dados de referência' },
+  'mexico-city': { currency: 'MXN', salarioMedio: 18000, custoVida: 14000, fonte: 'dados de referência' },
+  'mexico city': { currency: 'MXN', salarioMedio: 18000, custoVida: 14000, fonte: 'dados de referência' },
+  'sao-paulo': { currency: 'BRL', salarioMedio: 3800, custoVida: 3200, fonte: 'dados de referência' },
+  'sao paulo': { currency: 'BRL', salarioMedio: 3800, custoVida: 3200, fonte: 'dados de referência' },
+  'rio-de-janeiro': { currency: 'BRL', salarioMedio: 3500, custoVida: 3000, fonte: 'dados de referência' },
+  'rio de janeiro': { currency: 'BRL', salarioMedio: 3500, custoVida: 3000, fonte: 'dados de referência' },
 };
 
 const CITY_PROFILES_CACHE = new Map<string, TeleportCost>();
 
-export async function getTeleportCityProfile(cityName: string, countryName: string): Promise<TeleportCost> {
+export interface CountryIncomeInfo {
+  gniUSD: number;
+  year: number;
+}
+
+export async function getTeleportCityProfile(
+  cityName: string,
+  countryName: string,
+  iso3?: string,
+  incomeInfo?: CountryIncomeInfo | null,
+): Promise<TeleportCost> {
   const normalizedCity = cityName.toLowerCase().trim();
   const normalizedCountry = countryName.toLowerCase().trim();
-  const cacheKey = `${normalizedCity}|${normalizedCountry}`;
+  const slug = normalizedCity.replace(/[\s.]+/g, '-');
+  const cacheKey = `${slug}|${normalizedCountry}`;
 
   const cached = CITY_PROFILES_CACHE.get(cacheKey);
   if (cached) return cached;
 
-  const fallbackProfile = FALLBACK_PROFILES[normalizedCity];
-  if (!fallbackProfile) {
-    const generated = generateFallbackProfile(normalizedCity, normalizedCountry);
-    CITY_PROFILES_CACHE.set(cacheKey, generated);
-    return generated;
-  }
+  const fallbackProfile = FALLBACK_PROFILES[normalizedCity] || FALLBACK_PROFILES[slug];
 
-  const slug = normalizedCity.toLowerCase().replace(/[\s.]+/g, '-');
+  // 1. Tenta a API Teleport ao vivo (se voltar a existir). Senão, usa o perfil curado.
   const [salaryData, costData] = await Promise.all([
     fetchTeleportCitySalary(slug),
     fetchTeleportCityCost(slug),
@@ -238,14 +272,35 @@ export async function getTeleportCityProfile(cityName: string, countryName: stri
       currency: salaryData.currency,
       salarioMedio: salaryData.salarioMedio,
       custoVida: costData ?? (fallbackProfile?.custoVida ?? salaryData.salarioMedio * 0.7),
-      fonte: 'Teleport API (2024)',
+      fonte: 'Teleport API',
     };
     CITY_PROFILES_CACHE.set(cacheKey, result);
     return result;
   }
 
-  CITY_PROFILES_CACHE.set(cacheKey, fallbackProfile);
-  return fallbackProfile;
+  // 2. Perfil curado (cidades grandes)
+  if (fallbackProfile) {
+    CITY_PROFILES_CACHE.set(cacheKey, fallbackProfile);
+    return fallbackProfile;
+  }
+
+  // 3. Dados reais por país via World Bank (GNI per capita → salário mensal)
+  if (incomeInfo && incomeInfo.gniUSD > 0) {
+    const monthly = Math.round(incomeInfo.gniUSD / 12);
+    const result: TeleportCost = {
+      currency: (iso3 && CURRENCY_MAP[iso3]) || 'USD',
+      salarioMedio: monthly,
+      custoVida: Math.round(monthly * 0.7),
+      fonte: `World Bank — Renda per capita (${incomeInfo.year})`,
+    };
+    CITY_PROFILES_CACHE.set(cacheKey, result);
+    return result;
+  }
+
+  // 4. Último recurso: estimativa por país
+  const generated = generateFallbackProfile(normalizedCity, normalizedCountry);
+  CITY_PROFILES_CACHE.set(cacheKey, generated);
+  return generated;
 }
 
 function generateFallbackProfile(city: string, country: string): TeleportCost {

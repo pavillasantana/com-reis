@@ -18,6 +18,7 @@ import { useGlobalCountries, useGlobalStates, useGlobalCitiesForCountry } from '
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useI18n } from '../i18n';
 import { useWorldBankPPP, convertViaPPP } from '../hooks/useWorldBankPPP';
+import { useWorldBankGNI } from '../hooks/useWorldBankGNI';
 
 interface CostExplorerProps {
   planoUsuario: 'free' | 'premium';
@@ -68,6 +69,7 @@ export function CostExplorer({
 
   const { data: rates } = useExchangeRates(planoUsuario === 'premium');
   const { pppData: worldPPP } = useWorldBankPPP();
+  const { gniData: worldGNI } = useWorldBankGNI();
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -116,8 +118,16 @@ export function CostExplorer({
       } else {
         const cityToLookup = selectedCity || selectedCountry;
         if (cityToLookup) {
-          const glProfile: TeleportCost = await getTeleportCityProfile(cityToLookup, selectedCountry);
           const matchedCountry = globalCountries?.find(c => c.country === selectedCountry);
+          const incomeInfo = matchedCountry?.iso3 && worldGNI[matchedCountry.iso3]
+            ? { gniUSD: worldGNI[matchedCountry.iso3].gniUSD, year: worldGNI[matchedCountry.iso3].year }
+            : null;
+          const glProfile: TeleportCost = await getTeleportCityProfile(
+            cityToLookup,
+            selectedCountry,
+            matchedCountry?.iso3,
+            incomeInfo,
+          );
           if (!cancelled) {
             setProfile({
               salarioMedio: glProfile.salarioMedio,
@@ -136,7 +146,7 @@ export function CostExplorer({
 
     loadProfile();
     return () => { cancelled = true; };
-  }, [selectedUf, selectedCity, selectedCountry, isBrazil, selectedMunicipio, estados, globalCountries]);
+  }, [selectedUf, selectedCity, selectedCountry, isBrazil, selectedMunicipio, estados, globalCountries, worldGNI]);
 
   const rateToBRL = rates ? (profile.currency === 'BRL' ? 1 : (rates[profile.currency] || 1)) : 1;
   const profileSalarioBRL = profile.salarioMedio * rateToBRL;
@@ -636,7 +646,7 @@ export function CostExplorer({
                 </span>
                 <div style={{ fontSize: '0.8rem', lineHeight: '1.4', color: 'var(--text-secondary)' }}>
                   {(() => {
-                    const userCurrencyPPP = worldPPP[moedaBase];
+                    const userCurrencyPPP = Object.values(worldPPP).find(p => p.currency === moedaBase);
                     const targetPPP = worldPPP[profile.iso3 || ''];
                     if (!userCurrencyPPP || !targetPPP) return null;
 

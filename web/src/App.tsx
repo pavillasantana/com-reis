@@ -47,7 +47,9 @@ import { AccountSettingsModal, type AccountSettingsData } from './components/Acc
 import { TagsManagerModal } from './components/TagsManagerModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { ExportarRelatoriosModal } from './components/ExportarRelatoriosModal';
+import { ProfileCompletionBanner } from './components/ProfileCompletionBanner';
 import { ConfiguracoesView } from './components/ConfiguracoesView';
+import { CalculadorasView } from './components/CalculadorasView';
 import { exportTransactionsToCSV, downloadBlob } from './utils/exporter';
 import { FAQModal, TermosModal } from './components/FAQTermos';
 import { useExchangeRates } from './hooks/useExchangeRates';
@@ -207,7 +209,7 @@ export default function App() {
   const [depositGoal, setDepositGoal] = useState<{ id: string; nome: string; saved: number; target: number } | null>(null);
 
   // Local UI States
-  const [activeView, setActiveView] = useState<'dashboard' | 'costExplorer' | 'blog' | 'investimentos' | 'proventos' | 'fluxopj' | 'inventario' | 'calendario' | 'analiseGastos' | 'compartilhados' | 'configuracoes'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'costExplorer' | 'blog' | 'investimentos' | 'proventos' | 'fluxopj' | 'inventario' | 'calendario' | 'analiseGastos' | 'compartilhados' | 'configuracoes' | 'calculadoras'>('dashboard');
   const [landingView, setLandingView] = useState<'home' | 'costExplorer' | 'blog'>('home');
   const [activeArticle, setActiveArticle] = useState<Article | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
@@ -2603,6 +2605,7 @@ export default function App() {
                     </label>
                     <TextInput 
                       type="password"
+                      autoComplete="new-password"
                       placeholder={t('password_min_placeholder')}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
@@ -2623,6 +2626,7 @@ export default function App() {
                     </label>
                     <TextInput 
                       type="email"
+                      autoComplete="email"
                       placeholder="seu@email.com"
                       value={authEmail}
                       onChange={(e) => setAuthEmail(e.target.value)}
@@ -2651,6 +2655,7 @@ export default function App() {
                       </label>
                       <TextInput 
                         type="email"
+                        autoComplete="email"
                         placeholder="seu@email.com"
                         value={authEmail}
                         onChange={(e) => setAuthEmail(e.target.value)}
@@ -2663,6 +2668,7 @@ export default function App() {
                       </label>
                       <TextInput 
                         type="password"
+                        autoComplete="current-password"
                         placeholder={t('password_min_placeholder')}
                         value={authPassword}
                         onChange={(e) => setAuthPassword(e.target.value)}
@@ -2771,6 +2777,7 @@ export default function App() {
                       </label>
                       <TextInput 
                         placeholder="Ex: Rodrigo Silva"
+                        autoComplete="name"
                         value={onboardName}
                         onChange={(e) => setOnboardName(e.target.value)}
                         required
@@ -2782,6 +2789,7 @@ export default function App() {
                       </label>
                       <TextInput 
                         type="email"
+                        autoComplete="email"
                         placeholder="seu@email.com"
                         value={authEmail}
                         onChange={(e) => setAuthEmail(e.target.value)}
@@ -2794,6 +2802,7 @@ export default function App() {
                       </label>
                       <TextInput 
                         type="password"
+                        autoComplete="new-password"
                         placeholder={t('password_min_placeholder')}
                         value={authPassword}
                         onChange={(e) => setAuthPassword(e.target.value)}
@@ -3063,6 +3072,7 @@ export default function App() {
                     { view: 'analiseGastos' as const, label: t('web_analise_nav'), icon: 'bar_chart' },
                     { view: 'compartilhados' as const, label: t('gastos_compartilhados_title'), icon: 'group' },
                     { view: 'configuracoes' as const, label: t('web_settings_title'), icon: 'settings' },
+                    { view: 'calculadoras' as const, label: t('calc_title'), icon: 'calculate' },
                   ]).map(item => (
                     <button
                       key={item.view}
@@ -3148,6 +3158,7 @@ export default function App() {
                 { view: 'analiseGastos' as const, label: t('web_analise_nav'), icon: 'bar_chart' },
                 { view: 'compartilhados' as const, label: t('gastos_compartilhados_title'), icon: 'group' },
                 { view: 'configuracoes' as const, label: t('web_settings_title'), icon: 'settings' },
+                { view: 'calculadoras' as const, label: t('calc_title'), icon: 'calculate' },
               ]).map(item => (
                 <button
                   key={item.view}
@@ -3721,6 +3732,7 @@ export default function App() {
 
           {activeView === 'dashboard' && (
             <>
+              <ProfileCompletionBanner onGoSettings={() => setActiveView('configuracoes')} />
               {/* MAIN PANELS GRID */}
               <div className="rg-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '36px', marginBottom: '24px'}}>
             {/* LEFT: SALDO E ESPAÇO INFO */}
@@ -4792,6 +4804,10 @@ export default function App() {
             />
           )}
 
+          {activeView === 'calculadoras' && (
+            <CalculadorasView moeda={moeda_base} />
+          )}
+
           {activeView === 'blog' && (
             <div style={{ padding: '0 0 40px 0' }}>
               {activeArticle ? (
@@ -5041,14 +5057,14 @@ export default function App() {
                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>
                   {t('web_user_menu_password_new')}
                 </label>
-                <TextInput type="password" placeholder="••••••••" value={passwordInput}
+                <TextInput type="password" autoComplete="new-password" placeholder="••••••••" value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)} />
               </div>
               <div>
                 <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>
                   {t('web_user_menu_password_confirm')}
                 </label>
-                <TextInput type="password" placeholder="••••••••" value={passwordConfirmInput}
+                <TextInput type="password" autoComplete="new-password" placeholder="••••••••" value={passwordConfirmInput}
                   onChange={(e) => setPasswordConfirmInput(e.target.value)} />
               </div>
               <div style={{ display: 'flex', gap: '18px', marginTop: '12px' }}>
