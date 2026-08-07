@@ -1,4 +1,5 @@
 import type { Transacao, Conta } from '../store/useStore';
+import type { ApuracaoMes, DARF } from './fiscalBR';
 import { convertCurrency } from './currency';
 
 const COLUMNS = [
@@ -69,4 +70,43 @@ export function downloadBlob(blob: Blob, filename: string): void {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// ─── Exportações fiscais BR ─────────────────────────────────────────────
+
+export function exportApuracoesCSV(meses: ApuracaoMes[]): Blob {
+  const header = [
+    'Mês', 'Vendas Ações', 'Ganho Isento', 'Resultado Ações', 'Base Ações',
+    'IR Ações', 'Resultado FII', 'IR FII', 'Resultado Outros', 'IR Outros',
+    'Resultado Day Trade', 'IR Day Trade', 'Total Vendas', 'Total DARF',
+  ];
+  const rows = meses.map((m) => [
+    m.mes,
+    m.acoes.vendas.toFixed(2),
+    m.ganho_isento.toFixed(2),
+    m.acoes.resultado.toFixed(2),
+    m.acoes.base.toFixed(2),
+    m.acoes.imposto.toFixed(2),
+    m.fiis.resultado.toFixed(2),
+    m.fiis.imposto.toFixed(2),
+    m.outros.resultado.toFixed(2),
+    m.outros.imposto.toFixed(2),
+    m.daytrade.resultado.toFixed(2),
+    m.daytrade.imposto.toFixed(2),
+    m.total_vendas.toFixed(2),
+    m.total_darf.toFixed(2),
+  ]);
+  const bom = '\uFEFF';
+  return new Blob([bom + [header, ...rows].map((r) => r.map(escapeCSV).join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
+}
+
+export function exportDARFsCSV(darfs: DARF[]): Blob {
+  const header = ['Mês de Apuração', 'Código', 'Valor (R$)', 'Vencimento'];
+  const rows = darfs.map((d) => [d.mes, d.codigo, d.valor.toFixed(2), formatDateISO(d.vencimento)]);
+  const bom = '\uFEFF';
+  return new Blob([bom + [header, ...rows].map((r) => r.map(escapeCSV).join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
+}
+
+export function exportFiscalJSON(apuracao: ApuracaoMes[], darfs: DARF[]): Blob {
+  return new Blob([JSON.stringify({ apuracao, darfs, gerado_em: new Date().toISOString() }, null, 2)], { type: 'application/json;charset=utf-8;' });
 }

@@ -51,6 +51,7 @@ import { ExportarRelatoriosModal } from './components/ExportarRelatoriosModal';
 import { ProfileCompletionBanner } from './components/ProfileCompletionBanner';
 import { ConfiguracoesView } from './components/ConfiguracoesView';
 import { CalculadorasView } from './components/CalculadorasView';
+import { FiscalBRView } from './components/FiscalBRView';
 import { exportTransactionsToCSV, downloadBlob } from './utils/exporter';
 import { FAQModal, TermosModal } from './components/FAQTermos';
 import { useExchangeRates } from './hooks/useExchangeRates';
@@ -214,7 +215,7 @@ export default function App() {
   const [depositGoal, setDepositGoal] = useState<{ id: string; nome: string; saved: number; target: number } | null>(null);
 
   // Local UI States
-  const [activeView, setActiveView] = useState<'dashboard' | 'costExplorer' | 'blog' | 'investimentos' | 'proventos' | 'fluxopj' | 'inventario' | 'calendario' | 'analiseGastos' | 'compartilhados' | 'configuracoes' | 'calculadoras'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'costExplorer' | 'blog' | 'investimentos' | 'proventos' | 'fluxopj' | 'inventario' | 'calendario' | 'analiseGastos' | 'compartilhados' | 'configuracoes' | 'calculadoras' | 'fiscal'>('dashboard');
   const [landingView, setLandingView] = useState<'home' | 'costExplorer' | 'blog'>('home');
   const [activeArticle, setActiveArticle] = useState<Article | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
@@ -3130,6 +3131,7 @@ export default function App() {
                     { view: 'compartilhados' as const, label: t('gastos_compartilhados_title'), icon: 'group' },
                     { view: 'configuracoes' as const, label: t('web_settings_title'), icon: 'settings' },
                     { view: 'calculadoras' as const, label: t('calc_title'), icon: 'calculate' },
+                    { view: 'fiscal' as const, label: t('web_fiscal_nav'), icon: 'receipt_long' },
                   ]).map(item => (
                     <button
                       key={item.view}
@@ -3216,6 +3218,7 @@ export default function App() {
                 { view: 'compartilhados' as const, label: t('gastos_compartilhados_title'), icon: 'group' },
                 { view: 'configuracoes' as const, label: t('web_settings_title'), icon: 'settings' },
                 { view: 'calculadoras' as const, label: t('calc_title'), icon: 'calculate' },
+                { view: 'fiscal' as const, label: t('web_fiscal_nav'), icon: 'receipt_long' },
               ]).map(item => (
                 <button
                   key={item.view}
@@ -4863,6 +4866,10 @@ export default function App() {
 
           {activeView === 'calculadoras' && (
             <CalculadorasView moeda={moeda_base} />
+          )}
+
+          {activeView === 'fiscal' && (
+            <FiscalBRView onUpgrade={handleOpenCheckout} />
           )}
 
           {activeView === 'blog' && (
