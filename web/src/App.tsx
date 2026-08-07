@@ -16,6 +16,7 @@ import { getAuthErrorMessage, validateEmail, validatePassword } from './lib/auth
 import { SUPABASE_URL } from './constants/config';
 import { updatePerfil, createTransacaoAtivo, createTagBancaria, updateTagBancariaRemote, deleteTagBancaria } from './services/supabaseService';
 import { formatCurrency, addMoney, subtractMoney, multiplyMoney, convertCurrency } from './utils/currency';
+import { montarNomeCompleto, normalizarNomeRepetido } from './utils/nomeCompleto';
 import { parseCSV, parseOFX, parseXLSX, parsePDF, detectInvestmentSubtype } from './utils/importer';
 import { getCategoriaByTicker } from './utils/investmentCategories';
 import { Card } from './components/Card';
@@ -1502,16 +1503,16 @@ export default function App() {
 
     let finalAvatarUrl = profileAvatarInput;
     const rendaValor = parseFloat(String(rendaInput).replace(',', '.')) || 0;
-    const nomeCompleto = [profileNameInput.trim(), sobrenome || ''].filter(Boolean).join(' ');
+    const nomeCompleto = normalizarNomeRepetido(montarNomeCompleto(profileNameInput.trim(), sobrenome)) || null;
 
-    setUsuario(id_usuario, email_usuario, profileNameInput.trim(), plano_usuario, moeda_base, finalAvatarUrl);
-    setPerfilDados({ renda_principal: rendaValor, profissao: profissaoInput.trim() || null, fonte_renda: fonteRendaInput || null });
+    setUsuario(id_usuario, email_usuario, nomeCompleto, plano_usuario, moeda_base, finalAvatarUrl);
+    setPerfilDados({ renda_principal: rendaValor, profissao: profissaoInput.trim() || null, fonte_renda: fonteRendaInput || null, nome_usuario: nomeCompleto });
 
     // Atualizar no Supabase para refletir instantaneamente no Mobile
     if (id_usuario && isSupabaseConfigured) {
       // 1. Atualiza metadados do auth (para persistência de sessão)
       supabase.auth.updateUser({
-        data: { avatar_url: finalAvatarUrl, nome: profileNameInput.trim() }
+        data: { avatar_url: finalAvatarUrl, nome: nomeCompleto }
       }).then(({ error }: { error: any }) => {
         if (error) console.error("Error updating user meta:", error);
       });
@@ -1532,10 +1533,10 @@ export default function App() {
   };
 
   const handleSaveAccountSettings = async (data: AccountSettingsData) => {
-    const nomeCompleto = [data.nome.trim(), data.sobrenome.trim()].filter(Boolean).join(' ') || null;
+    const nomeCompleto = normalizarNomeRepetido(montarNomeCompleto(data.nome.trim(), data.sobrenome.trim())) || null;
     setPerfilDados({
-      nome_usuario: data.nome.trim() || null,
-      sobrenome: data.sobrenome.trim() || null,
+      nome_usuario: nomeCompleto,
+      sobrenome: normalizarNomeRepetido(data.sobrenome.trim()) || null,
       data_nascimento: data.data_nascimento || null,
       documento: data.documento.trim() || null,
       endereco: data.endereco.trim() || null,
@@ -5429,8 +5430,8 @@ export default function App() {
         onClose={() => setShowAccountSettingsModal(false)}
         initial={{
           email: email_usuario || '',
-          nome: nome_usuario || '',
-          sobrenome: sobrenome || '',
+          nome: (nome_usuario || '').trim().split(' ')[0],
+          sobrenome: sobrenome || (nome_usuario || '').trim().split(' ').slice(1).join(' '),
           data_nascimento: data_nascimento || '',
           documento: documento || '',
           endereco: endereco || '',

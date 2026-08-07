@@ -13,6 +13,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 import { fetchPerfil } from '../services/supabaseService';
 import { captureError } from '../lib/sentry';
+import { normalizarNomeRepetido } from '../utils/nomeCompleto';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export interface AuthError {
@@ -131,7 +132,7 @@ export function useAuth(): UseAuthReturn {
         setUsuario(
           perfil.id,
           email,
-          perfil.nome_completo ?? email.split('@')[0],
+          normalizarNomeRepetido(perfil.nome_completo ?? email.split('@')[0]),
           perfil.plano,
           perfil.moeda_base,
           avatar
